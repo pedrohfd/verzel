@@ -1,0 +1,24 @@
+{
+  "name": "@verzel/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@verzel/db": "workspace:*",
+    "@verzel/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@verzel/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
