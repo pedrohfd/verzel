@@ -55,5 +55,7 @@ interface TmdbTrendingResponse {
 }
 
 export function getTrendingMovies(timeWindow: "day" | "week" = "week") {
-	return fetchTmdb<TmdbTrendingResponse>(`/trending/movie/${timeWindow}`);
+	return fetchTmdb<TmdbTrendingResponse>(`/trending/movie/${timeWindow}`, {
+		language: "pt-BR",
+	});
 }
