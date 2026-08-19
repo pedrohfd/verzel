@@ -34,7 +34,7 @@ fastify.route({
       });
       const response = await auth.handler(req);
       reply.status(response.status);
-      response.headers.forEach((value, key) => reply.header(key, value));
+      for (const [key, value] of response.headers) reply.header(key, value);
       reply.send(response.body ? await response.text() : null);
     } catch (error) {
       fastify.log.error({ err: error }, "Authentication Error:");
@@ -50,10 +50,23 @@ fastify.get("/", async () => {
   return "OK";
 });
 
-fastify.listen({ port: 3000 }, (err) => {
-  if (err) {
-    fastify.log.error(err);
-    process.exit(1);
-  }
-  console.log("Server running on port 3000");
-});
+if (process.env.VERCEL) {
+  // Vercel's Node.js Function runtime calls the default export directly
+  // as a (req, res) handler; it doesn't call fastify.listen() for us.
+  await fastify.ready();
+} else {
+  fastify.listen({ port: 3000 }, (err) => {
+    if (err) {
+      fastify.log.error(err);
+      process.exit(1);
+    }
+    console.log("Server running on port 3000");
+  });
+}
+
+export default async function handler(
+  req: import("node:http").IncomingMessage,
+  res: import("node:http").ServerResponse,
+) {
+  fastify.server.emit("request", req, res);
+}

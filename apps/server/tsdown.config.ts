@@ -5,7 +5,11 @@ export default defineConfig({
   format: "esm",
   outDir: "./dist",
   clean: true,
+  dts: false,
   deps: {
-    alwaysBundle: [/@verzel\/.*/],
+    // Vercel's deployed function doesn't resolve any node_modules deps at
+    // runtime (Bun's node_modules layout isn't traced), so every dependency
+    // must be inlined into the bundle.
+    alwaysBundle: () => true,
   },
 });
