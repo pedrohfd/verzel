@@ -1,27 +1,21 @@
 import { Link } from "@tanstack/react-router";
+import { Input } from "@verzel/ui/components/input";
+import { Search } from "lucide-react";
 
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
 
 export default function Header() {
-	const links = [
-		{ to: "/", label: "Home" },
-		{ to: "/movies", label: "Movies" },
-		{ to: "/dashboard", label: "Dashboard" },
-	] as const;
-
 	return (
 		<div>
-			<div className="flex flex-row items-center justify-between px-2 py-1">
-				<nav className="flex gap-4 text-lg">
-					{links.map(({ to, label }) => {
-						return (
-							<Link key={to} to={to}>
-								{label}
-							</Link>
-						);
-					})}
-				</nav>
+			<div className="flex flex-row items-center justify-between gap-4 px-2 py-1">
+				<Link className="font-bold text-lg" to="/">
+					verzel
+				</Link>
+				<div className="relative w-full max-w-sm">
+					<Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+					<Input className="pl-8" placeholder="Buscar filme..." />
+				</div>
 				<div className="flex items-center gap-2">
 					<ModeToggle />
 					<UserMenu />

@@ -32,7 +32,7 @@ export default function UserMenu() {
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger render={<Button variant="outline" />}>
-				{session.user.name}
+				Olá, {session.user.name}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="bg-card">
 				<DropdownMenuGroup>
