@@ -34,6 +34,8 @@
     "db:studio": "turbo run db:studio -F @verzel/db --",
     "db:generate": "turbo run db:generate -F @verzel/db --",
     "db:migrate": "turbo run db:migrate -F @verzel/db --",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
     "deploy:setup": "vercel link",
     "dev:vercel": "vercel dev -L",
     "env:preview": "tsx scripts/sync-vercel-env.ts preview",

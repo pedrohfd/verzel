@@ -17,13 +17,14 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0",
     "@verzel/env": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.2",
+    "pg": "^8.16.3",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/pg": "^8.15.6",
     "@verzel/config": "workspace:*",
     "drizzle-kit": "^0.31.10",
     "typescript": "catalog:"

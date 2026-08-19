@@ -11,6 +11,7 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="input-group"
+      // biome-ignore lint/a11y/useSemanticElements: generic wrapper, not a form fieldset
       role="group"
       className={cn(
         "group/input-group relative flex h-8 w-full min-w-0 items-center rounded-none border border-input bg-background shadow-xs transition-[color,box-shadow] outline-none has-[>textarea]:h-auto dark:bg-input/30",
@@ -51,6 +52,8 @@ function InputGroupAddon({
   ...props
 }: React.ComponentProps<"div"> & VariantProps<typeof inputGroupAddonVariants>) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: generic wrapper, not a form fieldset
+    // biome-ignore lint/a11y/useKeyWithClickEvents: click only refocuses the sibling input, not a standalone control
     <div
       role="group"
       data-slot="input-group-addon"

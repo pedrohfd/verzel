@@ -29,14 +29,26 @@ bun install
 
 This project uses PostgreSQL with Drizzle ORM.
 
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
+### Local development (Docker)
+
+1. Copy `apps/server/.env.example` to `apps/server/.env` (defaults already point to the local Docker Postgres).
+2. Start a local Postgres instance:
+
+```bash
+bun run docker:up
+```
 
 3. Apply the schema to your database:
 
 ```bash
 bun run db:push
 ```
+
+Stop the local database with `bun run docker:down` (data persists in a Docker volume between restarts).
+
+### Using a hosted database (e.g. Neon)
+
+Update `apps/server/.env` with your PostgreSQL connection details (a Neon `postgresql://...?sslmode=require` URL works out of the box — SSL is enabled automatically when `sslmode=require` is present), then run `bun run db:push`.
 
 Then, run the development server:
 
@@ -121,6 +133,8 @@ verzel/
 - `bun run db:generate`: Generate database client/types
 - `bun run db:migrate`: Run database migrations
 - `bun run db:studio`: Open database studio UI
+- `bun run docker:up`: Start the local Postgres container
+- `bun run docker:down`: Stop the local Postgres container
 - `bun run check`: Run Biome formatting and linting
 - `bun run deploy:setup`: Link this repo to a Vercel project (first-time setup)
 - `bun run dev:vercel`: Run the Vercel Services dev environment locally
