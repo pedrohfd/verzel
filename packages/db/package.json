@@ -1,32 +1,32 @@
 {
-  "name": "@verzel/db",
-  "type": "module",
-  "exports": {
-    ".": {
-      "default": "./src/index.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
-    }
-  },
-  "scripts": {
-    "db:push": "drizzle-kit push",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate:deploy": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
-    "db:migrate": "drizzle-kit migrate"
-  },
-  "dependencies": {
-    "@verzel/env": "workspace:*",
-    "dotenv": "catalog:",
-    "drizzle-orm": "^0.45.2",
-    "pg": "^8.16.3",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@types/pg": "^8.15.6",
-    "@verzel/config": "workspace:*",
-    "drizzle-kit": "^0.31.10",
-    "typescript": "catalog:"
-  }
+	"name": "@verzel/db",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {
+		"db:push": "drizzle-kit push",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate:deploy": "drizzle-kit migrate",
+		"db:studio": "drizzle-kit studio",
+		"db:migrate": "drizzle-kit migrate"
+	},
+	"dependencies": {
+		"@verzel/env": "workspace:*",
+		"dotenv": "catalog:",
+		"drizzle-orm": "^0.45.2",
+		"pg": "^8.16.3",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@types/pg": "^8.15.6",
+		"@verzel/config": "workspace:*",
+		"drizzle-kit": "^0.31.10",
+		"typescript": "catalog:"
+	}
 }
