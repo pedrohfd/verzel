@@ -1,11 +1,12 @@
 import { Button } from "@verzel/ui/components/button";
 import {
 	Dialog,
+	DialogClose,
 	DialogContent,
 	DialogTitle,
 } from "@verzel/ui/components/dialog";
 import { Skeleton } from "@verzel/ui/components/skeleton";
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { getMovieTrailers } from "@/api/requests/movies/get-movie-trailers";
@@ -142,7 +143,7 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 						type="button"
 						aria-label={`Ver ${m.title}`}
 						onClick={() => setActiveIndex(index)}
-						className={`size-2 rounded-full transition-colors ${
+						className={`size-2 cursor-pointer rounded-full transition-colors ${
 							index === activeIndex ? "bg-destructive" : "bg-white/40"
 						}`}
 					/>
@@ -150,10 +151,14 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 			</div>
 
 			<Dialog open={isTrailerOpen} onOpenChange={setIsTrailerOpen}>
-				<DialogContent className="max-w-3xl p-0">
-					<DialogTitle className="sr-only">
-						Trailer de {movie.title}
-					</DialogTitle>
+				<DialogContent className="max-w-3xl p-0" showCloseButton={false}>
+					<div className="flex items-center justify-between border-border border-b p-4">
+						<DialogTitle>{movie.title}</DialogTitle>
+						<DialogClose className="cursor-pointer rounded-none opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none">
+							<XIcon className="size-4" />
+							<span className="sr-only">Fechar</span>
+						</DialogClose>
+					</div>
 					<div className="aspect-video w-full">
 						{isLoadingTrailer && <Skeleton className="h-full w-full" />}
 						{!isLoadingTrailer && selectedTrailer && (
