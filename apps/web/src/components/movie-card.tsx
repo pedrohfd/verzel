@@ -1,7 +1,7 @@
 import { Button } from "@verzel/ui/components/button";
 import { Card, CardContent, CardFooter } from "@verzel/ui/components/card";
 
-import type { EnrichedMovie } from "@/lib/movies";
+import type { EnrichedMovie } from "@/api/types";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 
 export default function MovieCard({ movie }: { movie: EnrichedMovie }) {

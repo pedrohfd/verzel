@@ -16,6 +16,7 @@
 		"@tanstack/react-router": "^1.170.18",
 		"@verzel/env": "workspace:*",
 		"@verzel/ui": "workspace:*",
+		"axios": "1.19.0",
 		"better-auth": "catalog:",
 		"dotenv": "catalog:",
 		"lucide-react": "catalog:",
@@ -23,7 +24,8 @@
 		"react": "catalog:",
 		"react-dom": "catalog:",
 		"sonner": "catalog:",
-		"zod": "catalog:"
+		"zod": "catalog:",
+		"zustand": "^5.0.8"
 	},
 	"devDependencies": {
 		"@tanstack/react-router-devtools": "^1.167.0",

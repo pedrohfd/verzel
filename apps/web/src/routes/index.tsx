@@ -1,39 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { env } from "@verzel/env/web";
 import { Skeleton } from "@verzel/ui/components/skeleton";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
+import { getNowPlayingMovies } from "@/api/requests/movies/get-now-playing-movies";
 import MovieCard from "@/components/movie-card";
 import MovieHero from "@/components/movie-hero";
-import type { EnrichedMovie } from "@/lib/movies";
+import { tryCatch } from "@/lib/try-catch";
+import { useMoviesStore } from "@/stores/movies-store";
 
 export const Route = createFileRoute("/")({
 	component: HomeComponent,
 });
 
-interface HomeResponse {
-	results: EnrichedMovie[];
-}
-
 function HomeComponent() {
-	const [movies, setMovies] = useState<EnrichedMovie[] | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const movies = useMoviesStore((state) => state.movies);
+	const error = useMoviesStore((state) => state.error);
+	const setMovies = useMoviesStore((state) => state.setMovies);
+	const setError = useMoviesStore((state) => state.setError);
+
+	const getNowPlayingMoviesFn = async (controller: AbortController) => {
+		const [response, error] = await tryCatch(
+			getNowPlayingMovies(controller.signal),
+		);
+
+		if (error) {
+			setError("Não foi possível carregar os filmes.");
+		}
+
+		setMovies(response);
+	};
 
 	useEffect(() => {
 		const controller = new AbortController();
 
-		fetch(`${env.VITE_SERVER_URL}/api/movies/home`, {
-			signal: controller.signal,
-		})
-			.then((response) => {
-				if (!response.ok) throw new Error("Falha ao carregar filmes");
-				return response.json() as Promise<HomeResponse>;
-			})
-			.then((data) => setMovies(data.results))
-			.catch((err) => {
-				if (err.name !== "AbortError")
-					setError("Não foi possível carregar os filmes.");
-			});
+		getNowPlayingMoviesFn(controller);
 
 		return () => controller.abort();
 	}, []);
@@ -58,7 +58,7 @@ function HomeComponent() {
 					<MovieHero movies={movies.slice(0, 4)} />
 
 					<section>
-						<h2 className="mb-4 font-semibold text-xl">Populares</h2>
+						<h2 className="mb-4 font-semibold text-xl">Em cartaz</h2>
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
 							{movies.slice(4).map((movie) => (
 								<MovieCard key={movie.id} movie={movie} />

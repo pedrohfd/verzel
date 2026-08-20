@@ -9,3 +9,11 @@ export interface EnrichedMovie {
 	certification: string;
 	audio: "Dublado";
 }
+
+export interface TmdbMovie {
+	id: number;
+	title: string;
+	poster_path: string | null;
+	release_date: string;
+	vote_average: number;
+}

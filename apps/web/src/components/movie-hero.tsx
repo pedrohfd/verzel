@@ -1,4 +1,3 @@
-import { env } from "@verzel/env/web";
 import { Button } from "@verzel/ui/components/button";
 import {
 	Dialog,
@@ -7,17 +6,40 @@ import {
 } from "@verzel/ui/components/dialog";
 import { Skeleton } from "@verzel/ui/components/skeleton";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import type { EnrichedMovie } from "@/lib/movies";
+import { getMovieTrailer } from "@/api/requests/movies/get-movie-trailer";
+import type { EnrichedMovie } from "@/api/types";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
+import { tryCatch } from "@/lib/try-catch";
 
 export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 	const [activeIndex, setActiveIndex] = useState(0);
 	const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 	const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
 	const [trailerKey, setTrailerKey] = useState<string | null>(null);
+	const trailerControllerRef = useRef<AbortController | null>(null);
 	const movie = movies[activeIndex];
+
+	async function handlePlayTrailer() {
+		setIsTrailerOpen(true);
+		setIsLoadingTrailer(true);
+
+		const controller = new AbortController();
+		trailerControllerRef.current = controller;
+
+		const [key, error] = await tryCatch(
+			getMovieTrailer(movie.id, controller.signal),
+		);
+
+		if (error) {
+			setTrailerKey(null);
+		} else {
+			setTrailerKey(key);
+		}
+
+		setIsLoadingTrailer(false);
+	}
 
 	useEffect(() => {
 		if (movies.length <= 1 || isTrailerOpen) return;
@@ -30,35 +52,20 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 	}, [activeIndex, movies.length, isTrailerOpen]);
 
 	useEffect(() => {
+		trailerControllerRef.current?.abort();
 		setIsTrailerOpen(false);
 		setTrailerKey(null);
 	}, [activeIndex]);
 
 	useEffect(() => {
-		for (const m of movies) {
-			if (!m.backdrop_path) continue;
+		for (const movie of movies) {
+			if (!movie.backdrop_path) continue;
 			const preload = new Image();
-			preload.src = tmdbImageUrl(m.backdrop_path, "w1280");
+			preload.src = tmdbImageUrl(movie.backdrop_path, "w1280");
 		}
 	}, [movies]);
 
 	if (!movie) return null;
-
-	async function handlePlayTrailer() {
-		setIsTrailerOpen(true);
-		setIsLoadingTrailer(true);
-		try {
-			const response = await fetch(
-				`${env.VITE_SERVER_URL}/api/movies/${movie.id}/trailer`,
-			);
-			const data = (await response.json()) as { key: string | null };
-			setTrailerKey(data.key);
-		} catch {
-			setTrailerKey(null);
-		} finally {
-			setIsLoadingTrailer(false);
-		}
-	}
 
 	return (
 		<div className="group relative aspect-21/9 w-full overflow-hidden bg-muted">
