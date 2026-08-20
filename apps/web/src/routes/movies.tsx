@@ -9,6 +9,8 @@ import {
 import { Skeleton } from "@verzel/ui/components/skeleton";
 import { useEffect, useState } from "react";
 
+import { tmdbImageUrl } from "@/lib/tmdb-image";
+
 interface TmdbMovie {
 	id: number;
 	title: string;
@@ -68,7 +70,7 @@ function MoviesComponent() {
 						<Card key={movie.id} className="gap-2">
 							{movie.poster_path && (
 								<img
-									src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+									src={tmdbImageUrl(movie.poster_path, "w342")}
 									alt={movie.title}
 									className="aspect-2/3 w-full object-cover"
 									loading="lazy"

@@ -2,13 +2,14 @@ import { Button } from "@verzel/ui/components/button";
 import { Card, CardContent, CardFooter } from "@verzel/ui/components/card";
 
 import type { EnrichedMovie } from "@/lib/movies";
+import { tmdbImageUrl } from "@/lib/tmdb-image";
 
 export default function MovieCard({ movie }: { movie: EnrichedMovie }) {
 	return (
 		<Card className="gap-2">
 			{movie.poster_path && (
 				<img
-					src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+					src={tmdbImageUrl(movie.poster_path, "w342")}
 					alt={movie.title}
 					className="aspect-2/3 w-full object-cover"
 					loading="lazy"

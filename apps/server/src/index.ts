@@ -4,6 +4,7 @@ import { env } from "@verzel/env/server";
 import Fastify from "fastify";
 
 import {
+	getMovieTrailerKey,
 	getNowPlayingMoviesEnriched,
 	getTrendingMovies,
 	TmdbError,
@@ -85,7 +86,7 @@ fastify.get<{ Querystring: { window?: "day" | "week" } }>(
 
 fastify.get("/api/movies/home", async (_request, reply) => {
 	try {
-		const results = await getNowPlayingMoviesEnriched();
+		const results = await getNowPlayingMoviesEnriched(19);
 		return { results };
 	} catch (error) {
 		const status = error instanceof TmdbError ? error.status : 502;
@@ -97,6 +98,24 @@ fastify.get("/api/movies/home", async (_request, reply) => {
 		});
 	}
 });
+
+fastify.get<{ Params: { id: string } }>(
+	"/api/movies/:id/trailer",
+	async (request, reply) => {
+		try {
+			const key = await getMovieTrailerKey(Number(request.params.id));
+			return { key };
+		} catch (error) {
+			const status = error instanceof TmdbError ? error.status : 502;
+			fastify.log.error({ err: error }, "TMDB request failed:");
+			reply.status(502).send({
+				error: "Failed to fetch movie trailer from TMDB",
+				code: "TMDB_UPSTREAM_ERROR",
+				upstreamStatus: status,
+			});
+		}
+	},
+);
 
 if (process.env.VERCEL) {
 	// Vercel's Node.js Function runtime calls the default export directly

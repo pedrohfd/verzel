@@ -102,6 +102,38 @@ async function getMovieCertification(id: number): Promise<string> {
 	return certification || "Livre";
 }
 
+interface TmdbVideosResponse {
+	results: {
+		key: string;
+		site: string;
+		type: string;
+		official: boolean;
+	}[];
+}
+
+function pickTrailerKey(videos: TmdbVideosResponse["results"]): string | null {
+	const youtubeVideos = videos.filter((video) => video.site === "YouTube");
+
+	const trailers = youtubeVideos.filter((video) => video.type === "Trailer");
+	const officialTrailer = trailers.find((video) => video.official);
+	if (officialTrailer) return officialTrailer.key;
+	if (trailers[0]) return trailers[0].key;
+
+	const teaser = youtubeVideos.find((video) => video.type === "Teaser");
+	return teaser?.key ?? null;
+}
+
+export async function getMovieTrailerKey(id: number): Promise<string | null> {
+	const ptBr = await fetchTmdb<TmdbVideosResponse>(`/movie/${id}/videos`, {
+		language: "pt-BR",
+	});
+	const ptBrKey = pickTrailerKey(ptBr.results);
+	if (ptBrKey) return ptBrKey;
+
+	const fallback = await fetchTmdb<TmdbVideosResponse>(`/movie/${id}/videos`);
+	return pickTrailerKey(fallback.results);
+}
+
 export interface EnrichedMovie {
 	id: number;
 	title: string;

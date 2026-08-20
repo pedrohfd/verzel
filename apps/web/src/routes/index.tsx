@@ -55,12 +55,12 @@ function HomeComponent() {
 
 			{movies && movies.length > 0 && (
 				<div className="flex flex-col gap-6">
-					<MovieHero movies={movies} />
+					<MovieHero movies={movies.slice(0, 4)} />
 
 					<section>
 						<h2 className="mb-4 font-semibold text-xl">Populares</h2>
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-							{movies.slice(1).map((movie) => (
+							{movies.slice(4).map((movie) => (
 								<MovieCard key={movie.id} movie={movie} />
 							))}
 						</div>
