@@ -10,6 +10,11 @@ export interface EnrichedMovie {
 	audio: "Dublado";
 }
 
+export interface MovieTrailer {
+	key: string;
+	name: string;
+}
+
 export interface TmdbMovie {
 	id: number;
 	title: string;

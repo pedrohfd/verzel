@@ -8,8 +8,8 @@ import { Skeleton } from "@verzel/ui/components/skeleton";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { getMovieTrailer } from "@/api/requests/movies/get-movie-trailer";
-import type { EnrichedMovie } from "@/api/types";
+import { getMovieTrailers } from "@/api/requests/movies/get-movie-trailers";
+import type { EnrichedMovie, MovieTrailer } from "@/api/types";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
@@ -17,9 +17,11 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 	const [activeIndex, setActiveIndex] = useState(0);
 	const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 	const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
-	const [trailerKey, setTrailerKey] = useState<string | null>(null);
+	const [trailers, setTrailers] = useState<MovieTrailer[]>([]);
+	const [selectedTrailerIndex, setSelectedTrailerIndex] = useState(0);
 	const trailerControllerRef = useRef<AbortController | null>(null);
 	const movie = movies[activeIndex];
+	const selectedTrailer = trailers[selectedTrailerIndex];
 
 	async function handlePlayTrailer() {
 		setIsTrailerOpen(true);
@@ -28,14 +30,15 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 		const controller = new AbortController();
 		trailerControllerRef.current = controller;
 
-		const [key, error] = await tryCatch(
-			getMovieTrailer(movie.id, controller.signal),
+		const [movieTrailers, error] = await tryCatch(
+			getMovieTrailers(movie.id, controller.signal),
 		);
 
 		if (error) {
-			setTrailerKey(null);
+			setTrailers([]);
 		} else {
-			setTrailerKey(key);
+			setTrailers(movieTrailers);
+			setSelectedTrailerIndex(0);
 		}
 
 		setIsLoadingTrailer(false);
@@ -54,7 +57,8 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 	useEffect(() => {
 		trailerControllerRef.current?.abort();
 		setIsTrailerOpen(false);
-		setTrailerKey(null);
+		setTrailers([]);
+		setSelectedTrailerIndex(0);
 	}, [activeIndex]);
 
 	useEffect(() => {
@@ -152,21 +156,39 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 					</DialogTitle>
 					<div className="aspect-video w-full">
 						{isLoadingTrailer && <Skeleton className="h-full w-full" />}
-						{!isLoadingTrailer && trailerKey && (
+						{!isLoadingTrailer && selectedTrailer && (
 							<iframe
+								key={selectedTrailer.key}
 								className="h-full w-full"
-								src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1`}
-								title={`Trailer de ${movie.title}`}
+								src={`https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=0`}
+								title={selectedTrailer.name || `Trailer de ${movie.title}`}
 								allow="autoplay; encrypted-media"
 								allowFullScreen
 							/>
 						)}
-						{!isLoadingTrailer && !trailerKey && (
+						{!isLoadingTrailer && !selectedTrailer && (
 							<p className="flex h-full w-full items-center justify-center p-6 text-center text-muted-foreground text-sm">
 								Trailer não disponível para este filme.
 							</p>
 						)}
 					</div>
+					{!isLoadingTrailer && trailers.length > 1 && (
+						<div className="flex flex-wrap gap-2 p-4 pt-0">
+							{trailers.map((trailer, index) => (
+								<Button
+									key={trailer.key}
+									type="button"
+									size="sm"
+									variant={
+										index === selectedTrailerIndex ? "default" : "outline"
+									}
+									onClick={() => setSelectedTrailerIndex(index)}
+								>
+									{`Trailer ${index + 1}`}
+								</Button>
+							))}
+						</div>
+					)}
 				</DialogContent>
 			</Dialog>
 		</div>

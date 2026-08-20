@@ -105,33 +105,44 @@ async function getMovieCertification(id: number): Promise<string> {
 interface TmdbVideosResponse {
 	results: {
 		key: string;
+		name: string;
 		site: string;
 		type: string;
 		official: boolean;
 	}[];
 }
 
-function pickTrailerKey(videos: TmdbVideosResponse["results"]): string | null {
-	const youtubeVideos = videos.filter((video) => video.site === "YouTube");
-
-	const trailers = youtubeVideos.filter((video) => video.type === "Trailer");
-	const officialTrailer = trailers.find((video) => video.official);
-	if (officialTrailer) return officialTrailer.key;
-	if (trailers[0]) return trailers[0].key;
-
-	const teaser = youtubeVideos.find((video) => video.type === "Teaser");
-	return teaser?.key ?? null;
+export interface MovieTrailer {
+	key: string;
+	name: string;
 }
 
-export async function getMovieTrailerKey(id: number): Promise<string | null> {
+function pickTrailers(videos: TmdbVideosResponse["results"]): MovieTrailer[] {
+	const officialTrailers = videos.filter(
+		(video) =>
+			video.site === "YouTube" && video.type === "Trailer" && video.official,
+	);
+
+	const seen = new Set<string>();
+	const unique: MovieTrailer[] = [];
+	for (const trailer of officialTrailers) {
+		if (seen.has(trailer.key)) continue;
+		seen.add(trailer.key);
+		unique.push({ key: trailer.key, name: trailer.name });
+	}
+
+	return unique.slice(0, 3);
+}
+
+export async function getMovieTrailers(id: number): Promise<MovieTrailer[]> {
 	const ptBr = await fetchTmdb<TmdbVideosResponse>(`/movie/${id}/videos`, {
 		language: "pt-BR",
 	});
-	const ptBrKey = pickTrailerKey(ptBr.results);
-	if (ptBrKey) return ptBrKey;
+	const ptBrTrailers = pickTrailers(ptBr.results);
+	if (ptBrTrailers.length > 0) return ptBrTrailers;
 
 	const fallback = await fetchTmdb<TmdbVideosResponse>(`/movie/${id}/videos`);
-	return pickTrailerKey(fallback.results);
+	return pickTrailers(fallback.results);
 }
 
 export interface EnrichedMovie {

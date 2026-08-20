@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import {
-	getMovieTrailerKey,
+	getMovieTrailers,
 	getNowPlayingMoviesEnriched,
 	getTrendingMovies,
 	TmdbError,
@@ -44,8 +44,8 @@ export async function movieRoutes(fastify: FastifyInstance) {
 		"/:id/trailer",
 		async (request, reply) => {
 			try {
-				const key = await getMovieTrailerKey(Number(request.params.id));
-				return { key };
+				const trailers = await getMovieTrailers(Number(request.params.id));
+				return { trailers };
 			} catch (error) {
 				const status = error instanceof TmdbError ? error.status : 502;
 				fastify.log.error({ err: error }, "TMDB request failed:");
