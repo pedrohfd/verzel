@@ -22,7 +22,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 			},
 			{
 				name: "description",
-				content: "verzel is a web application",
+				content: "verzel é uma aplicação web",
 			},
 		],
 		links: [

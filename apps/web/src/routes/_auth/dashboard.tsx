@@ -9,8 +9,8 @@ function RouteComponent() {
 
 	return (
 		<div>
-			<h1>Dashboard</h1>
-			<p>Welcome {session.data?.user.name}</p>
+			<h1>Painel</h1>
+			<p>Bem-vindo, {session.data?.user.name}</p>
 		</div>
 	);
 }
