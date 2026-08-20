@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
@@ -10,11 +10,7 @@ import { authClient } from "@/lib/auth-client";
 
 import Loader from "./loader";
 
-export default function SignInForm({
-	onSwitchToSignUp,
-}: {
-	onSwitchToSignUp: () => void;
-}) {
+export default function SignInForm() {
 	const navigate = useNavigate({
 		from: "/",
 	});
@@ -135,13 +131,14 @@ export default function SignInForm({
 			</form>
 
 			<div className="mt-4 text-center">
-				<Button
-					variant="link"
-					onClick={onSwitchToSignUp}
-					className="text-indigo-600 hover:text-indigo-800"
-				>
-					Precisa de uma conta? Cadastre-se
-				</Button>
+				<Link to="/register">
+					<Button
+						variant="link"
+						className="text-indigo-600 hover:text-indigo-800"
+					>
+						Precisa de uma conta? Cadastre-se
+					</Button>
+				</Link>
 			</div>
 		</div>
 	);

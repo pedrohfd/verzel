@@ -3,7 +3,11 @@ import { auth } from "@verzel/auth";
 import { env } from "@verzel/env/server";
 import Fastify from "fastify";
 
-import { getTrendingMovies, TmdbError } from "./lib/tmdb";
+import {
+	getNowPlayingMoviesEnriched,
+	getTrendingMovies,
+	TmdbError,
+} from "./lib/tmdb";
 
 // On Vercel, VERCEL_PROJECT_PRODUCTION_URL (used to derive CORS_ORIGIN) only
 // matches requests to the production alias. Requests hitting a deployment's
@@ -78,6 +82,21 @@ fastify.get<{ Querystring: { window?: "day" | "week" } }>(
 		}
 	},
 );
+
+fastify.get("/api/movies/home", async (_request, reply) => {
+	try {
+		const results = await getNowPlayingMoviesEnriched();
+		return { results };
+	} catch (error) {
+		const status = error instanceof TmdbError ? error.status : 502;
+		fastify.log.error({ err: error }, "TMDB request failed:");
+		reply.status(502).send({
+			error: "Failed to fetch home movies from TMDB",
+			code: "TMDB_UPSTREAM_ERROR",
+			upstreamStatus: status,
+		});
+	}
+});
 
 if (process.env.VERCEL) {
 	// Vercel's Node.js Function runtime calls the default export directly

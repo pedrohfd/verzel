@@ -31,7 +31,14 @@ export default function UserMenu() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger render={<Button variant="outline" />}>
+			<DropdownMenuTrigger
+				render={
+					<Button
+						variant="ghost"
+						className="text-destructive hover:bg-transparent hover:text-destructive/80"
+					/>
+				}
+			>
 				Olá, {session.user.name}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="bg-card">
