@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Button } from "@verzel/ui/components/button";
 import {
 	Dialog,
@@ -10,18 +11,19 @@ import { ChevronLeft, ChevronRight, Play, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { getMovieTrailers } from "@/api/requests/movies/get-movie-trailers";
-import type { EnrichedMovie, MovieTrailer } from "@/api/types";
+import type { MovieTrailer, VerzelEvent } from "@/api/types";
+import { formatPriceCents } from "@/lib/format-price";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
-export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
+export default function EventHero({ events }: { events: VerzelEvent[] }) {
 	const [activeIndex, setActiveIndex] = useState(0);
 	const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 	const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
 	const [trailers, setTrailers] = useState<MovieTrailer[]>([]);
 	const [selectedTrailerIndex, setSelectedTrailerIndex] = useState(0);
 	const trailerControllerRef = useRef<AbortController | null>(null);
-	const movie = movies[activeIndex];
+	const event = events[activeIndex];
 	const selectedTrailer = trailers[selectedTrailerIndex];
 
 	async function handlePlayTrailer() {
@@ -32,7 +34,7 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 		trailerControllerRef.current = controller;
 
 		const [movieTrailers, error] = await tryCatch(
-			getMovieTrailers(movie.id, controller.signal),
+			getMovieTrailers(event.tmdbMovieId, controller.signal),
 		);
 
 		if (error) {
@@ -46,14 +48,14 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 	}
 
 	useEffect(() => {
-		if (movies.length <= 1 || isTrailerOpen) return;
+		if (events.length <= 1 || isTrailerOpen) return;
 
 		const interval = setInterval(() => {
-			setActiveIndex((i) => (i + 1) % movies.length);
+			setActiveIndex((i) => (i + 1) % events.length);
 		}, 6000);
 
 		return () => clearInterval(interval);
-	}, [activeIndex, movies.length, isTrailerOpen]);
+	}, [activeIndex, events.length, isTrailerOpen]);
 
 	useEffect(() => {
 		trailerControllerRef.current?.abort();
@@ -63,21 +65,23 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 	}, [activeIndex]);
 
 	useEffect(() => {
-		for (const movie of movies) {
-			if (!movie.backdrop_path) continue;
+		for (const event of events) {
+			if (!event.movieBackdropPath) continue;
 			const preload = new Image();
-			preload.src = tmdbImageUrl(movie.backdrop_path, "w1280");
+			preload.src = tmdbImageUrl(event.movieBackdropPath, "w1280");
 		}
-	}, [movies]);
+	}, [events]);
 
-	if (!movie) return null;
+	if (!event) return null;
+
+	const sessionDate = new Date(event.sessionAt);
 
 	return (
 		<div className="group relative aspect-21/9 w-full overflow-hidden bg-muted">
-			{movie.backdrop_path && (
+			{event.movieBackdropPath && (
 				<img
-					src={tmdbImageUrl(movie.backdrop_path, "w1280")}
-					alt={movie.title}
+					src={tmdbImageUrl(event.movieBackdropPath, "w1280")}
+					alt={event.movieTitle}
 					className="absolute inset-0 h-full w-full object-cover"
 					fetchPriority="high"
 				/>
@@ -85,19 +89,21 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 			<div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
 
 			<div className="relative z-10 flex h-full flex-col justify-end gap-3 p-6">
-				{movie.genre && (
-					<span className="w-fit rounded-full bg-destructive px-3 py-1 font-medium text-white text-xs">
-						{movie.genre}
-					</span>
-				)}
-				<h1 className="font-bold text-3xl text-white">{movie.title}</h1>
+				<h1 className="font-bold text-3xl text-white">{event.movieTitle}</h1>
 				<p className="text-sm text-white/80">
-					{movie.certification} · {movie.runtime ?? "—"} min · {movie.audio}
+					{sessionDate.toLocaleDateString("pt-BR", {
+						day: "2-digit",
+						month: "2-digit",
+						year: "numeric",
+					})}{" "}
+					· {event.venueName} · {formatPriceCents(event.priceCents)}
 				</p>
 				<div className="flex items-center gap-2">
-					<Button className="bg-destructive text-white hover:bg-destructive/90">
-						Ingressos
-					</Button>
+					<Link to="/events/$eventId" params={{ eventId: event.id }}>
+						<Button className="bg-destructive text-white hover:bg-destructive/90">
+							Ingressos
+						</Button>
+					</Link>
 					<Button
 						variant="outline"
 						size="icon"
@@ -109,16 +115,16 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 				</div>
 			</div>
 
-			{movies.length > 1 && (
+			{events.length > 1 && (
 				<>
 					<div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-linear-to-r from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 					<div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-linear-to-l from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 					<Button
 						variant="outline"
 						size="icon"
-						aria-label="Filme anterior"
+						aria-label="Evento anterior"
 						onClick={() =>
-							setActiveIndex((i) => (i - 1 + movies.length) % movies.length)
+							setActiveIndex((i) => (i - 1 + events.length) % events.length)
 						}
 						className="absolute top-1/2 left-4 z-10 -translate-y-1/2 transition-none active:not-aria-[haspopup]:-translate-y-1/2"
 					>
@@ -127,8 +133,8 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 					<Button
 						variant="outline"
 						size="icon"
-						aria-label="Próximo filme"
-						onClick={() => setActiveIndex((i) => (i + 1) % movies.length)}
+						aria-label="Próximo evento"
+						onClick={() => setActiveIndex((i) => (i + 1) % events.length)}
 						className="absolute top-1/2 right-4 z-10 -translate-y-1/2 transition-none active:not-aria-[haspopup]:-translate-y-1/2"
 					>
 						<ChevronRight />
@@ -137,11 +143,11 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 			)}
 
 			<div className="absolute right-6 bottom-6 flex gap-1.5">
-				{movies.map((m, index) => (
+				{events.map((e, index) => (
 					<button
-						key={m.id}
+						key={e.id}
 						type="button"
-						aria-label={`Ver ${m.title}`}
+						aria-label={`Ver ${e.movieTitle}`}
 						onClick={() => setActiveIndex(index)}
 						className={`size-2 cursor-pointer rounded-full transition-colors ${
 							index === activeIndex ? "bg-destructive" : "bg-white/40"
@@ -153,7 +159,7 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 			<Dialog open={isTrailerOpen} onOpenChange={setIsTrailerOpen}>
 				<DialogContent className="max-w-3xl p-0" showCloseButton={false}>
 					<div className="flex items-center justify-between border-border border-b p-4">
-						<DialogTitle>{movie.title}</DialogTitle>
+						<DialogTitle>{event.movieTitle}</DialogTitle>
 						<DialogClose className="cursor-pointer rounded-none opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none">
 							<XIcon className="size-4" />
 							<span className="sr-only">Fechar</span>
@@ -166,7 +172,7 @@ export default function MovieHero({ movies }: { movies: EnrichedMovie[] }) {
 								key={selectedTrailer.key}
 								className="h-full w-full"
 								src={`https://www.youtube.com/embed/${selectedTrailer.key}?autoplay=0`}
-								title={selectedTrailer.name || `Trailer de ${movie.title}`}
+								title={selectedTrailer.name || `Trailer de ${event.movieTitle}`}
 								allow="autoplay; encrypted-media"
 								allowFullScreen
 							/>

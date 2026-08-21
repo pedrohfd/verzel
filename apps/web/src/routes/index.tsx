@@ -2,38 +2,39 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Skeleton } from "@verzel/ui/components/skeleton";
 import { useEffect } from "react";
 
-import { getNowPlayingMovies } from "@/api/requests/movies/get-now-playing-movies";
-import MovieCard from "@/components/movie-card";
-import MovieHero from "@/components/movie-hero";
+import { getPublishedEvents } from "@/api/requests/events/get-published-events";
+import EventCard from "@/components/event-card";
+import EventHero from "@/components/event-hero";
 import { tryCatch } from "@/lib/try-catch";
-import { useMoviesStore } from "@/stores/movies-store";
+import { useEventsStore } from "@/stores/events-store";
 
 export const Route = createFileRoute("/")({
 	component: HomeComponent,
 });
 
 function HomeComponent() {
-	const movies = useMoviesStore((state) => state.movies);
-	const error = useMoviesStore((state) => state.error);
-	const setMovies = useMoviesStore((state) => state.setMovies);
-	const setError = useMoviesStore((state) => state.setError);
+	const events = useEventsStore((state) => state.events);
+	const error = useEventsStore((state) => state.error);
+	const setEvents = useEventsStore((state) => state.setEvents);
+	const setError = useEventsStore((state) => state.setError);
 
-	const getNowPlayingMoviesFn = async (controller: AbortController) => {
+	const getPublishedEventsFn = async (controller: AbortController) => {
 		const [response, error] = await tryCatch(
-			getNowPlayingMovies(controller.signal),
+			getPublishedEvents(undefined, controller.signal),
 		);
 
 		if (error) {
-			setError("Não foi possível carregar os filmes.");
+			setError("Não foi possível carregar os eventos.");
+			return;
 		}
 
-		setMovies(response);
+		setEvents(response);
 	};
 
 	useEffect(() => {
 		const controller = new AbortController();
 
-		getNowPlayingMoviesFn(controller);
+		getPublishedEventsFn(controller);
 
 		return () => controller.abort();
 	}, []);
@@ -42,7 +43,7 @@ function HomeComponent() {
 		<div className="container mx-auto max-w-5xl px-4 py-6">
 			{error && <p className="text-destructive text-sm">{error}</p>}
 
-			{!error && !movies && (
+			{!error && !events && (
 				<div className="flex flex-col gap-6">
 					<Skeleton className="aspect-21/9 w-full" />
 					<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -53,15 +54,21 @@ function HomeComponent() {
 				</div>
 			)}
 
-			{movies && movies.length > 0 && (
+			{events && events.length === 0 && (
+				<p className="text-muted-foreground text-sm">
+					Nenhum evento publicado no momento.
+				</p>
+			)}
+
+			{events && events.length > 0 && (
 				<div className="flex flex-col gap-6">
-					<MovieHero movies={movies.slice(0, 4)} />
+					<EventHero events={events.slice(0, 4)} />
 
 					<section>
-						<h2 className="mb-4 font-semibold text-xl">Em cartaz</h2>
+						<h2 className="mb-4 font-semibold text-xl">Eventos em cartaz</h2>
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-							{movies.slice(4).map((movie) => (
-								<MovieCard key={movie.id} movie={movie} />
+							{events.slice(4).map((event) => (
+								<EventCard key={event.id} event={event} />
 							))}
 						</div>
 					</section>
