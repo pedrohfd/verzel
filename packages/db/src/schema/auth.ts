@@ -1,11 +1,13 @@
 import { relations } from "drizzle-orm";
 import {
 	boolean,
+	char,
 	index,
 	pgEnum,
 	pgTable,
 	text,
 	timestamp,
+	varchar,
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", [
@@ -21,15 +23,15 @@ export const user = pgTable("user", {
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
 	role: userRoleEnum("role").default("cliente").notNull(),
-	cinemaName: text("cinema_name"),
-	cnpj: text("cnpj"),
-	zipCode: text("zip_code"),
-	street: text("street"),
-	number: text("number"),
-	complement: text("complement"),
-	neighborhood: text("neighborhood"),
-	city: text("city"),
-	state: text("state"),
+	cinemaName: varchar("cinema_name", { length: 255 }),
+	cnpj: char("cnpj", { length: 14 }),
+	zipCode: char("zip_code", { length: 8 }),
+	street: varchar("street", { length: 255 }),
+	number: varchar("number", { length: 20 }),
+	complement: varchar("complement", { length: 100 }),
+	neighborhood: varchar("neighborhood", { length: 100 }),
+	city: varchar("city", { length: 100 }),
+	state: char("state", { length: 2 }),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
