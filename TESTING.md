@@ -48,3 +48,10 @@ O ideal é manter no mínimo **80% de cobertura de testes**.
 ## Scripts
 
 Cada workspace (`apps/server`, `apps/web`) deve ter um script `test` (`vitest run`) no seu `package.json`. Na raiz, os testes rodam via Turborepo (`turbo run test`). Essa configuração deve ser adicionada quando os primeiros testes forem escritos.
+
+## Mudanças que quebram testes conhecidamente
+
+- Ao identificar que uma mudança de feature vai quebrar testes existentes de forma previsível (ex: renomeação de sistema/marca, troca de rota, mudança de contrato de API), não corrigir os testes de forma isolada e reativa.
+- Antes de implementar a mudança, gerar um plano listando os testes/arquivos afetados e como cada um deve ser atualizado.
+- Exemplo: a renomeação do sistema de "verzel" para "Ticket" (commit `8d93e97`) afetou textos exibidos em componentes (`header.tsx`, `__root.tsx`) — testes que fazem asserção sobre esses textos precisam ser atualizados junto, no mesmo escopo de mudança.
+- Esse plano de atualização de testes deve ser tratado como parte do escopo da mudança de feature, não como um débito técnico posterior.
