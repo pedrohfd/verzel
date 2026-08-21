@@ -4,8 +4,10 @@ import { BRAZILIAN_STATES, isValidCnpj } from "@verzel/shared/validators";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
+import { getAddressByCep } from "@/api/requests/cinemas/get-address-by-cep";
 import { registerCinema } from "@/api/requests/cinemas/register-cinema";
 import { authClient } from "@/lib/auth-client";
 import { maskCep, maskCnpj, maskUf } from "@/lib/masks";
@@ -18,6 +20,8 @@ export default function CinemaRegisterForm() {
 		from: "/",
 	});
 	const { isPending } = authClient.useSession();
+	const [isFetchingAddress, setIsFetchingAddress] = useState(false);
+	const lastLookedUpCepRef = useRef<string | null>(null);
 
 	const form = useForm({
 		defaultValues: {
@@ -234,9 +238,39 @@ export default function CinemaRegisterForm() {
 									inputMode="numeric"
 									maxLength={9}
 									value={field.state.value}
-									onBlur={field.handleBlur}
+									onBlur={async () => {
+										field.handleBlur();
+
+										const digits = field.state.value.replace(/\D/g, "");
+										if (digits.length !== 8) return;
+										if (digits === lastLookedUpCepRef.current) return;
+
+										setIsFetchingAddress(true);
+										const [data, error] = await tryCatch(
+											getAddressByCep(digits),
+										);
+										setIsFetchingAddress(false);
+
+										if (error) {
+											toast.error(
+												"Não foi possível encontrar o endereço para o CEP informado.",
+											);
+											return;
+										}
+
+										lastLookedUpCepRef.current = digits;
+										form.setFieldValue("street", data.logradouro);
+										form.setFieldValue("neighborhood", data.bairro);
+										form.setFieldValue("city", data.localidade);
+										form.setFieldValue("state", data.uf);
+									}}
 									onChange={(e) => field.handleChange(maskCep(e.target.value))}
 								/>
+								{isFetchingAddress && (
+									<p className="text-muted-foreground text-sm">
+										Buscando endereço...
+									</p>
+								)}
 								{field.state.meta.errors.map((error) => (
 									<p key={error?.message} className="text-red-500">
 										{error?.message}
@@ -256,6 +290,7 @@ export default function CinemaRegisterForm() {
 									<Input
 										id={field.name}
 										name={field.name}
+										disabled={isFetchingAddress}
 										value={field.state.value}
 										onBlur={field.handleBlur}
 										onChange={(e) => field.handleChange(e.target.value)}
@@ -323,6 +358,7 @@ export default function CinemaRegisterForm() {
 								<Input
 									id={field.name}
 									name={field.name}
+									disabled={isFetchingAddress}
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
@@ -346,6 +382,7 @@ export default function CinemaRegisterForm() {
 									<Input
 										id={field.name}
 										name={field.name}
+										disabled={isFetchingAddress}
 										value={field.state.value}
 										onBlur={field.handleBlur}
 										onChange={(e) => field.handleChange(e.target.value)}
@@ -369,6 +406,7 @@ export default function CinemaRegisterForm() {
 										id={field.name}
 										name={field.name}
 										maxLength={2}
+										disabled={isFetchingAddress}
 										value={field.state.value}
 										onBlur={field.handleBlur}
 										onChange={(e) => field.handleChange(maskUf(e.target.value))}
