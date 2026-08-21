@@ -1,113 +1,113 @@
 # verzel
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, Fastify, and more.
+Este projeto foi criado com o [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), uma stack TypeScript moderna que combina React, TanStack Router, Fastify e mais.
 
-## Features
+## Funcionalidades
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Router** - File-based routing with full type safety
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Fastify** - Fast, low-overhead web framework
-- **Node.js** - Runtime environment
-- **Drizzle** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Biome** - Linting and formatting
-- **Husky** - Git hooks for code quality
-- **Turborepo** - Optimized monorepo build system
+- **TypeScript** - Para segurança de tipos e melhor experiência de desenvolvimento
+- **TanStack Router** - Roteamento baseado em arquivos com tipagem completa
+- **TailwindCSS** - CSS utility-first para desenvolvimento rápido de UI
+- **Pacote de UI compartilhado** - primitivos shadcn/ui em `packages/ui`
+- **Fastify** - Framework web rápido e de baixo overhead
+- **Node.js** - Ambiente de execução
+- **Drizzle** - ORM TypeScript-first
+- **PostgreSQL** - Banco de dados
+- **Autenticação** - Better-Auth
+- **Biome** - Linting e formatação
+- **Husky** - Git hooks para qualidade de código
+- **Turborepo** - Sistema de build otimizado para monorepo
 
-## Getting Started
+## Para começar
 
-First, install the dependencies:
+Primeiro, instale as dependências:
 
 ```bash
 bun install
 ```
 
-## Database Setup
+## Configuração do banco de dados
 
-This project uses PostgreSQL with Drizzle ORM.
+Este projeto usa PostgreSQL com Drizzle ORM.
 
-### Local development (Docker)
+### Desenvolvimento local (Docker)
 
-1. Copy `apps/server/.env.example` to `apps/server/.env` (defaults already point to the local Docker Postgres).
-2. Start a local Postgres instance:
+1. Copie `apps/server/.env.example` para `apps/server/.env` (os valores padrão já apontam para o Postgres local do Docker).
+2. Suba uma instância local do Postgres:
 
 ```bash
 bun run docker:up
 ```
 
-3. Apply the schema to your database:
+3. Aplique o schema no banco de dados:
 
 ```bash
 bun run db:push
 ```
 
-Stop the local database with `bun run docker:down` (data persists in a Docker volume between restarts).
+Pare o banco local com `bun run docker:down` (os dados persistem em um volume Docker entre reinicializações).
 
-### Using a hosted database (e.g. Neon)
+### Usando um banco de dados hospedado (ex.: Neon)
 
-Update `apps/server/.env` with your PostgreSQL connection details (a Neon `postgresql://...?sslmode=require` URL works out of the box — SSL is enabled automatically when `sslmode=require` is present), then run `bun run db:push`.
+Atualize `apps/server/.env` com os dados de conexão do seu PostgreSQL (uma URL Neon `postgresql://...?sslmode=require` funciona sem configuração adicional — o SSL é habilitado automaticamente quando `sslmode=require` está presente) e então rode `bun run db:push`.
 
-Then, run the development server:
+Em seguida, rode o servidor de desenvolvimento:
 
 ```bash
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+Abra [http://localhost:3001](http://localhost:3001) no navegador para ver a aplicação web.
+A API está rodando em [http://localhost:3000](http://localhost:3000).
 
-## UI Customization
+## Customização da UI
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+As aplicações web React desta stack compartilham primitivos shadcn/ui através de `packages/ui`.
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+- Altere tokens de design e estilos globais em `packages/ui/src/styles/globals.css`
+- Atualize os primitivos compartilhados em `packages/ui/src/components/*`
+- Ajuste aliases do shadcn ou configurações de estilo em `packages/ui/components.json` e `apps/web/components.json`
 
-### Add more shared components
+### Adicionar mais componentes compartilhados
 
-Run this from the project root to add more primitives to the shared UI package:
+Rode isso a partir da raiz do projeto para adicionar mais primitivos ao pacote de UI compartilhado:
 
 ```bash
 npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
 ```
 
-Import shared components like this:
+Importe componentes compartilhados assim:
 
 ```tsx
 import { Button } from "@verzel/ui/components/button";
 ```
 
-### Add app-specific blocks
+### Adicionar blocos específicos da aplicação
 
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
+Se você quiser adicionar blocos específicos da aplicação em vez de primitivos compartilhados, rode a CLI do shadcn a partir de `apps/web`.
 
-## Deployment
+## Deploy
 
 ### Vercel Services
 
-- Target: web + server
-- Config: `vercel.json`
-- Link the project first: bun run deploy:setup
-- Local Vercel dev: bun run dev:vercel
-- Sync preview env: bun run env:preview
-- Sync production env: bun run env:production
-- Dry-run check (no upload): bun run deploy:check
-- Preview deploy: bun run deploy
-- Production deploy: bun run deploy:prod
-- Web requests under `/api/*` route to the server service and are rewritten before reaching the backend.
-  Vercel Services share project environment variables, but deploys do not upload local `.env` files automatically. Link the project with `vercel link`, then run the env sync command before your first deploy (otherwise the deployment starts with no env vars), or pass one-off envs with `vercel deploy -e KEY=value`.
-  Pass Vercel CLI flags to the env sync command directly, for example: `bun run env:production --scope your-team`.
+- Alvo: web + server
+- Configuração: `vercel.json`
+- Vincule o projeto primeiro: bun run deploy:setup
+- Vercel dev local: bun run dev:vercel
+- Sincronizar env de preview: bun run env:preview
+- Sincronizar env de produção: bun run env:production
+- Verificação dry-run (sem upload): bun run deploy:check
+- Deploy de preview: bun run deploy
+- Deploy de produção: bun run deploy:prod
+- Requisições da web sob `/api/*` são roteadas para o serviço de servidor e reescritas antes de chegar ao backend.
+  Vercel Services compartilham variáveis de ambiente do projeto, mas os deploys não fazem upload automático dos arquivos `.env` locais. Vincule o projeto com `vercel link` e então rode o comando de sincronização de env antes do primeiro deploy (caso contrário o deploy começa sem variáveis de ambiente), ou passe envs pontuais com `vercel deploy -e KEY=value`.
+  Passe flags da Vercel CLI diretamente para o comando de sincronização de env, por exemplo: `bun run env:production --scope your-team`.
 
-For more details, see the guide on [Deploying to Vercel](https://www.better-t-stack.dev/docs/guides/vercel).
+Para mais detalhes, veja o guia de [Deploy na Vercel](https://www.better-t-stack.dev/docs/guides/vercel).
 
-## Git Hooks and Formatting
+## Git Hooks e Formatação
 
-- Initialize hooks: `bun run prepare`
-- Run checks: `bun run check`
+- Inicializar hooks: `bun run prepare`
+- Rodar checagens: `bun run check`
 
 ## Testes
 
@@ -150,38 +150,38 @@ Há um hook `.husky/pre-push` que roda `bun run test` antes de qualquer `git pus
 
 A infraestrutura de testes (configuração do Vitest, o refactor de `apps/server/src/index.ts` para extrair `buildApp()`, o script de migração do banco de teste, o hook `pre-push` e os arquivos de teste iniciais listados acima) foi escrita com apoio de IA (Claude Code), incluindo a escolha das ferramentas (Vitest, Testing Library, `fastify.inject()`) e a cobertura dos principais fluxos de sucesso e erro de cada camada.
 
-## Project Structure
+## Estrutura do projeto
 
 ```
 verzel/
 ├── apps/
-│   ├── web/         # Frontend application (React + TanStack Router)
-│   └── server/      # Backend API (Fastify)
+│   ├── web/         # Aplicação frontend (React + TanStack Router)
+│   └── server/      # API backend (Fastify)
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
+│   ├── ui/          # Componentes e estilos shadcn/ui compartilhados
+│   ├── auth/        # Configuração e lógica de autenticação
+│   └── db/          # Schema e queries do banco de dados
 ```
 
-## Available Scripts
+## Scripts disponíveis
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:server`: Start only the server
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run test`: Run all tests (with coverage enforcement) across workspaces
-- `bun run db:push`: Push schema changes to database
-- `bun run db:generate`: Generate database client/types
-- `bun run db:migrate`: Run database migrations
-- `bun run db:studio`: Open database studio UI
-- `bun run docker:up`: Start the local Postgres container
-- `bun run docker:down`: Stop the local Postgres container
-- `bun run check`: Run Biome formatting and linting
-- `bun run deploy:setup`: Link this repo to a Vercel project (first-time setup)
-- `bun run dev:vercel`: Run the Vercel Services dev environment locally
-- `bun run env:preview`: Sync local env files to the Vercel preview environment
-- `bun run env:production`: Sync local env files to the Vercel production environment
-- `bun run deploy`: Create a Vercel preview deployment
-- `bun run deploy:prod`: Deploy to Vercel production
-- `bun run deploy:check`: Dry-run a deploy to preview framework detection and included files without uploading
+- `bun run dev`: Inicia todas as aplicações em modo de desenvolvimento
+- `bun run build`: Builda todas as aplicações
+- `bun run dev:web`: Inicia apenas a aplicação web
+- `bun run dev:server`: Inicia apenas o servidor
+- `bun run check-types`: Checa os tipos TypeScript em todas as aplicações
+- `bun run test`: Roda todos os testes (com verificação de cobertura) em todos os workspaces
+- `bun run db:push`: Envia mudanças de schema para o banco de dados
+- `bun run db:generate`: Gera o client/tipos do banco de dados
+- `bun run db:migrate`: Roda as migrations do banco de dados
+- `bun run db:studio`: Abre a UI do database studio
+- `bun run docker:up`: Sobe o container local do Postgres
+- `bun run docker:down`: Para o container local do Postgres
+- `bun run check`: Roda formatação e linting do Biome
+- `bun run deploy:setup`: Vincula este repositório a um projeto Vercel (configuração inicial)
+- `bun run dev:vercel`: Roda o ambiente de dev do Vercel Services localmente
+- `bun run env:preview`: Sincroniza os arquivos de env locais com o ambiente de preview da Vercel
+- `bun run env:production`: Sincroniza os arquivos de env locais com o ambiente de produção da Vercel
+- `bun run deploy`: Cria um deploy de preview na Vercel
+- `bun run deploy:prod`: Faz deploy para produção na Vercel
+- `bun run deploy:check`: Faz um dry-run do deploy para pré-visualizar a detecção de framework e os arquivos incluídos, sem fazer upload
