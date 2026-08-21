@@ -21,6 +21,15 @@ export const user = pgTable("user", {
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
 	role: userRoleEnum("role").default("cliente").notNull(),
+	cinemaName: text("cinema_name"),
+	cnpj: text("cnpj"),
+	zipCode: text("zip_code"),
+	street: text("street"),
+	number: text("number"),
+	complement: text("complement"),
+	neighborhood: text("neighborhood"),
+	city: text("city"),
+	state: text("state"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
