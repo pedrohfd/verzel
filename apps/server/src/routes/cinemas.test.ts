@@ -84,6 +84,10 @@ describe("POST /register", () => {
 
 		expect(res.statusCode).toBe(200);
 		expect(res.json()).toEqual({ id: "user-1", role: "organizador" });
+		expect(registerCinemaMock).toHaveBeenCalledWith(
+			"user-1",
+			expect.objectContaining({ cnpj: "11222333000181", zipCode: "00000000" }),
+		);
 	});
 
 	it("forwards domain errors via sendDomainError", async () => {

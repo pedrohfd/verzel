@@ -1,5 +1,9 @@
+export function onlyDigits(value: string): string {
+	return value.replace(/\D/g, "");
+}
+
 export function isValidCnpj(value: string): boolean {
-	const digits = value.replace(/\D/g, "");
+	const digits = onlyDigits(value);
 
 	if (digits.length !== 14 || /^(\d)\1{13}$/.test(digits)) {
 		return false;
