@@ -11,6 +11,7 @@ import { createEvent } from "@/api/requests/events/create-event";
 import { searchMovies } from "@/api/requests/movies/search-movies";
 import type { TmdbMovie } from "@/api/types";
 import { useDebouncedValue } from "@/hooks/use-debounce";
+import { maskCurrencyBRL } from "@/lib/masks";
 import { requireRole } from "@/lib/route-guards";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
@@ -231,9 +232,12 @@ function NewEventComponent() {
 							<Input
 								id={field.name}
 								placeholder="35,00"
+								inputMode="numeric"
 								value={field.state.value}
 								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
+								onChange={(e) =>
+									field.handleChange(maskCurrencyBRL(e.target.value))
+								}
 							/>
 							{field.state.meta.errors.map((err) => (
 								<p key={err?.message} className="text-destructive text-xs">

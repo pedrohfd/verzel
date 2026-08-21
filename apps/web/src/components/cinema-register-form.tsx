@@ -8,6 +8,7 @@ import z from "zod";
 
 import { registerCinema } from "@/api/requests/cinemas/register-cinema";
 import { authClient } from "@/lib/auth-client";
+import { maskCep, maskCnpj, maskUf } from "@/lib/masks";
 import { tryCatch } from "@/lib/try-catch";
 
 import Loader from "./loader";
@@ -206,9 +207,11 @@ export default function CinemaRegisterForm() {
 								<Input
 									id={field.name}
 									name={field.name}
+									inputMode="numeric"
+									maxLength={18}
 									value={field.state.value}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(e) => field.handleChange(maskCnpj(e.target.value))}
 								/>
 								{field.state.meta.errors.map((error) => (
 									<p key={error?.message} className="text-red-500">
@@ -228,9 +231,11 @@ export default function CinemaRegisterForm() {
 								<Input
 									id={field.name}
 									name={field.name}
+									inputMode="numeric"
+									maxLength={9}
 									value={field.state.value}
 									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
+									onChange={(e) => field.handleChange(maskCep(e.target.value))}
 								/>
 								{field.state.meta.errors.map((error) => (
 									<p key={error?.message} className="text-red-500">
@@ -363,9 +368,10 @@ export default function CinemaRegisterForm() {
 									<Input
 										id={field.name}
 										name={field.name}
+										maxLength={2}
 										value={field.state.value}
 										onBlur={field.handleBlur}
-										onChange={(e) => field.handleChange(e.target.value)}
+										onChange={(e) => field.handleChange(maskUf(e.target.value))}
 									/>
 									{field.state.meta.errors.map((error) => (
 										<p key={error?.message} className="text-red-500">
