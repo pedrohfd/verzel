@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { getPublishedEvents } from "@/api/requests/events/get-published-events";
 import type { VerzelEvent } from "@/api/types";
-import EventCard from "@/components/event-card";
+import EventCard from "@/components/molecules/event-card";
 import { tryCatch } from "@/lib/try-catch";
 
 export const Route = createFileRoute("/search")({

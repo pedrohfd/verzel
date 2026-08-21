@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { getMyEvents } from "@/api/requests/events/get-my-events";
 import { updateEventStatus } from "@/api/requests/events/update-event-status";
 import type { VerzelEvent } from "@/api/types";
-import Loader from "@/components/loader";
+import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";

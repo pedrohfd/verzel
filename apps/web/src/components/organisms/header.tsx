@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@verzel/ui/components/button";
 
-import RoleGate from "./role-gate";
+import RoleGate from "../molecules/role-gate";
+import UserMenu from "../molecules/user-menu";
 import SearchCommand from "./search-command";
-import UserMenu from "./user-menu";
 
 export default function Header() {
 	return (

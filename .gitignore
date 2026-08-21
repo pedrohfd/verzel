@@ -62,7 +62,7 @@ temp
 CLAUDE.md
 
 # Files
-ui
+/ui
 
 # Testing env (dummy values, safe to commit)
 !apps/server/.env.test

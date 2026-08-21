@@ -9,7 +9,7 @@ import { getEvent } from "@/api/requests/events/get-event";
 import { processPayment } from "@/api/requests/payments/process-payment";
 import { getReservation } from "@/api/requests/reservations/get-reservation";
 import type { Reservation, VerzelEvent } from "@/api/types";
-import Loader from "@/components/loader";
+import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { tryCatch } from "@/lib/try-catch";
 

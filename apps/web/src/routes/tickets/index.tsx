@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { getMyTickets } from "@/api/requests/tickets/get-my-tickets";
 import type { MyTicket } from "@/api/types";
-import Loader from "@/components/loader";
+import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import { getSharedTicket } from "@/api/requests/tickets/get-shared-ticket";
 import type { SharedTicket } from "@/api/types";
-import Loader from "@/components/loader";
+import Loader from "@/components/ui/loader";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 

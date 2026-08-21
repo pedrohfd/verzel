@@ -3,8 +3,8 @@ import { Skeleton } from "@verzel/ui/components/skeleton";
 import { useEffect } from "react";
 
 import { getPublishedEvents } from "@/api/requests/events/get-published-events";
-import EventCard from "@/components/event-card";
-import EventHero from "@/components/event-hero";
+import EventCard from "@/components/molecules/event-card";
+import EventHero from "@/components/organisms/event-hero";
 import { tryCatch } from "@/lib/try-catch";
 import { useEventsStore } from "@/stores/events-store";
 

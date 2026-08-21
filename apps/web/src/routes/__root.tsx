@@ -6,8 +6,8 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { Toaster } from "@verzel/ui/components/sonner";
 
-import Header from "@/components/header";
-import { ThemeProvider } from "@/components/theme-provider";
+import Header from "@/components/organisms/header";
+import { ThemeProvider } from "@/components/ui/theme-provider";
 
 import "../index.css";
 

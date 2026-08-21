@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { getTicket } from "@/api/requests/tickets/get-ticket";
 import type { TicketDetail } from "@/api/types";
-import Loader from "@/components/loader";
+import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
 import { tmdbImageUrl } from "@/lib/tmdb-image";

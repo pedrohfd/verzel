@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { getCheckinEvents } from "@/api/requests/checkin/get-checkin-events";
 import type { VerzelEvent } from "@/api/types";
-import Loader from "@/components/loader";
+import Loader from "@/components/ui/loader";
 import { requireRole } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 

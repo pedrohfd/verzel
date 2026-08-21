@@ -11,7 +11,7 @@ import { authClient } from "@/lib/auth-client";
 import { maskCep, maskCnpj, maskUf } from "@/lib/masks";
 import { tryCatch } from "@/lib/try-catch";
 
-import Loader from "./loader";
+import Loader from "../ui/loader";
 
 export default function CinemaRegisterForm() {
 	const navigate = useNavigate({
