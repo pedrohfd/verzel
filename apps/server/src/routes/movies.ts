@@ -4,6 +4,7 @@ import {
 	getMovieTrailers,
 	getNowPlayingMoviesEnriched,
 	getTrendingMovies,
+	searchMovies,
 	TmdbError,
 } from "../lib/tmdb";
 
@@ -39,6 +40,29 @@ export async function movieRoutes(fastify: FastifyInstance) {
 			});
 		}
 	});
+
+	fastify.get<{ Querystring: { query?: string } }>(
+		"/search",
+		async (request, reply) => {
+			const { query } = request.query;
+			if (!query) {
+				return { results: [] };
+			}
+
+			try {
+				const { results } = await searchMovies(query);
+				return { results };
+			} catch (error) {
+				const status = error instanceof TmdbError ? error.status : 502;
+				fastify.log.error({ err: error }, "TMDB request failed:");
+				reply.status(502).send({
+					error: "Failed to search movies from TMDB",
+					code: "TMDB_UPSTREAM_ERROR",
+					upstreamStatus: status,
+				});
+			}
+		},
+	);
 
 	fastify.get<{ Params: { id: string } }>(
 		"/:id/trailer",

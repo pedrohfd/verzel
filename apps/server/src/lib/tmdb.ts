@@ -75,6 +75,20 @@ export function getNowPlayingMovies() {
 	});
 }
 
+interface TmdbSearchResponse {
+	page: number;
+	results: TmdbMovie[];
+	total_pages: number;
+	total_results: number;
+}
+
+export function searchMovies(query: string) {
+	return fetchTmdb<TmdbSearchResponse>("/search/movie", {
+		query,
+		language: "pt-BR",
+	});
+}
+
 interface TmdbMovieDetails {
 	genres: { id: number; name: string }[];
 	runtime: number | null;
