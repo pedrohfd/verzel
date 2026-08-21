@@ -1,5 +1,5 @@
 {
-	"name": "verzel",
+	"name": "ticket",
 	"private": true,
 	"workspaces": {
 		"packages": [

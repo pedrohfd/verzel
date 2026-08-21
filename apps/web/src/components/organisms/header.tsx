@@ -10,7 +10,7 @@ export default function Header() {
 		<div>
 			<div className="flex flex-row items-center justify-between gap-4 px-2 py-1">
 				<Link className="font-bold text-lg" to="/">
-					verzel
+					Ticket
 				</Link>
 				<SearchCommand />
 				<div className="flex items-center gap-2">

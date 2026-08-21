@@ -1,4 +1,4 @@
-# verzel
+# Ticket
 
 Este projeto foi criado com o [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), uma stack TypeScript moderna que combina React, TanStack Router, Fastify e mais.
 
