@@ -25,7 +25,7 @@ describe("Header", () => {
 	it("renders the brand link and search", () => {
 		render(<Header />);
 
-		expect(screen.getByText("verzel")).toBeInTheDocument();
+		expect(screen.getByText("Ticket")).toBeInTheDocument();
 		expect(screen.getByText("Buscar evento...")).toBeInTheDocument();
 	});
 });
