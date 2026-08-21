@@ -6,6 +6,7 @@ const {
 	signUpEmailMock,
 	navigateMock,
 	registerCinemaMock,
+	getAddressByCepMock,
 	toastErrorMock,
 	toastSuccessMock,
 } = vi.hoisted(() => ({
@@ -13,6 +14,7 @@ const {
 	signUpEmailMock: vi.fn(),
 	navigateMock: vi.fn(),
 	registerCinemaMock: vi.fn(),
+	getAddressByCepMock: vi.fn(),
 	toastErrorMock: vi.fn(),
 	toastSuccessMock: vi.fn(),
 }));
@@ -32,6 +34,10 @@ vi.mock("@/api/requests/cinemas/register-cinema", () => ({
 	registerCinema: registerCinemaMock,
 }));
 
+vi.mock("@/api/requests/cinemas/get-address-by-cep", () => ({
+	getAddressByCep: getAddressByCepMock,
+}));
+
 vi.mock("sonner", () => ({
 	toast: { error: toastErrorMock, success: toastSuccessMock },
 }));
@@ -43,6 +49,7 @@ beforeEach(() => {
 	signUpEmailMock.mockReset();
 	navigateMock.mockReset();
 	registerCinemaMock.mockReset();
+	getAddressByCepMock.mockReset();
 	toastErrorMock.mockReset();
 	toastSuccessMock.mockReset();
 });
@@ -151,5 +158,77 @@ describe("CinemaRegisterForm", () => {
 		await waitFor(() => {
 			expect(toastErrorMock).toHaveBeenCalledWith("email in use");
 		});
+	});
+
+	it("autofills address fields when the CEP lookup succeeds", async () => {
+		getAddressByCepMock.mockResolvedValue({
+			cep: "01310-100",
+			logradouro: "Avenida Paulista",
+			complemento: "",
+			bairro: "Bela Vista",
+			localidade: "São Paulo",
+			uf: "SP",
+		});
+
+		render(<CinemaRegisterForm />);
+		fireEvent.change(screen.getByLabelText("CEP"), {
+			target: { value: "01310-100" },
+		});
+		fireEvent.blur(screen.getByLabelText("CEP"));
+
+		await waitFor(() => {
+			expect(getAddressByCepMock).toHaveBeenCalledWith("01310100");
+		});
+		await waitFor(() => {
+			expect(screen.getByLabelText("Rua")).toHaveValue("Avenida Paulista");
+		});
+		expect(screen.getByLabelText("Bairro")).toHaveValue("Bela Vista");
+		expect(screen.getByLabelText("Cidade")).toHaveValue("São Paulo");
+		expect(screen.getByLabelText("Estado")).toHaveValue("SP");
+	});
+
+	it("shows an error toast and keeps existing values when the CEP is not found", async () => {
+		getAddressByCepMock.mockRejectedValue(new Error("CEP não encontrado."));
+
+		render(<CinemaRegisterForm />);
+		fireEvent.change(screen.getByLabelText("Rua"), {
+			target: { value: "Rua A" },
+		});
+		fireEvent.change(screen.getByLabelText("CEP"), {
+			target: { value: "00000-000" },
+		});
+		fireEvent.blur(screen.getByLabelText("CEP"));
+
+		await waitFor(() => {
+			expect(toastErrorMock).toHaveBeenCalledWith(
+				"Não foi possível encontrar o endereço para o CEP informado.",
+			);
+		});
+		expect(screen.getByLabelText("Rua")).toHaveValue("Rua A");
+	});
+
+	it("does not look up the CEP again when the field is blurred twice with the same value", async () => {
+		getAddressByCepMock.mockResolvedValue({
+			cep: "01310-100",
+			logradouro: "Avenida Paulista",
+			complemento: "",
+			bairro: "Bela Vista",
+			localidade: "São Paulo",
+			uf: "SP",
+		});
+
+		render(<CinemaRegisterForm />);
+		fireEvent.change(screen.getByLabelText("CEP"), {
+			target: { value: "01310-100" },
+		});
+		fireEvent.blur(screen.getByLabelText("CEP"));
+
+		await waitFor(() => {
+			expect(getAddressByCepMock).toHaveBeenCalledTimes(1);
+		});
+
+		fireEvent.blur(screen.getByLabelText("CEP"));
+
+		expect(getAddressByCepMock).toHaveBeenCalledTimes(1);
 	});
 });
