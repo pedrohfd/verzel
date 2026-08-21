@@ -30,6 +30,7 @@
         "@verzel/auth": "workspace:*",
         "@verzel/db": "workspace:*",
         "@verzel/env": "workspace:*",
+        "@verzel/shared": "workspace:*",
         "better-auth": "catalog:",
         "dotenv": "catalog:",
         "drizzle-orm": "^0.45.2",
@@ -56,6 +57,7 @@
         "@tanstack/react-form": "^1.33.2",
         "@tanstack/react-router": "^1.170.18",
         "@verzel/env": "workspace:*",
+        "@verzel/shared": "workspace:*",
         "@verzel/ui": "workspace:*",
         "axios": "1.19.0",
         "better-auth": "catalog:",
@@ -135,6 +137,14 @@
       },
       "devDependencies": {
         "@types/node": "catalog:",
+        "@verzel/config": "workspace:*",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/shared": {
+      "name": "@verzel/shared",
+      "version": "0.0.0",
+      "devDependencies": {
         "@verzel/config": "workspace:*",
         "typescript": "catalog:",
       },
@@ -799,6 +809,8 @@
     "@verzel/db": ["@verzel/db@workspace:packages/db"],
 
     "@verzel/env": ["@verzel/env@workspace:packages/env"],
+
+    "@verzel/shared": ["@verzel/shared@workspace:packages/shared"],
 
     "@verzel/ui": ["@verzel/ui@workspace:packages/ui"],
 

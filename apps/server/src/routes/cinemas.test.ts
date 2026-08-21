@@ -15,7 +15,7 @@ const { buildTestApp } = await import("../test-helpers/build-test-app");
 
 const validBody = {
 	cinemaName: "Cine Verzel",
-	cnpj: "00.000.000/0000-00",
+	cnpj: "11.222.333/0001-81",
 	zipCode: "00000-000",
 	street: "Rua A",
 	number: "10",
@@ -53,6 +53,19 @@ describe("POST /register", () => {
 			method: "POST",
 			url: "/api/cinemas/register",
 			payload: { cinemaName: "" },
+		});
+
+		expect(res.statusCode).toBe(400);
+	});
+
+	it("returns 400 when the CNPJ checksum is invalid", async () => {
+		getSessionUserMock.mockResolvedValue({ id: "user-1", role: "cliente" });
+		const app = createApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/cinemas/register",
+			payload: { ...validBody, cnpj: "00.000.000/0000-00" },
 		});
 
 		expect(res.statusCode).toBe(400);

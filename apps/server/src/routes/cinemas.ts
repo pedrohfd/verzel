@@ -1,3 +1,4 @@
+import { BRAZILIAN_STATES, isValidCnpj } from "@verzel/shared/validators";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { registerCinema } from "../lib/cinemas";
@@ -6,14 +7,14 @@ import { getSessionUser } from "../lib/require-role";
 
 const registerCinemaSchema = z.object({
 	cinemaName: z.string().min(1),
-	cnpj: z.string().min(1),
-	zipCode: z.string().min(1),
+	cnpj: z.string().refine(isValidCnpj, "CNPJ inválido"),
+	zipCode: z.string().regex(/^\d{5}-\d{3}$/, "CEP inválido"),
 	street: z.string().min(1),
 	number: z.string().min(1),
 	complement: z.string().optional(),
 	neighborhood: z.string().min(1),
 	city: z.string().min(1),
-	state: z.string().min(1),
+	state: z.enum(BRAZILIAN_STATES),
 });
 
 export async function cinemaRoutes(fastify: FastifyInstance) {

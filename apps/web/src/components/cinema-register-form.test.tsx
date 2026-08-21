@@ -61,7 +61,7 @@ function fillValidForm() {
 		target: { value: "Cine Verzel" },
 	});
 	fireEvent.change(screen.getByLabelText("CNPJ"), {
-		target: { value: "00.000.000/0000-00" },
+		target: { value: "11.222.333/0001-81" },
 	});
 	fireEvent.change(screen.getByLabelText("CEP"), {
 		target: { value: "00000-000" },

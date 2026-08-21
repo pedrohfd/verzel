@@ -87,12 +87,33 @@ function NewEventComponent() {
 		},
 		validators: {
 			onSubmit: z.object({
-				sessionAt: z.string().min(1, "Informe a data e hora da sessão"),
+				sessionAt: z
+					.string()
+					.min(1, "Informe a data e hora da sessão")
+					.refine(
+						(value) => new Date(value) > new Date(),
+						"A sessão deve ser no futuro",
+					),
 				venueName: z.string().min(1, "Informe o nome do local"),
 				venueAddress: z.string().min(1, "Informe o endereço do local"),
-				price: z.string().min(1, "Informe o preço"),
-				rows: z.string().min(1),
-				columns: z.string().min(1),
+				price: z
+					.string()
+					.refine(
+						(value) => Number(value.replace(",", ".")) > 0,
+						"Informe um preço válido",
+					),
+				rows: z
+					.string()
+					.refine(
+						(value) => Number(value) >= 1 && Number(value) <= 26,
+						"Informe um número de fileiras entre 1 e 26",
+					),
+				columns: z
+					.string()
+					.refine(
+						(value) => Number(value) >= 1 && Number(value) <= 50,
+						"Informe um número de assentos por fileira entre 1 e 50",
+					),
 			}),
 		},
 	});
@@ -262,6 +283,11 @@ function NewEventComponent() {
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
+								{field.state.meta.errors.map((err) => (
+									<p key={err?.message} className="text-destructive text-xs">
+										{err?.message}
+									</p>
+								))}
 							</div>
 						)}
 					</form.Field>
@@ -278,6 +304,11 @@ function NewEventComponent() {
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
 								/>
+								{field.state.meta.errors.map((err) => (
+									<p key={err?.message} className="text-destructive text-xs">
+										{err?.message}
+									</p>
+								))}
 							</div>
 						)}
 					</form.Field>

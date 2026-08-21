@@ -18,7 +18,14 @@ const createEventSchema = z.object({
 	movieTitle: z.string().min(1),
 	moviePosterPath: z.string().nullable(),
 	movieBackdropPath: z.string().nullable(),
-	sessionAt: z.string().datetime({ offset: true }).or(z.string().min(1)),
+	sessionAt: z
+		.string()
+		.datetime({ offset: true })
+		.or(z.string().min(1))
+		.refine(
+			(value) => new Date(value) > new Date(),
+			"A sessão deve ser no futuro",
+		),
 	venueName: z.string().min(1),
 	venueAddress: z.string().min(1),
 	priceCents: z.number().int().positive(),

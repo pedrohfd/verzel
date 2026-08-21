@@ -1,0 +1,12 @@
+{
+	"extends": "@verzel/config/tsconfig.base.json",
+	"compilerOptions": {
+		"lib": ["ESNext"],
+		"types": [],
+		"paths": {
+			"@verzel/shared/*": ["./src/*"]
+		}
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules"]
+}

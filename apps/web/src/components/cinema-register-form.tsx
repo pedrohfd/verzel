@@ -1,11 +1,11 @@
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { BRAZILIAN_STATES, isValidCnpj } from "@verzel/shared/validators";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
 import { toast } from "sonner";
 import z from "zod";
-
 import { registerCinema } from "@/api/requests/cinemas/register-cinema";
 import { authClient } from "@/lib/auth-client";
 import { maskCep, maskCnpj, maskUf } from "@/lib/masks";
@@ -79,14 +79,14 @@ export default function CinemaRegisterForm() {
 				cinemaName: z
 					.string()
 					.min(2, "O nome do cinema deve ter no mínimo 2 caracteres"),
-				cnpj: z.string().min(1, "Informe o CNPJ"),
-				zipCode: z.string().min(1, "Informe o CEP"),
+				cnpj: z.string().refine(isValidCnpj, "CNPJ inválido"),
+				zipCode: z.string().regex(/^\d{5}-\d{3}$/, "CEP inválido"),
 				street: z.string().min(1, "Informe a rua"),
 				number: z.string().min(1, "Informe o número"),
 				complement: z.string(),
 				neighborhood: z.string().min(1, "Informe o bairro"),
 				city: z.string().min(1, "Informe a cidade"),
-				state: z.string().min(1, "Informe o estado"),
+				state: z.enum(BRAZILIAN_STATES, "Selecione uma UF válida"),
 			}),
 		},
 	});

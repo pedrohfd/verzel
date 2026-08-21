@@ -1,0 +1,16 @@
+{
+	"name": "@verzel/shared",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./validators": "./src/validators.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@verzel/config": "workspace:*",
+		"typescript": "catalog:"
+	}
+}
