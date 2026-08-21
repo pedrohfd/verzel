@@ -28,6 +28,7 @@
 		"dev": "turbo run dev",
 		"build": "turbo run build",
 		"check-types": "turbo run check-types",
+		"test": "turbo run test",
 		"dev:web": "turbo run dev -F web --",
 		"dev:server": "turbo run dev -F server --",
 		"db:push": "turbo run db:push -F @verzel/db --",
@@ -55,12 +56,14 @@
 		"@biomejs/biome": "^2.5.6",
 		"@types/node": "catalog:",
 		"@verzel/config": "workspace:*",
+		"@vitest/coverage-v8": "4.1.11",
 		"husky": "^9.1.7",
 		"lint-staged": "^17.2.0",
 		"tsx": "catalog:",
 		"turbo": "^2.10.7",
 		"typescript": "catalog:",
-		"vercel": "^58.1.0"
+		"vercel": "^58.1.0",
+		"vitest": "4.1.11"
 	},
 	"lint-staged": {
 		"*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [

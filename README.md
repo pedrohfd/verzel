@@ -109,6 +109,47 @@ For more details, see the guide on [Deploying to Vercel](https://www.better-t-st
 - Initialize hooks: `bun run prepare`
 - Run checks: `bun run check`
 
+## Testes
+
+As convenções de testes deste projeto estão descritas em [`TESTING.md`](./TESTING.md) (Vitest, Testing Library, `fastify.inject()`, colocation, padrão AAA). Esta seção documenta como rodar e verificar os testes.
+
+### Como rodar
+
+```bash
+bun run test
+```
+
+Roda os testes de todos os workspaces (`apps/server`, `apps/web`) via Turborepo. Também é possível rodar por workspace:
+
+```bash
+cd apps/server && bun run test
+cd apps/web && bun run test
+```
+
+### Cobertura
+
+A cobertura mínima exigida é **80%** (statements, branches, functions e lines), configurada em `coverage.thresholds` de cada `vitest.config.ts`/`vite.config.ts`. Ela é calculada automaticamente em todo `bun run test` (não é preciso passar `--coverage`) e, se qualquer métrica ficar abaixo de 80%, o comando termina com código de erro. O relatório em HTML fica em `coverage/` dentro de cada workspace (ignorado pelo Git).
+
+### Banco de dados de teste
+
+Os testes de integração de `apps/server` (rotas via `fastify.inject()`) usam um banco Postgres de teste separado (`verzel_test`), no mesmo container Docker do ambiente de desenvolvimento (`bun run docker:up`). Antes de cada execução de `bun run test` em `apps/server`, o script `pretest` (`apps/server/scripts/migrate-test-db.ts`) cria o banco `verzel_test` (se ainda não existir) e aplica as migrations nele — não é preciso nenhum passo manual, desde que o Postgres do `docker-compose` esteja rodando.
+
+Os valores de ambiente usados nos testes (dummy, sem segredos reais) ficam em `apps/server/.env.test` e `apps/web/.env.test`, versionados no repositório.
+
+### Bloqueio de push com testes falhando ou cobertura insuficiente
+
+Há um hook `.husky/pre-push` que roda `bun run test` antes de qualquer `git push`. Como a cobertura mínima já é verificada dentro do próprio `vitest run`, o push é bloqueado tanto quando um teste falha quanto quando a cobertura fica abaixo de 80%.
+
+**Limitação conhecida:** esse bloqueio é local — `git push --no-verify` ainda contorna o hook, e não há CI configurado neste repositório como segunda camada de proteção (decisão consciente para manter o escopo enxuto; pode ser adicionado depois, se necessário).
+
+### Fora do escopo de testes
+
+`packages/db` (schema Drizzle, migrations e fábrica de conexão) não tem uma suíte de testes dedicada — é uma decisão consciente, já que o pacote tem pouca lógica própria para testar isoladamente. Ele é exercitado indiretamente pelos testes de integração de `apps/server` que usam o banco de teste real.
+
+### Uso de IA neste trabalho
+
+A infraestrutura de testes (configuração do Vitest, o refactor de `apps/server/src/index.ts` para extrair `buildApp()`, o script de migração do banco de teste, o hook `pre-push` e os arquivos de teste iniciais listados acima) foi escrita com apoio de IA (Claude Code), incluindo a escolha das ferramentas (Vitest, Testing Library, `fastify.inject()`) e a cobertura dos principais fluxos de sucesso e erro de cada camada.
+
 ## Project Structure
 
 ```
@@ -129,6 +170,7 @@ verzel/
 - `bun run dev:web`: Start only the web application
 - `bun run dev:server`: Start only the server
 - `bun run check-types`: Check TypeScript types across all apps
+- `bun run test`: Run all tests (with coverage enforcement) across workspaces
 - `bun run db:push`: Push schema changes to database
 - `bun run db:generate`: Generate database client/types
 - `bun run db:migrate`: Run database migrations

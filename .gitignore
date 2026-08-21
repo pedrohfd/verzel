@@ -60,3 +60,10 @@ temp
 
 # Claude
 CLAUDE.md
+
+# Files
+ui
+
+# Testing env (dummy values, safe to commit)
+!apps/server/.env.test
+!apps/web/.env.test

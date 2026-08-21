@@ -1,14 +1,6 @@
-import fastifyCors from "@fastify/cors";
 import { env } from "@verzel/env/server";
-import Fastify from "fastify";
 
-import { authRoutes } from "./routes/auth";
-import { checkinRoutes } from "./routes/checkin";
-import { eventRoutes } from "./routes/events";
-import { movieRoutes } from "./routes/movies";
-import { paymentRoutes } from "./routes/payments";
-import { reservationRoutes } from "./routes/reservations";
-import { ticketRoutes } from "./routes/tickets";
+import { buildApp } from "./app";
 
 // On Vercel, VERCEL_PROJECT_PRODUCTION_URL (used to derive CORS_ORIGIN) only
 // matches requests to the production alias. Requests hitting a deployment's
@@ -28,19 +20,7 @@ const baseCorsConfig = {
 	maxAge: 86400,
 };
 
-const fastify = Fastify({
-	logger: true,
-});
-
-fastify.register(fastifyCors, baseCorsConfig);
-
-fastify.register(authRoutes, { prefix: "/api/auth" });
-fastify.register(movieRoutes, { prefix: "/api/movies" });
-fastify.register(eventRoutes, { prefix: "/api/events" });
-fastify.register(reservationRoutes, { prefix: "/api/reservations" });
-fastify.register(paymentRoutes, { prefix: "/api/payments" });
-fastify.register(ticketRoutes, { prefix: "/api/tickets" });
-fastify.register(checkinRoutes, { prefix: "/api/checkin" });
+const fastify = buildApp(baseCorsConfig);
 
 if (process.env.VERCEL) {
 	// Vercel's Node.js Function runtime calls the default export directly

@@ -7,7 +7,9 @@
 		"check-types": "tsc -b",
 		"compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
 		"dev": "tsx watch src/index.ts",
-		"start": "node dist/index.mjs"
+		"start": "node dist/index.mjs",
+		"pretest": "tsx scripts/migrate-test-db.ts",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@fastify/cors": "^11.3.0",
@@ -22,9 +24,13 @@
 	},
 	"devDependencies": {
 		"@types/node": "catalog:",
+		"@types/pg": "8.23.1",
 		"@verzel/config": "workspace:*",
+		"@vitest/coverage-v8": "4.1.11",
+		"pg": "8.23.0",
 		"tsdown": "^0.22.14",
 		"tsx": "catalog:",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"vitest": "4.1.11"
 	}
 }
