@@ -1,6 +1,6 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, asc, eq, gte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, or } from "drizzle-orm";
 
 import { ForbiddenError, NotFoundError } from "./errors";
 
@@ -14,6 +14,7 @@ export interface CreateEventInput {
 	venueName: string;
 	venueAddress: string;
 	priceCents: number;
+	roomId: string;
 	rows: number;
 	columns: number;
 }
@@ -72,6 +73,27 @@ export async function publishEvent(eventId: string, organizerId: string) {
 	});
 }
 
+export interface UpdateEventInput {
+	tmdbMovieId: number;
+	movieTitle: string;
+	moviePosterPath: string | null;
+	movieBackdropPath: string | null;
+	sessionAt: Date;
+	priceCents: number;
+	roomId: string;
+	rows: number;
+	columns: number;
+}
+
+export async function updateEvent(eventId: string, patch: UpdateEventInput) {
+	const [updated] = await db
+		.update(schema.events)
+		.set(patch)
+		.where(eq(schema.events.id, eventId))
+		.returning();
+	return updated;
+}
+
 export async function cancelEvent(eventId: string, organizerId: string) {
 	await getOwnedEvent(eventId, organizerId);
 	const [updated] = await db
@@ -103,7 +125,7 @@ export function listPublishedEvents(search?: string) {
 export function listOrganizerEvents(organizerId: string) {
 	return db.query.events.findMany({
 		where: eq(schema.events.organizerId, organizerId),
-		orderBy: asc(schema.events.sessionAt),
+		orderBy: desc(schema.events.createdAt),
 	});
 }
 

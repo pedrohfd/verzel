@@ -1,6 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { sendDomainError } from "../lib/errors";
+import { getCinemaByUserId } from "../lib/cinemas";
+import {
+	CinemaNotRegisteredError,
+	EventNotEditableError,
+	EventSeatsLockedError,
+	sendDomainError,
+} from "../lib/errors";
 import {
 	cancelEvent,
 	createEvent,
@@ -10,8 +16,11 @@ import {
 	listOrganizerEvents,
 	listPublishedEvents,
 	publishEvent,
+	updateEvent,
 } from "../lib/events";
+import { formatAddress } from "../lib/format-address";
 import { requireRole } from "../lib/require-role";
+import { getOwnedRoom } from "../lib/rooms";
 
 const createEventSchema = z.object({
 	tmdbMovieId: z.number().int(),
@@ -26,11 +35,8 @@ const createEventSchema = z.object({
 			(value) => new Date(value) > new Date(),
 			"A sessão deve ser no futuro",
 		),
-	venueName: z.string().min(1),
-	venueAddress: z.string().min(1),
 	priceCents: z.number().int().positive(),
-	rows: z.number().int().min(1).max(26),
-	columns: z.number().int().min(1).max(50),
+	roomId: z.string().uuid(),
 });
 
 export async function eventRoutes(fastify: FastifyInstance) {
@@ -93,10 +99,38 @@ export async function eventRoutes(fastify: FastifyInstance) {
 			}
 
 			try {
+				const cinema = await getCinemaByUserId(request.user?.id ?? "");
+				if (
+					!cinema?.cinemaName ||
+					!cinema.street ||
+					!cinema.number ||
+					!cinema.neighborhood ||
+					!cinema.city ||
+					!cinema.state
+				) {
+					throw new CinemaNotRegisteredError();
+				}
+
+				const room = await getOwnedRoom(
+					parsed.data.roomId,
+					request.user?.id ?? "",
+				);
+
 				const [event] = await createEvent({
 					...parsed.data,
 					sessionAt: new Date(parsed.data.sessionAt),
 					organizerId: request.user?.id ?? "",
+					venueName: cinema.cinemaName,
+					venueAddress: formatAddress({
+						street: cinema.street,
+						number: cinema.number,
+						complement: cinema.complement,
+						neighborhood: cinema.neighborhood,
+						city: cinema.city,
+						state: cinema.state,
+					}),
+					rows: room.rows,
+					columns: room.columns,
 				});
 				return reply.status(201).send(event);
 			} catch (error) {
@@ -107,19 +141,55 @@ export async function eventRoutes(fastify: FastifyInstance) {
 
 	fastify.patch<{
 		Params: { id: string };
-		Body: { action: "publish" | "cancel" };
+		Body:
+			| { action: "publish" | "cancel" }
+			| { action: "update"; data: unknown };
 	}>(
 		"/:id",
 		{ preHandler: requireRole("organizador") },
 		async (request, reply) => {
 			try {
-				await getOwnedEvent(request.params.id, request.user?.id ?? "");
+				const event = await getOwnedEvent(
+					request.params.id,
+					request.user?.id ?? "",
+				);
 
 				if (request.body.action === "publish") {
 					return await publishEvent(request.params.id, request.user?.id ?? "");
 				}
 				if (request.body.action === "cancel") {
 					return await cancelEvent(request.params.id, request.user?.id ?? "");
+				}
+				if (request.body.action === "update") {
+					if (event.status === "cancelled") throw new EventNotEditableError();
+
+					const parsed = createEventSchema.safeParse(request.body.data);
+					if (!parsed.success) {
+						return reply.status(400).send({
+							error: "Invalid event data",
+							code: "INVALID_INPUT",
+							issues: parsed.error.issues,
+						});
+					}
+
+					const room = await getOwnedRoom(
+						parsed.data.roomId,
+						request.user?.id ?? "",
+					);
+
+					if (
+						event.status === "published" &&
+						(room.rows !== event.rows || room.columns !== event.columns)
+					) {
+						throw new EventSeatsLockedError();
+					}
+
+					return await updateEvent(request.params.id, {
+						...parsed.data,
+						sessionAt: new Date(parsed.data.sessionAt),
+						rows: room.rows,
+						columns: room.columns,
+					});
 				}
 
 				return reply

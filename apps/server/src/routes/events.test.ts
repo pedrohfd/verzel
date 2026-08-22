@@ -11,7 +11,10 @@ const {
 	getOwnedEventMock,
 	publishEventMock,
 	cancelEventMock,
+	updateEventMock,
 	requireRoleMock,
+	getCinemaByUserIdMock,
+	getOwnedRoomMock,
 } = vi.hoisted(() => ({
 	listPublishedEventsMock: vi.fn(),
 	listOrganizerEventsMock: vi.fn(),
@@ -21,7 +24,10 @@ const {
 	getOwnedEventMock: vi.fn(),
 	publishEventMock: vi.fn(),
 	cancelEventMock: vi.fn(),
+	updateEventMock: vi.fn(),
 	requireRoleMock: vi.fn(),
+	getCinemaByUserIdMock: vi.fn(),
+	getOwnedRoomMock: vi.fn(),
 }));
 
 vi.mock("../lib/events", () => ({
@@ -33,10 +39,19 @@ vi.mock("../lib/events", () => ({
 	getOwnedEvent: getOwnedEventMock,
 	publishEvent: publishEventMock,
 	cancelEvent: cancelEventMock,
+	updateEvent: updateEventMock,
 }));
 
 vi.mock("../lib/require-role", () => ({
 	requireRole: requireRoleMock,
+}));
+
+vi.mock("../lib/cinemas", () => ({
+	getCinemaByUserId: getCinemaByUserIdMock,
+}));
+
+vi.mock("../lib/rooms", () => ({
+	getOwnedRoom: getOwnedRoomMock,
 }));
 
 const { buildTestApp } = await import("../test-helpers/build-test-app");
@@ -47,11 +62,26 @@ const validCreateBody = {
 	moviePosterPath: null,
 	movieBackdropPath: null,
 	sessionAt: "2030-01-01T10:00:00Z",
-	venueName: "Venue",
-	venueAddress: "Address",
 	priceCents: 1000,
+	roomId: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+};
+
+const registeredRoom = {
+	id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+	organizerId: "organizer-1",
+	name: "Sala 1",
 	rows: 5,
 	columns: 5,
+};
+
+const registeredCinema = {
+	cinemaName: "Cinema Verzel",
+	street: "Rua A",
+	number: "100",
+	complement: null,
+	neighborhood: "Centro",
+	city: "São Paulo",
+	state: "SP",
 };
 
 function authAsOrganizer(userId = "organizer-1") {
@@ -72,7 +102,10 @@ beforeEach(() => {
 		getOwnedEventMock,
 		publishEventMock,
 		cancelEventMock,
+		updateEventMock,
 		requireRoleMock,
+		getCinemaByUserIdMock,
+		getOwnedRoomMock,
 	]) {
 		mock.mockReset();
 	}
@@ -145,6 +178,8 @@ describe("POST /", () => {
 
 	it("creates the event and returns 201", async () => {
 		authAsOrganizer();
+		getCinemaByUserIdMock.mockResolvedValue(registeredCinema);
+		getOwnedRoomMock.mockResolvedValue(registeredRoom);
 		createEventMock.mockResolvedValue([{ id: "event-1" }]);
 		const app = buildTestApp();
 
@@ -156,6 +191,27 @@ describe("POST /", () => {
 
 		expect(res.statusCode).toBe(201);
 		expect(res.json()).toEqual({ id: "event-1" });
+		expect(createEventMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				venueName: "Cinema Verzel",
+				venueAddress: "Rua A, 100 - Centro, São Paulo/SP",
+			}),
+		);
+	});
+
+	it("returns 400 when the organizer has no cinema registered", async () => {
+		authAsOrganizer();
+		getCinemaByUserIdMock.mockResolvedValue(undefined);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/events",
+			payload: validCreateBody,
+		});
+
+		expect(res.statusCode).toBe(400);
+		expect(res.json()).toMatchObject({ code: "CINEMA_NOT_REGISTERED" });
 	});
 });
 
@@ -216,5 +272,101 @@ describe("PATCH /:id", () => {
 		});
 
 		expect(res.statusCode).toBe(403);
+	});
+
+	it("updates a draft event", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({ id: "event-1", status: "draft" });
+		getOwnedRoomMock.mockResolvedValue(registeredRoom);
+		updateEventMock.mockResolvedValue({ id: "event-1", status: "draft" });
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "update", data: validCreateBody },
+		});
+
+		expect(res.statusCode).toBe(200);
+		expect(res.json()).toEqual({ id: "event-1", status: "draft" });
+		expect(updateEventMock).toHaveBeenCalledWith(
+			"event-1",
+			expect.objectContaining({ movieTitle: "Movie" }),
+		);
+	});
+
+	it("returns 400 when updating with invalid data", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({ id: "event-1", status: "draft" });
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "update", data: {} },
+		});
+
+		expect(res.statusCode).toBe(400);
+	});
+
+	it("returns 409 when updating a cancelled event", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({ id: "event-1", status: "cancelled" });
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "update", data: validCreateBody },
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toMatchObject({ code: "EVENT_NOT_EDITABLE" });
+	});
+
+	it("updates a published event when rows and columns stay the same", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({
+			id: "event-1",
+			status: "published",
+			rows: registeredRoom.rows,
+			columns: registeredRoom.columns,
+		});
+		getOwnedRoomMock.mockResolvedValue(registeredRoom);
+		updateEventMock.mockResolvedValue({ id: "event-1", status: "published" });
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "update", data: validCreateBody },
+		});
+
+		expect(res.statusCode).toBe(200);
+		expect(updateEventMock).toHaveBeenCalledWith(
+			"event-1",
+			expect.objectContaining({ movieTitle: "Movie" }),
+		);
+	});
+
+	it("returns 409 when changing rows or columns of a published event", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({
+			id: "event-1",
+			status: "published",
+			rows: registeredRoom.rows + 1,
+			columns: registeredRoom.columns,
+		});
+		getOwnedRoomMock.mockResolvedValue(registeredRoom);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "update", data: validCreateBody },
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toMatchObject({ code: "EVENT_SEATS_LOCKED" });
 	});
 });
