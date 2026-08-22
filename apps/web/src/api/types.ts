@@ -19,6 +19,7 @@ export interface TmdbMovie {
 	id: number;
 	title: string;
 	poster_path: string | null;
+	backdrop_path: string | null;
 	release_date: string;
 	vote_average: number;
 }
@@ -38,9 +39,20 @@ export interface VerzelEvent {
 	venueName: string;
 	venueAddress: string;
 	priceCents: number;
+	roomId: string | null;
 	rows: number;
 	columns: number;
 	status: EventStatus;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface CinemaRoom {
+	id: string;
+	organizerId: string;
+	name: string;
+	rows: number;
+	columns: number;
 	createdAt: string;
 	updatedAt: string;
 }
