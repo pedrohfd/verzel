@@ -1,6 +1,6 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { ForbiddenError, NotFoundError, RoomInUseError } from "./errors";
 
@@ -18,7 +18,7 @@ export function createRoom(input: CreateRoomInput) {
 export function listOrganizerRooms(organizerId: string) {
 	return db.query.cinemaRooms.findMany({
 		where: eq(schema.cinemaRooms.organizerId, organizerId),
-		orderBy: desc(schema.cinemaRooms.createdAt),
+		orderBy: asc(schema.cinemaRooms.createdAt),
 	});
 }
 

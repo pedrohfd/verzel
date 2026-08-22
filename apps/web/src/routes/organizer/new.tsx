@@ -328,6 +328,10 @@ function NewEventComponent() {
 									<Select
 										value={field.state.value}
 										onValueChange={(value) => field.handleChange(value ?? "")}
+										items={rooms.map((room) => ({
+											value: room.id,
+											label: `${room.name} (${room.rows}x${room.columns})`,
+										}))}
 									>
 										<SelectTrigger id={field.name} className="w-full">
 											<SelectValue placeholder="Selecione uma sala" />
