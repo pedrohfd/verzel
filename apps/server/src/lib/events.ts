@@ -3,6 +3,7 @@ import * as schema from "@verzel/db/schema";
 import { and, asc, desc, eq, gte, or } from "drizzle-orm";
 
 import { ForbiddenError, NotFoundError } from "./errors";
+import { seatLabel } from "./seat-label";
 
 export interface CreateEventInput {
 	organizerId: string;
@@ -32,11 +33,6 @@ export async function getOwnedEvent(eventId: string, organizerId: string) {
 	return event;
 }
 
-function seatLabel(row: number, column: number): string {
-	const letter = String.fromCharCode(65 + row);
-	return `${letter}${column + 1}`;
-}
-
 export async function publishEvent(eventId: string, organizerId: string) {
 	return db.transaction(async (tx) => {
 		const [event] = await tx
@@ -47,21 +43,6 @@ export async function publishEvent(eventId: string, organizerId: string) {
 
 		if (!event) throw new NotFoundError("Event");
 		if (event.organizerId !== organizerId) throw new ForbiddenError();
-
-		if (event.status === "draft") {
-			const seatRows = [];
-			for (let row = 0; row < event.rows; row++) {
-				for (let column = 0; column < event.columns; column++) {
-					seatRows.push({
-						eventId,
-						row,
-						column,
-						label: seatLabel(row, column),
-					});
-				}
-			}
-			await tx.insert(schema.seats).values(seatRows);
-		}
 
 		const [updated] = await tx
 			.update(schema.events)
@@ -138,11 +119,9 @@ export async function getPublicEvent(eventId: string) {
 }
 
 export async function getSeatMap(eventId: string) {
-	await getPublicEvent(eventId);
+	const event = await getPublicEvent(eventId);
 
-	const seats = await db.query.seats.findMany({
-		where: eq(schema.seats.eventId, eventId),
-	});
+	if (event.status === "draft") return [];
 
 	const liveReservations = await db.query.reservations.findMany({
 		where: and(
@@ -155,14 +134,26 @@ export async function getSeatMap(eventId: string) {
 				),
 			),
 		),
+		with: { seat: true },
 	});
 
-	const reservedSeatIds = new Set(liveReservations.map((r) => r.seatId));
+	const takenByRowColumn = new Set(
+		liveReservations.map((r) => `${r.seat.row}:${r.seat.column}`),
+	);
 
-	return seats.map((seat) => ({
-		...seat,
-		status: reservedSeatIds.has(seat.id)
-			? ("taken" as const)
-			: ("available" as const),
-	}));
+	const grid = [];
+	for (let row = 0; row < event.rows; row++) {
+		for (let column = 0; column < event.columns; column++) {
+			grid.push({
+				eventId,
+				row,
+				column,
+				label: seatLabel(row, column),
+				status: takenByRowColumn.has(`${row}:${column}`)
+					? ("taken" as const)
+					: ("available" as const),
+			});
+		}
+	}
+	return grid;
 }

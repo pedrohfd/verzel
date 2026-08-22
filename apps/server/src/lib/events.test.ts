@@ -65,6 +65,7 @@ describe("createEvent", () => {
 			venueName: "Venue",
 			venueAddress: "Address",
 			priceCents: 1000,
+			roomId: "room-1",
 			rows: 1,
 			columns: 1,
 		});
@@ -163,19 +164,34 @@ describe("getPublicEvent", () => {
 });
 
 describe("getSeatMap", () => {
-	it("marks seats with a live reservation as taken and the rest as available", async () => {
+	it("returns an empty grid for draft events", async () => {
 		queryMock.events.findFirst.mockResolvedValue(baseEvent);
-		queryMock.seats.findMany.mockResolvedValue([
-			{ id: "seat-1" },
-			{ id: "seat-2" },
+
+		await expect(getSeatMap("event-1")).resolves.toEqual([]);
+	});
+
+	it("marks seats with a live reservation as taken and the rest as available", async () => {
+		queryMock.events.findFirst.mockResolvedValue({
+			...baseEvent,
+			status: "published",
+			rows: 1,
+			columns: 2,
+		});
+		queryMock.reservations.findMany.mockResolvedValue([
+			{ seat: { row: 0, column: 0 } },
 		]);
-		queryMock.reservations.findMany.mockResolvedValue([{ seatId: "seat-1" }]);
 
 		const result = await getSeatMap("event-1");
 
 		expect(result).toEqual([
-			{ id: "seat-1", status: "taken" },
-			{ id: "seat-2", status: "available" },
+			{ eventId: "event-1", row: 0, column: 0, label: "A1", status: "taken" },
+			{
+				eventId: "event-1",
+				row: 0,
+				column: 1,
+				label: "A2",
+				status: "available",
+			},
 		]);
 	});
 });
@@ -205,8 +221,7 @@ describe("publishEvent", () => {
 		).rejects.toBeInstanceOf(ForbiddenError);
 	});
 
-	it("generates seats and publishes a draft event", async () => {
-		const insertSeats = vi.fn().mockReturnValue(mockQueryChain(undefined));
+	it("publishes a draft event without creating any seats", async () => {
 		const updateEvent = vi
 			.fn()
 			.mockReturnValue(mockQueryChain([{ ...baseEvent, status: "published" }]));
@@ -214,14 +229,12 @@ describe("publishEvent", () => {
 		transactionMock.mockImplementation(async (cb) =>
 			cb({
 				select: () => mockQueryChain([baseEvent]),
-				insert: insertSeats,
 				update: updateEvent,
 			}),
 		);
 
 		const result = await publishEvent("event-1", "organizer-1");
 
-		expect(insertSeats).toHaveBeenCalled();
 		expect(result).toEqual({ ...baseEvent, status: "published" });
 	});
 });

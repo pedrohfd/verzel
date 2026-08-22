@@ -31,7 +31,7 @@ beforeEach(() => {
 	requireRoleMock.mockReset();
 });
 
-const validBody = { eventId: crypto.randomUUID(), seatId: crypto.randomUUID() };
+const validBody = { eventId: crypto.randomUUID(), row: 0, column: 0 };
 
 describe("POST /", () => {
 	it("returns 400 for an invalid payload", async () => {

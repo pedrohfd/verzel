@@ -7,6 +7,7 @@ import {
 	NotFoundError,
 	SeatAlreadyReservedError,
 } from "./errors";
+import { seatLabel } from "./seat-label";
 
 const HOLD_TTL_MINUTES = 10;
 
@@ -23,16 +24,39 @@ function isUniqueViolation(error: unknown): boolean {
 
 export async function createHold(
 	eventId: string,
-	seatId: string,
+	row: number,
+	column: number,
 	customerId: string,
 ) {
 	return db.transaction(async (tx) => {
-		const seat = await tx.query.seats.findFirst({
-			where: and(
-				eq(schema.seats.id, seatId),
-				eq(schema.seats.eventId, eventId),
-			),
-		});
+		const [event] = await tx
+			.select()
+			.from(schema.events)
+			.where(eq(schema.events.id, eventId));
+		if (event?.status !== "published") {
+			throw new NotFoundError("Event");
+		}
+		if (row < 0 || row >= event.rows || column < 0 || column >= event.columns) {
+			throw new NotFoundError("Seat");
+		}
+
+		const [insertedSeat] = await tx
+			.insert(schema.seats)
+			.values({ eventId, row, column, label: seatLabel(row, column) })
+			.onConflictDoNothing({
+				target: [schema.seats.eventId, schema.seats.row, schema.seats.column],
+			})
+			.returning();
+
+		const seat =
+			insertedSeat ??
+			(await tx.query.seats.findFirst({
+				where: and(
+					eq(schema.seats.eventId, eventId),
+					eq(schema.seats.row, row),
+					eq(schema.seats.column, column),
+				),
+			}));
 		if (!seat) throw new NotFoundError("Seat");
 
 		// Free up any stale hold on this seat before attempting the insert, so
@@ -42,7 +66,7 @@ export async function createHold(
 			.set({ status: "expired" })
 			.where(
 				and(
-					eq(schema.reservations.seatId, seatId),
+					eq(schema.reservations.seatId, seat.id),
 					eq(schema.reservations.status, "holding"),
 					lt(schema.reservations.holdExpiresAt, new Date()),
 				),
@@ -53,7 +77,7 @@ export async function createHold(
 				.insert(schema.reservations)
 				.values({
 					eventId,
-					seatId,
+					seatId: seat.id,
 					customerId,
 					status: "holding",
 					holdExpiresAt: new Date(Date.now() + HOLD_TTL_MINUTES * 60_000),
@@ -62,7 +86,7 @@ export async function createHold(
 
 			return reservation;
 		} catch (error) {
-			if (isUniqueViolation(error)) throw new SeatAlreadyReservedError(seatId);
+			if (isUniqueViolation(error)) throw new SeatAlreadyReservedError(seat.id);
 			throw error;
 		}
 	});

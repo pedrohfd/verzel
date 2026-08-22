@@ -7,7 +7,8 @@ import { createHold, getOwnedReservation } from "../lib/reservations";
 
 const createReservationSchema = z.object({
 	eventId: z.string().uuid(),
-	seatId: z.string().uuid(),
+	row: z.number().int().min(0),
+	column: z.number().int().min(0),
 });
 
 export async function reservationRoutes(fastify: FastifyInstance) {
@@ -25,7 +26,8 @@ export async function reservationRoutes(fastify: FastifyInstance) {
 			try {
 				const reservation = await createHold(
 					parsed.data.eventId,
-					parsed.data.seatId,
+					parsed.data.row,
+					parsed.data.column,
 					request.user?.id ?? "",
 				);
 				return reply.status(201).send(reservation);
