@@ -14,6 +14,23 @@ export interface RegisterCinemaInput {
 	state: string;
 }
 
+export async function getCinemaByUserId(userId: string) {
+	const [user] = await db
+		.select({
+			cinemaName: schema.user.cinemaName,
+			street: schema.user.street,
+			number: schema.user.number,
+			complement: schema.user.complement,
+			neighborhood: schema.user.neighborhood,
+			city: schema.user.city,
+			state: schema.user.state,
+		})
+		.from(schema.user)
+		.where(eq(schema.user.id, userId));
+
+	return user;
+}
+
 export async function registerCinema(
 	userId: string,
 	input: RegisterCinemaInput,

@@ -8,6 +8,7 @@ import { eventRoutes } from "./routes/events";
 import { movieRoutes } from "./routes/movies";
 import { paymentRoutes } from "./routes/payments";
 import { reservationRoutes } from "./routes/reservations";
+import { roomRoutes } from "./routes/rooms";
 import { ticketRoutes } from "./routes/tickets";
 
 type CorsConfig = Parameters<typeof fastifyCors>[1];
@@ -27,6 +28,7 @@ export function buildApp(corsConfig: CorsConfig, { logger = true } = {}) {
 	fastify.register(ticketRoutes, { prefix: "/api/tickets" });
 	fastify.register(checkinRoutes, { prefix: "/api/checkin" });
 	fastify.register(cinemaRoutes, { prefix: "/api/cinemas" });
+	fastify.register(roomRoutes, { prefix: "/api/rooms" });
 
 	return fastify;
 }

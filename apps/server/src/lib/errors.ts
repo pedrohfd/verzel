@@ -43,6 +43,34 @@ export class ForbiddenError extends DomainError {
 	}
 }
 
+export class CinemaNotRegisteredError extends DomainError {
+	constructor() {
+		super("Organizer has no cinema registered", 400, "CINEMA_NOT_REGISTERED");
+	}
+}
+
+export class EventNotEditableError extends DomainError {
+	constructor() {
+		super("Cancelled events cannot be edited", 409, "EVENT_NOT_EDITABLE");
+	}
+}
+
+export class EventSeatsLockedError extends DomainError {
+	constructor() {
+		super(
+			"Seat layout cannot be changed after publishing",
+			409,
+			"EVENT_SEATS_LOCKED",
+		);
+	}
+}
+
+export class RoomInUseError extends DomainError {
+	constructor() {
+		super("Room is in use by an active event", 409, "ROOM_IN_USE");
+	}
+}
+
 export function sendDomainError(
 	reply: import("fastify").FastifyReply,
 	error: unknown,
