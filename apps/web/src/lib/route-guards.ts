@@ -14,3 +14,11 @@ export async function requireRole(...roles: Role[]) {
 
 	return session;
 }
+
+export async function redirectIfAuthenticated() {
+	const { data: session } = await authClient.getSession();
+
+	if (session) {
+		throw redirect({ to: "/" });
+	}
+}

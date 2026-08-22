@@ -12,7 +12,7 @@ vi.mock("@tanstack/react-router", () => ({
 	},
 }));
 
-const { requireRole } = await import("./route-guards");
+const { requireRole, redirectIfAuthenticated } = await import("./route-guards");
 
 beforeEach(() => {
 	getSessionMock.mockReset();
@@ -44,5 +44,24 @@ describe("requireRole", () => {
 		getSessionMock.mockResolvedValue({ data: session });
 
 		await expect(requireRole("organizador")).resolves.toEqual(session);
+	});
+});
+
+describe("redirectIfAuthenticated", () => {
+	it("does not redirect when there is no session", async () => {
+		getSessionMock.mockResolvedValue({ data: null });
+
+		await expect(redirectIfAuthenticated()).resolves.toBeUndefined();
+	});
+
+	it("redirects to / when there is a session", async () => {
+		getSessionMock.mockResolvedValue({
+			data: { user: { role: "cliente" } },
+		});
+
+		await expect(redirectIfAuthenticated()).rejects.toMatchObject({
+			isRedirect: true,
+			options: { to: "/" },
+		});
 	});
 });
