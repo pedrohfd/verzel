@@ -3,6 +3,7 @@ import { MAX_COLUMNS, MAX_ROWS } from "@verzel/shared/validators";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
+import axios from "axios";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -40,6 +41,15 @@ export default function RoomForm({
 			);
 
 			if (error) {
+				const isDuplicateName =
+					axios.isAxiosError(error) &&
+					error.response?.data?.code === "DUPLICATE_ROOM_NAME";
+
+				if (isDuplicateName) {
+					toast.error("Você já tem uma sala com esse nome.");
+					return;
+				}
+
 				toast.error(
 					isEditing
 						? "Não foi possível salvar as alterações."
