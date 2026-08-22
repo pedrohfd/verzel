@@ -13,6 +13,8 @@ import { Skeleton } from "@verzel/ui/components/skeleton";
 
 import { authClient } from "@/lib/auth-client";
 
+import RoleGate from "./role-gate";
+
 export default function UserMenu() {
 	const navigate = useNavigate();
 	const { data: session, isPending } = authClient.useSession();
@@ -46,6 +48,21 @@ export default function UserMenu() {
 					<DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+				</DropdownMenuGroup>
+				{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
+				<RoleGate role="organizador">
+					<DropdownMenuGroup>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem render={<Link to="/organizer" />}>
+							Minhas Sessões
+						</DropdownMenuItem>
+						<DropdownMenuItem render={<Link to="/organizer/rooms" />}>
+							Minhas Salas
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+				</RoleGate>
+				<DropdownMenuGroup>
+					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						variant="destructive"
 						onClick={() => {

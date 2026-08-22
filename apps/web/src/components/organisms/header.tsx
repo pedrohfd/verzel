@@ -21,12 +21,6 @@ export default function Header() {
 						</Link>
 					</RoleGate>
 					{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
-					<RoleGate role="organizador">
-						<Link to="/organizer">
-							<Button variant="ghost">Minhas Sessões</Button>
-						</Link>
-					</RoleGate>
-					{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
 					<RoleGate role="portaria">
 						<Link to="/portaria">
 							<Button variant="ghost">Portaria</Button>

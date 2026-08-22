@@ -84,9 +84,6 @@ function OrganizerDashboardComponent() {
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="font-bold text-2xl">Minhas Sessões</h1>
 				<div className="flex gap-2">
-					<Link to="/organizer/rooms">
-						<Button variant="outline">Minhas Salas</Button>
-					</Link>
 					<Link to="/organizer/new">
 						<Button>Criar sessão</Button>
 					</Link>
