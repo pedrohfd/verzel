@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { cinemaRooms } from "./rooms";
 import { seats } from "./seats";
 
 export const eventStatusEnum = pgEnum("event_status", [
@@ -30,6 +31,9 @@ export const events = pgTable("event", {
 	venueName: text("venue_name").notNull(),
 	venueAddress: text("venue_address").notNull(),
 	priceCents: integer("price_cents").notNull(),
+	roomId: uuid("room_id").references(() => cinemaRooms.id, {
+		onDelete: "set null",
+	}),
 	rows: integer("rows").notNull(),
 	columns: integer("columns").notNull(),
 	status: eventStatusEnum("status").default("draft").notNull(),
@@ -44,6 +48,10 @@ export const eventRelations = relations(events, ({ one, many }) => ({
 	organizer: one(user, {
 		fields: [events.organizerId],
 		references: [user.id],
+	}),
+	room: one(cinemaRooms, {
+		fields: [events.roomId],
+		references: [cinemaRooms.id],
 	}),
 	seats: many(seats),
 }));

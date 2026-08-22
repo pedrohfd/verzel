@@ -1,3 +1,6 @@
+export const MAX_ROWS = 20;
+export const MAX_COLUMNS = 24;
+
 export function onlyDigits(value: string): string {
 	return value.replace(/\D/g, "");
 }
