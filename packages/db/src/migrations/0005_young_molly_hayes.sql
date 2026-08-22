@@ -1,0 +1,1 @@
+ALTER TABLE "cinema_room" ADD CONSTRAINT "cinema_room_organizer_name_unique" UNIQUE("organizer_id","name");
