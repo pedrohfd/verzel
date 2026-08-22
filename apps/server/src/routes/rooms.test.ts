@@ -173,7 +173,7 @@ describe("PATCH /:id", () => {
 		expect(res.statusCode).toBe(200);
 		expect(res.json()).toMatchObject({ id: "room-1", name: "Sala renomeada" });
 		expect(getOwnedRoomMock).toHaveBeenCalledWith("room-1", "organizer-1");
-		expect(updateRoomMock).toHaveBeenCalledWith("room-1", {
+		expect(updateRoomMock).toHaveBeenCalledWith("room-1", "organizer-1", {
 			...validCreateBody,
 			name: "Sala renomeada",
 		});
