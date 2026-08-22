@@ -50,6 +50,15 @@ export default function UserMenu() {
 					<DropdownMenuItem>{session.user.email}</DropdownMenuItem>
 				</DropdownMenuGroup>
 				{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
+				<RoleGate role="cliente">
+					<DropdownMenuGroup>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem render={<Link to="/tickets" />}>
+							Meus Ingressos
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+				</RoleGate>
+				{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
 				<RoleGate role="organizador">
 					<DropdownMenuGroup>
 						<DropdownMenuSeparator />
