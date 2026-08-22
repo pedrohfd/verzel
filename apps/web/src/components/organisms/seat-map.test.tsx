@@ -89,4 +89,60 @@ describe("SeatMap", () => {
 
 		expect(onSelect).toHaveBeenCalledWith(seats[0]);
 	});
+
+	it("renders the row letter on both sides of the row", () => {
+		const { container } = render(
+			<SeatMap
+				seats={seats}
+				columns={3}
+				selectedSeatId={null}
+				onSelect={vi.fn()}
+			/>,
+		);
+
+		expect(screen.getAllByText("A")).toHaveLength(2);
+		expect(container.querySelectorAll('[data-slot="seat-block"]')).toHaveLength(
+			1,
+		);
+	});
+
+	it("renders a screen indicator with the TELA label", () => {
+		render(
+			<SeatMap
+				seats={seats}
+				columns={3}
+				selectedSeatId={null}
+				onSelect={vi.fn()}
+			/>,
+		);
+
+		expect(screen.getByText("TELA")).toBeInTheDocument();
+	});
+
+	it("splits a row into two blocks when there is an aisle", () => {
+		const wideRowSeats: import("@/api/types").Seat[] = Array.from(
+			{ length: 6 },
+			(_, column) => ({
+				id: `seat-${column}`,
+				eventId: "event-1",
+				row: 0,
+				column,
+				label: `A${column + 1}`,
+				status: "available",
+			}),
+		);
+
+		const { container } = render(
+			<SeatMap
+				seats={wideRowSeats}
+				columns={6}
+				selectedSeatId={null}
+				onSelect={vi.fn()}
+			/>,
+		);
+
+		expect(container.querySelectorAll('[data-slot="seat-block"]')).toHaveLength(
+			2,
+		);
+	});
 });
