@@ -26,7 +26,7 @@ function PortariaEventsComponent() {
 				getCheckinEvents(controller.signal),
 			);
 			if (fetchError) {
-				setError("Não foi possível carregar os eventos.");
+				setError("Não foi possível carregar as sessões.");
 				return;
 			}
 			setEvents(response);
@@ -51,7 +51,7 @@ function PortariaEventsComponent() {
 
 			{events.length === 0 && (
 				<p className="text-muted-foreground text-sm">
-					Nenhum evento disponível para validação no momento.
+					Nenhuma sessão disponível para validação no momento.
 				</p>
 			)}
 

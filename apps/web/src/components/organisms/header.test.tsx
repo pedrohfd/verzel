@@ -26,6 +26,6 @@ describe("Header", () => {
 		render(<Header />);
 
 		expect(screen.getByText("Ticket")).toBeInTheDocument();
-		expect(screen.getByText("Buscar evento...")).toBeInTheDocument();
+		expect(screen.getByText("Buscar sessão...")).toBeInTheDocument();
 	});
 });

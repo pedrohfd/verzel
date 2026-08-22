@@ -24,7 +24,7 @@ function HomeComponent() {
 		);
 
 		if (error) {
-			setError("Não foi possível carregar os eventos.");
+			setError("Não foi possível carregar as sessões.");
 			return;
 		}
 
@@ -56,7 +56,7 @@ function HomeComponent() {
 
 			{events && events.length === 0 && (
 				<p className="text-muted-foreground text-sm">
-					Nenhum evento publicado no momento.
+					Nenhuma sessão publicada no momento.
 				</p>
 			)}
 
@@ -65,7 +65,7 @@ function HomeComponent() {
 					<EventHero events={events.slice(0, 4)} />
 
 					<section>
-						<h2 className="mb-4 font-semibold text-xl">Eventos em cartaz</h2>
+						<h2 className="mb-4 font-semibold text-xl">Sessões em cartaz</h2>
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
 							{events.slice(4).map((event) => (
 								<EventCard key={event.id} event={event} />

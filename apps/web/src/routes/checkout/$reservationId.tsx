@@ -44,7 +44,7 @@ function CheckoutComponent() {
 				getEvent(reservationResponse.eventId, controller.signal),
 			);
 			if (eventError) {
-				setError("Não foi possível carregar o evento.");
+				setError("Não foi possível carregar a sessão.");
 				return;
 			}
 			setEvent(eventResponse);

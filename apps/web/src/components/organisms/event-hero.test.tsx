@@ -73,10 +73,10 @@ describe("EventHero", () => {
 	it("navigates with the previous/next controls", () => {
 		render(<EventHero events={events} />);
 
-		fireEvent.click(screen.getByLabelText("Próximo evento"));
+		fireEvent.click(screen.getByLabelText("Próxima sessão"));
 		expect(screen.getByText("Movie Two")).toBeInTheDocument();
 
-		fireEvent.click(screen.getByLabelText("Evento anterior"));
+		fireEvent.click(screen.getByLabelText("Sessão anterior"));
 		expect(screen.getByText("Movie One")).toBeInTheDocument();
 	});
 
@@ -125,7 +125,7 @@ describe("EventHero", () => {
 		});
 		expect(screen.getByTitle("Trailer")).toBeInTheDocument();
 
-		fireEvent.click(screen.getByLabelText("Próximo evento"));
+		fireEvent.click(screen.getByLabelText("Próxima sessão"));
 
 		expect(screen.queryByTitle("Trailer")).not.toBeInTheDocument();
 	});

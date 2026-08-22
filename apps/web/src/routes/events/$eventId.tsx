@@ -38,7 +38,7 @@ function EventDetailComponent() {
 				getEvent(eventId, controller.signal),
 			);
 			if (eventError) {
-				setError("Não foi possível carregar o evento.");
+				setError("Não foi possível carregar a sessão.");
 				return;
 			}
 			setEvent(eventResponse);
@@ -127,7 +127,7 @@ function EventDetailComponent() {
 
 			{seats.length === 0 ? (
 				<p className="text-muted-foreground text-sm">
-					Este evento ainda não tem mapa de assentos disponível.
+					Esta sessão ainda não tem mapa de assentos disponível.
 				</p>
 			) : (
 				<>

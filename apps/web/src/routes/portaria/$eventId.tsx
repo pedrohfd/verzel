@@ -22,7 +22,7 @@ const resultLabel: Record<CheckinResult["result"], string> = {
 	valid: "Ingresso válido",
 	invalid: "Código inválido",
 	already_used: "Ingresso já utilizado",
-	wrong_event: "Ingresso de outro evento",
+	wrong_event: "Ingresso de outra sessão",
 };
 
 function resultBadgeVariant(result: CheckinResult["result"]) {
@@ -125,7 +125,7 @@ function PortariaScanComponent() {
 
 					{result.result === "wrong_event" && (
 						<p className="text-muted-foreground text-sm">
-							Este ingresso pertence a outro evento.
+							Este ingresso pertence a outra sessão.
 						</p>
 					)}
 				</div>

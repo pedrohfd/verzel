@@ -65,19 +65,19 @@ export default function SearchCommand() {
 			>
 				<Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
 				<span className="block h-8 w-full rounded-full border border-input bg-transparent pl-8 text-muted-foreground text-xs leading-8">
-					Buscar evento...
+					Buscar sessão...
 				</span>
 			</button>
 			<CommandDialog
 				open={open}
 				onOpenChange={setOpen}
-				title="Buscar evento"
-				description="Busque por eventos publicados"
+				title="Buscar sessão"
+				description="Busque por sessões publicadas"
 			>
 				<CommandInput
 					value={query}
 					onValueChange={setQuery}
-					placeholder="Buscar evento..."
+					placeholder="Buscar sessão..."
 					onKeyDown={(event) => {
 						if (event.key === "Enter") {
 							event.preventDefault();
@@ -87,7 +87,7 @@ export default function SearchCommand() {
 				/>
 				<CommandList>
 					{query && results.length === 0 && (
-						<CommandEmpty>Nenhum evento encontrado.</CommandEmpty>
+						<CommandEmpty>Nenhuma sessão encontrada.</CommandEmpty>
 					)}
 					{results.length > 0 && (
 						<CommandGroup>

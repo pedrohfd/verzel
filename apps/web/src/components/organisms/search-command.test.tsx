@@ -73,7 +73,7 @@ afterEach(() => {
 });
 
 async function openAndSearch(query: string) {
-	fireEvent.click(screen.getByText("Buscar evento..."));
+	fireEvent.click(screen.getByText("Buscar sessão..."));
 	fireEvent.change(screen.getByLabelText("search input"), {
 		target: { value: query },
 	});
@@ -86,7 +86,7 @@ describe("SearchCommand", () => {
 	it("opens the dialog when the trigger button is clicked", () => {
 		render(<SearchCommand />);
 
-		fireEvent.click(screen.getByText("Buscar evento..."));
+		fireEvent.click(screen.getByText("Buscar sessão..."));
 
 		expect(screen.getByLabelText("search input")).toBeInTheDocument();
 	});
@@ -113,7 +113,7 @@ describe("SearchCommand", () => {
 
 		await openAndSearch("nomatch");
 
-		expect(screen.getByText("Nenhum evento encontrado.")).toBeInTheDocument();
+		expect(screen.getByText("Nenhuma sessão encontrada.")).toBeInTheDocument();
 	});
 
 	it("navigates to the event when a result is selected", async () => {
@@ -140,7 +140,7 @@ describe("SearchCommand", () => {
 		getPublishedEventsMock.mockResolvedValue([]);
 		render(<SearchCommand />);
 
-		fireEvent.click(screen.getByText("Buscar evento..."));
+		fireEvent.click(screen.getByText("Buscar sessão..."));
 		fireEvent.change(screen.getByLabelText("search input"), {
 			target: { value: "matrix" },
 		});

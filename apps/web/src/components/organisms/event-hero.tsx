@@ -122,7 +122,7 @@ export default function EventHero({ events }: { events: VerzelEvent[] }) {
 					<Button
 						variant="outline"
 						size="icon"
-						aria-label="Evento anterior"
+						aria-label="Sessão anterior"
 						onClick={() =>
 							setActiveIndex((i) => (i - 1 + events.length) % events.length)
 						}
@@ -133,7 +133,7 @@ export default function EventHero({ events }: { events: VerzelEvent[] }) {
 					<Button
 						variant="outline"
 						size="icon"
-						aria-label="Próximo evento"
+						aria-label="Próxima sessão"
 						onClick={() => setActiveIndex((i) => (i + 1) % events.length)}
 						className="absolute top-1/2 right-4 z-10 -translate-y-1/2 transition-none active:not-aria-[haspopup]:-translate-y-1/2"
 					>

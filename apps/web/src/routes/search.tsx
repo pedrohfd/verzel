@@ -36,7 +36,7 @@ function SearchComponent() {
 			);
 
 			if (fetchError) {
-				setError("Não foi possível buscar os eventos.");
+				setError("Não foi possível buscar as sessões.");
 				return;
 			}
 
@@ -62,7 +62,7 @@ function SearchComponent() {
 
 			{results && results.length === 0 && (
 				<p className="text-muted-foreground text-sm">
-					Nenhum evento encontrado para "{q}".
+					Nenhuma sessão encontrada para "{q}".
 				</p>
 			)}
 
