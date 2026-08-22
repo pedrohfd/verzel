@@ -141,6 +141,7 @@ function OrganizerDashboardComponent() {
 											</Link>
 											<Button
 												size="sm"
+												className="min-w-18"
 												disabled={pendingId === event.id}
 												onClick={() => handleAction(event.id, "publish")}
 											>
@@ -161,6 +162,7 @@ function OrganizerDashboardComponent() {
 											<Button
 												size="sm"
 												variant="outline"
+												className="min-w-18"
 												disabled={pendingId === event.id}
 												onClick={() => handleAction(event.id, "cancel")}
 											>
