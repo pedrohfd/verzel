@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
@@ -14,57 +14,114 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { createEvent } from "@/api/requests/events/create-event";
+import { getEvent } from "@/api/requests/events/get-event";
+import { updateEvent } from "@/api/requests/events/update-event";
 import { searchMovies } from "@/api/requests/movies/search-movies";
 import { getMyRooms } from "@/api/requests/rooms/get-my-rooms";
-import type { CinemaRoom, TmdbMovie } from "@/api/types";
+import type { CinemaRoom, TmdbMovie, VerzelEvent } from "@/api/types";
 import CinemaRoomPreview from "@/components/organisms/cinema-room-preview";
+import Loader from "@/components/ui/loader";
 import { useDebouncedValue } from "@/hooks/use-debounce";
-import { authClient } from "@/lib/auth-client";
-import { formatAddress } from "@/lib/format-address";
 import { maskCurrencyBRL } from "@/lib/masks";
 import { requireRole } from "@/lib/route-guards";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
-const DRAFT_STORAGE_KEY = "organizer:new-event-draft";
-
-interface NewEventSearch {
+interface EditEventSearch {
 	roomId?: string;
 }
 
-interface NewEventDraft {
-	selectedMovie: TmdbMovie | null;
+interface EditEventDraft {
+	selectedMovie: TmdbMovie;
 	sessionAt: string;
 	price: string;
 }
 
-export const Route = createFileRoute("/organizer/new")({
-	component: NewEventComponent,
+export const Route = createFileRoute("/organizer/$eventId/edit")({
+	component: EditEventComponent,
 	beforeLoad: () => requireRole("organizador"),
-	validateSearch: (search: Record<string, unknown>): NewEventSearch => ({
+	validateSearch: (search: Record<string, unknown>): EditEventSearch => ({
 		roomId: typeof search.roomId === "string" ? search.roomId : undefined,
 	}),
 });
 
-interface SessionCinemaFields {
-	cinemaName?: string;
-	street?: string;
-	number?: string;
-	complement?: string | null;
-	neighborhood?: string;
-	city?: string;
-	state?: string;
+function draftStorageKey(eventId: string) {
+	return `organizer:edit-event-draft:${eventId}`;
 }
 
-function NewEventComponent() {
+function toDatetimeLocalValue(isoString: string): string {
+	const date = new Date(isoString);
+	const offset = date.getTimezoneOffset();
+	const local = new Date(date.getTime() - offset * 60 * 1000);
+	return local.toISOString().slice(0, 16);
+}
+
+function EditEventComponent() {
+	const { eventId } = Route.useParams();
+
+	const [event, setEvent] = useState<VerzelEvent | null>(null);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		const controller = new AbortController();
+		(async () => {
+			const [response, fetchError] = await tryCatch(
+				getEvent(eventId, controller.signal),
+			);
+			if (fetchError) {
+				setError("Não foi possível carregar a sessão.");
+				return;
+			}
+			setEvent(response);
+		})();
+		return () => controller.abort();
+	}, [eventId]);
+
+	if (error) {
+		return (
+			<div className="container mx-auto max-w-2xl px-4 py-6">
+				<p className="text-destructive text-sm">{error}</p>
+			</div>
+		);
+	}
+
+	if (!event) return <Loader />;
+
+	if (event.status === "cancelled") {
+		return (
+			<div className="container mx-auto max-w-2xl px-4 py-6">
+				<p className="text-muted-foreground text-sm">
+					Esta sessão não é mais um rascunho e não pode ser editada.
+				</p>
+				<Link to="/organizer" className="mt-4 inline-block">
+					<Button variant="outline">Voltar</Button>
+				</Link>
+			</div>
+		);
+	}
+
+	return <EditEventForm eventId={eventId} event={event} />;
+}
+
+function EditEventForm({
+	eventId,
+	event,
+}: {
+	eventId: string;
+	event: VerzelEvent;
+}) {
 	const navigate = useNavigate();
 	const { roomId: returnedRoomId } = Route.useSearch();
-	const { data: session } = authClient.useSession();
-	const cinema = session?.user as SessionCinemaFields | undefined;
 	const [movieQuery, setMovieQuery] = useState("");
 	const [movieResults, setMovieResults] = useState<TmdbMovie[]>([]);
-	const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>(null);
+	const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>({
+		id: event.tmdbMovieId,
+		title: event.movieTitle,
+		poster_path: event.moviePosterPath,
+		backdrop_path: event.movieBackdropPath,
+		release_date: "",
+		vote_average: 0,
+	});
 	const debouncedQuery = useDebouncedValue(movieQuery, 300);
 
 	const [rooms, setRooms] = useState<CinemaRoom[]>([]);
@@ -72,8 +129,10 @@ function NewEventComponent() {
 	useEffect(() => {
 		const controller = new AbortController();
 		(async () => {
-			const [response, error] = await tryCatch(getMyRooms(controller.signal));
-			if (!error) setRooms(response);
+			const [response, fetchError] = await tryCatch(
+				getMyRooms(controller.signal),
+			);
+			if (!fetchError) setRooms(response);
 		})();
 		return () => controller.abort();
 	}, []);
@@ -86,10 +145,10 @@ function NewEventComponent() {
 
 		const controller = new AbortController();
 		(async () => {
-			const [response, error] = await tryCatch(
+			const [response, searchError] = await tryCatch(
 				searchMovies(debouncedQuery, controller.signal),
 			);
-			if (!error) setMovieResults(response);
+			if (!searchError) setMovieResults(response);
 		})();
 
 		return () => controller.abort();
@@ -97,9 +156,9 @@ function NewEventComponent() {
 
 	const form = useForm({
 		defaultValues: {
-			sessionAt: "",
-			price: "",
-			roomId: "",
+			sessionAt: toDatetimeLocalValue(event.sessionAt),
+			price: (event.priceCents / 100).toFixed(2).replace(".", ","),
+			roomId: event.roomId ?? "",
 		},
 		onSubmit: async ({ value }) => {
 			if (!selectedMovie) {
@@ -107,8 +166,8 @@ function NewEventComponent() {
 				return;
 			}
 
-			const [, error] = await tryCatch(
-				createEvent({
+			const [, submitError] = await tryCatch(
+				updateEvent(eventId, {
 					tmdbMovieId: selectedMovie.id,
 					movieTitle: selectedMovie.title,
 					moviePosterPath: selectedMovie.poster_path,
@@ -119,14 +178,12 @@ function NewEventComponent() {
 				}),
 			);
 
-			if (error) {
-				toast.error("Não foi possível criar a sessão.");
+			if (submitError) {
+				toast.error("Não foi possível salvar as alterações.");
 				return;
 			}
 
-			toast.success(
-				"Sessão criada como rascunho. Publique-a quando estiver pronta.",
-			);
+			toast.success("Sessão atualizada.");
 			navigate({ to: "/organizer" });
 		},
 		validators: {
@@ -153,35 +210,42 @@ function NewEventComponent() {
 	useEffect(() => {
 		if (!returnedRoomId) return;
 
-		const stored = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+		const stored = sessionStorage.getItem(draftStorageKey(eventId));
 		if (stored) {
-			const draft: NewEventDraft = JSON.parse(stored);
+			const draft: EditEventDraft = JSON.parse(stored);
 			setSelectedMovie(draft.selectedMovie);
 			form.setFieldValue("sessionAt", draft.sessionAt);
 			form.setFieldValue("price", draft.price);
-			sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+			sessionStorage.removeItem(draftStorageKey(eventId));
 		}
 
 		form.setFieldValue("roomId", returnedRoomId);
-		navigate({ to: "/organizer/new", search: {}, replace: true });
+		navigate({
+			to: "/organizer/$eventId/edit",
+			params: { eventId },
+			search: {},
+			replace: true,
+		});
 	}, [returnedRoomId]);
 
 	function handleCreateRoomClick() {
-		const draft: NewEventDraft = {
+		if (!selectedMovie) return;
+
+		const draft: EditEventDraft = {
 			selectedMovie,
 			sessionAt: form.getFieldValue("sessionAt"),
 			price: form.getFieldValue("price"),
 		};
-		sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+		sessionStorage.setItem(draftStorageKey(eventId), JSON.stringify(draft));
 		navigate({
 			to: "/organizer/rooms/new",
-			search: { returnTo: "new-event" },
+			search: { returnTo: "edit-event", eventId },
 		});
 	}
 
 	return (
 		<div className="container mx-auto max-w-[1600px] px-4 py-6">
-			<h1 className="mb-6 font-bold text-2xl">Criar sessão</h1>
+			<h1 className="mb-6 font-bold text-2xl">Editar sessão</h1>
 
 			<div className="flex flex-col gap-6 lg:flex-row lg:items-start">
 				<div className="flex flex-1 flex-col gap-6">
@@ -243,22 +307,6 @@ function NewEventComponent() {
 						)}
 					</div>
 
-					{cinema?.cinemaName && (
-						<div className="flex flex-col gap-2 border border-border p-3 text-sm">
-							<span className="font-medium">{cinema.cinemaName}</span>
-							<span className="text-muted-foreground">
-								{formatAddress({
-									street: cinema.street ?? "",
-									number: cinema.number ?? "",
-									complement: cinema.complement,
-									neighborhood: cinema.neighborhood ?? "",
-									city: cinema.city ?? "",
-									state: cinema.state ?? "",
-								})}
-							</span>
-						</div>
-					)}
-
 					<form
 						onSubmit={(e) => {
 							e.preventDefault();
@@ -315,19 +363,22 @@ function NewEventComponent() {
 								<div className="flex flex-col gap-2">
 									<div className="flex items-center justify-between">
 										<Label htmlFor={field.name}>Sala</Label>
-										<Button
-											type="button"
-											variant="link"
-											size="sm"
-											className="h-auto p-0"
-											onClick={handleCreateRoomClick}
-										>
-											Criar nova sala
-										</Button>
+										{event.status !== "published" && (
+											<Button
+												type="button"
+												variant="link"
+												size="sm"
+												className="h-auto p-0"
+												onClick={handleCreateRoomClick}
+											>
+												Criar nova sala
+											</Button>
+										)}
 									</div>
 									<Select
 										value={field.state.value}
 										onValueChange={(value) => field.handleChange(value ?? "")}
+										disabled={event.status === "published"}
 									>
 										<SelectTrigger id={field.name} className="w-full">
 											<SelectValue placeholder="Selecione uma sala" />
@@ -340,11 +391,6 @@ function NewEventComponent() {
 											))}
 										</SelectContent>
 									</Select>
-									{rooms.length === 0 && (
-										<p className="text-muted-foreground text-xs">
-											Você ainda não tem nenhuma sala cadastrada.
-										</p>
-									)}
 									{field.state.meta.errors.map((err) => (
 										<p key={err?.message} className="text-destructive text-xs">
 											{err?.message}
@@ -353,6 +399,11 @@ function NewEventComponent() {
 								</div>
 							)}
 						</form.Field>
+						{event.status === "published" && (
+							<p className="text-muted-foreground text-xs">
+								A sala não pode mais ser alterada após a publicação da sessão.
+							</p>
+						)}
 
 						<form.Subscribe
 							selector={(state) => ({
@@ -362,7 +413,7 @@ function NewEventComponent() {
 						>
 							{({ canSubmit, isSubmitting }) => (
 								<Button type="submit" disabled={!canSubmit || isSubmitting}>
-									{isSubmitting ? "Criando..." : "Criar sessão"}
+									{isSubmitting ? "Salvando..." : "Salvar alterações"}
 								</Button>
 							)}
 						</form.Subscribe>
@@ -376,8 +427,8 @@ function NewEventComponent() {
 							const room = rooms.find((r) => r.id === roomId);
 							return (
 								<CinemaRoomPreview
-									rows={room?.rows ?? 0}
-									columns={room?.columns ?? 0}
+									rows={room?.rows ?? event.rows}
+									columns={room?.columns ?? event.columns}
 								/>
 							);
 						}}

@@ -7,11 +7,8 @@ export interface CreateEventInput {
 	moviePosterPath: string | null;
 	movieBackdropPath: string | null;
 	sessionAt: string;
-	venueName: string;
-	venueAddress: string;
 	priceCents: number;
-	rows: number;
-	columns: number;
+	roomId: string;
 }
 
 export async function createEvent(input: CreateEventInput) {

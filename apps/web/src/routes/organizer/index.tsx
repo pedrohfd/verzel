@@ -41,7 +41,7 @@ function OrganizerDashboardComponent() {
 			getMyEvents(controller?.signal),
 		);
 		if (fetchError) {
-			setError("Não foi possível carregar seus eventos.");
+			setError("Não foi possível carregar suas sessões.");
 			return;
 		}
 		setEvents(response);
@@ -59,12 +59,12 @@ function OrganizerDashboardComponent() {
 		setPendingId(null);
 
 		if (actionError) {
-			toast.error("Não foi possível atualizar o evento.");
+			toast.error("Não foi possível atualizar a sessão.");
 			return;
 		}
 
 		toast.success(
-			action === "publish" ? "Evento publicado." : "Evento cancelado.",
+			action === "publish" ? "Sessão publicada." : "Sessão cancelada.",
 		);
 		load();
 	}
@@ -82,15 +82,20 @@ function OrganizerDashboardComponent() {
 	return (
 		<div className="container mx-auto max-w-4xl px-4 py-6">
 			<div className="mb-6 flex items-center justify-between">
-				<h1 className="font-bold text-2xl">Meus Eventos</h1>
-				<Link to="/organizer/new">
-					<Button>Criar evento</Button>
-				</Link>
+				<h1 className="font-bold text-2xl">Minhas Sessões</h1>
+				<div className="flex gap-2">
+					<Link to="/organizer/rooms">
+						<Button variant="outline">Minhas Salas</Button>
+					</Link>
+					<Link to="/organizer/new">
+						<Button>Criar sessão</Button>
+					</Link>
+				</div>
 			</div>
 
 			{events.length === 0 ? (
 				<p className="text-muted-foreground text-sm">
-					Você ainda não criou nenhum evento.
+					Você ainda não criou nenhuma sessão.
 				</p>
 			) : (
 				<Table>
@@ -126,25 +131,45 @@ function OrganizerDashboardComponent() {
 										{statusLabel[event.status]}
 									</Badge>
 								</TableCell>
-								<TableCell className="text-right">
+								<TableCell className="flex justify-end gap-2 text-right">
 									{event.status === "draft" && (
-										<Button
-											size="sm"
-											disabled={pendingId === event.id}
-											onClick={() => handleAction(event.id, "publish")}
-										>
-											Publicar
-										</Button>
+										<>
+											<Link
+												to="/organizer/$eventId/edit"
+												params={{ eventId: event.id }}
+											>
+												<Button size="sm" variant="outline">
+													Editar
+												</Button>
+											</Link>
+											<Button
+												size="sm"
+												disabled={pendingId === event.id}
+												onClick={() => handleAction(event.id, "publish")}
+											>
+												Publicar
+											</Button>
+										</>
 									)}
 									{event.status === "published" && (
-										<Button
-											size="sm"
-											variant="outline"
-											disabled={pendingId === event.id}
-											onClick={() => handleAction(event.id, "cancel")}
-										>
-											Cancelar
-										</Button>
+										<>
+											<Link
+												to="/organizer/$eventId/edit"
+												params={{ eventId: event.id }}
+											>
+												<Button size="sm" variant="outline">
+													Editar
+												</Button>
+											</Link>
+											<Button
+												size="sm"
+												variant="outline"
+												disabled={pendingId === event.id}
+												onClick={() => handleAction(event.id, "cancel")}
+											>
+												Cancelar
+											</Button>
+										</>
 									)}
 								</TableCell>
 							</TableRow>
