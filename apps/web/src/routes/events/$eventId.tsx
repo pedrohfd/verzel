@@ -66,7 +66,7 @@ function EventDetailComponent() {
 
 		setIsReserving(true);
 		const [reservation, reservationError] = await tryCatch(
-			createReservation(eventId, selectedSeat.id),
+			createReservation(eventId, selectedSeat.row, selectedSeat.column),
 		);
 		setIsReserving(false);
 
@@ -135,7 +135,7 @@ function EventDetailComponent() {
 					<SeatMap
 						seats={seats}
 						columns={event.columns}
-						selectedSeatId={selectedSeat?.id ?? null}
+						selectedSeat={selectedSeat}
 						onSelect={(seat) => {
 							if (seat.status === "taken") return;
 							setSelectedSeat(seat);

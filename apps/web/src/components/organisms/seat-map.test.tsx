@@ -36,7 +36,7 @@ describe("SeatMap", () => {
 			<SeatMap
 				seats={seats}
 				columns={3}
-				selectedSeatId={null}
+				selectedSeat={null}
 				onSelect={vi.fn()}
 			/>,
 		);
@@ -50,7 +50,7 @@ describe("SeatMap", () => {
 			<SeatMap
 				seats={seats}
 				columns={3}
-				selectedSeatId={null}
+				selectedSeat={null}
 				onSelect={vi.fn()}
 			/>,
 		);
@@ -63,7 +63,7 @@ describe("SeatMap", () => {
 			<SeatMap
 				seats={seats}
 				columns={3}
-				selectedSeatId="seat-1"
+				selectedSeat={{ row: 0, column: 0 }}
 				onSelect={vi.fn()}
 			/>,
 		);
@@ -80,7 +80,7 @@ describe("SeatMap", () => {
 			<SeatMap
 				seats={seats}
 				columns={3}
-				selectedSeatId={null}
+				selectedSeat={null}
 				onSelect={onSelect}
 			/>,
 		);
@@ -95,7 +95,7 @@ describe("SeatMap", () => {
 			<SeatMap
 				seats={seats}
 				columns={3}
-				selectedSeatId={null}
+				selectedSeat={null}
 				onSelect={vi.fn()}
 			/>,
 		);
@@ -111,7 +111,7 @@ describe("SeatMap", () => {
 			<SeatMap
 				seats={seats}
 				columns={3}
-				selectedSeatId={null}
+				selectedSeat={null}
 				onSelect={vi.fn()}
 			/>,
 		);
@@ -136,7 +136,7 @@ describe("SeatMap", () => {
 			<SeatMap
 				seats={wideRowSeats}
 				columns={6}
-				selectedSeatId={null}
+				selectedSeat={null}
 				onSelect={vi.fn()}
 			/>,
 		);

@@ -2,12 +2,22 @@ import { cn } from "@verzel/ui/lib/utils";
 
 import type { Seat } from "@/api/types";
 
+type SelectedSeat = { row: number; column: number };
+
 type SeatMapProps = {
 	seats: Seat[];
 	columns: number;
-	selectedSeatId: string | null;
+	selectedSeat: SelectedSeat | null;
 	onSelect: (seat: Seat) => void;
 };
+
+function isSameSeat(seat: Seat, selected: SelectedSeat | null): boolean {
+	return (
+		selected !== null &&
+		seat.row === selected.row &&
+		seat.column === selected.column
+	);
+}
 
 type Row = { row: number; label: string; seats: Seat[] };
 
@@ -86,11 +96,11 @@ export function SeatIcon({ className }: { className?: string }) {
 
 function SeatBlock({
 	seats,
-	selectedSeatId,
+	selectedSeat,
 	onSelect,
 }: {
 	seats: Seat[];
-	selectedSeatId: string | null;
+	selectedSeat: SelectedSeat | null;
 	onSelect: (seat: Seat) => void;
 }) {
 	return (
@@ -102,12 +112,12 @@ function SeatBlock({
 			}}
 		>
 			{seats.map((seat) => {
-				const isSelected = seat.id === selectedSeatId;
+				const isSelected = isSameSeat(seat, selectedSeat);
 				const isTaken = seat.status === "taken";
 
 				return (
 					<button
-						key={seat.id}
+						key={`${seat.row}-${seat.column}`}
 						type="button"
 						disabled={isTaken}
 						aria-label={`Assento ${seat.label}${isTaken ? " (ocupado)" : ""}`}
@@ -152,7 +162,7 @@ function Legend() {
 
 export default function SeatMap({
 	seats,
-	selectedSeatId,
+	selectedSeat,
 	onSelect,
 }: SeatMapProps) {
 	const rows = buildRows(seats);
@@ -176,13 +186,13 @@ export default function SeatMap({
 								>
 									<SeatBlock
 										seats={left}
-										selectedSeatId={selectedSeatId}
+										selectedSeat={selectedSeat}
 										onSelect={onSelect}
 									/>
 									{right.length > 0 && (
 										<SeatBlock
 											seats={right}
-											selectedSeatId={selectedSeatId}
+											selectedSeat={selectedSeat}
 											onSelect={onSelect}
 										/>
 									)}

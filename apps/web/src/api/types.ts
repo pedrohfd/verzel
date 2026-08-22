@@ -58,7 +58,7 @@ export interface CinemaRoom {
 }
 
 export interface Seat {
-	id: string;
+	id?: string;
 	eventId: string;
 	row: number;
 	column: number;
