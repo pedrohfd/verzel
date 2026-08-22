@@ -71,8 +71,13 @@ export async function roomRoutes(fastify: FastifyInstance) {
 			}
 
 			try {
-				await getOwnedRoom(request.params.id, request.user?.id ?? "");
-				const room = await updateRoom(request.params.id, parsed.data);
+				const organizerId = request.user?.id ?? "";
+				await getOwnedRoom(request.params.id, organizerId);
+				const room = await updateRoom(
+					request.params.id,
+					organizerId,
+					parsed.data,
+				);
 				return reply.send(room);
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to update room");

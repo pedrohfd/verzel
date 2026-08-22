@@ -1,8 +1,13 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 
-import { ForbiddenError, NotFoundError, RoomInUseError } from "./errors";
+import {
+	DuplicateRoomNameError,
+	ForbiddenError,
+	NotFoundError,
+	RoomInUseError,
+} from "./errors";
 
 export interface CreateRoomInput {
 	organizerId: string;
@@ -11,7 +16,23 @@ export interface CreateRoomInput {
 	columns: number;
 }
 
-export function createRoom(input: CreateRoomInput) {
+async function assertNoDuplicateName(
+	organizerId: string,
+	name: string,
+	excludeRoomId?: string,
+) {
+	const existing = await db.query.cinemaRooms.findFirst({
+		where: and(
+			eq(schema.cinemaRooms.organizerId, organizerId),
+			eq(schema.cinemaRooms.name, name),
+			excludeRoomId ? ne(schema.cinemaRooms.id, excludeRoomId) : undefined,
+		),
+	});
+	if (existing) throw new DuplicateRoomNameError();
+}
+
+export async function createRoom(input: CreateRoomInput) {
+	await assertNoDuplicateName(input.organizerId, input.name);
 	return db.insert(schema.cinemaRooms).values(input).returning();
 }
 
@@ -37,7 +58,12 @@ export interface UpdateRoomInput {
 	columns: number;
 }
 
-export async function updateRoom(roomId: string, patch: UpdateRoomInput) {
+export async function updateRoom(
+	roomId: string,
+	organizerId: string,
+	patch: UpdateRoomInput,
+) {
+	await assertNoDuplicateName(organizerId, patch.name, roomId);
 	const [room] = await db
 		.update(schema.cinemaRooms)
 		.set(patch)

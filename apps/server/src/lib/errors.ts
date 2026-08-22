@@ -71,6 +71,12 @@ export class RoomInUseError extends DomainError {
 	}
 }
 
+export class DuplicateRoomNameError extends DomainError {
+	constructor() {
+		super("You already have a room with this name", 409, "DUPLICATE_ROOM_NAME");
+	}
+}
+
 export function sendDomainError(
 	reply: import("fastify").FastifyReply,
 	error: unknown,

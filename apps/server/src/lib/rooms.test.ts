@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockQueryChain } from "../test-helpers/mock-query-chain";
-import { ForbiddenError, NotFoundError, RoomInUseError } from "./errors";
+import {
+	DuplicateRoomNameError,
+	ForbiddenError,
+	NotFoundError,
+	RoomInUseError,
+} from "./errors";
 
 const { queryMock, insertMock, updateMock, deleteMock } = vi.hoisted(() => ({
 	queryMock: {
@@ -43,6 +48,7 @@ beforeEach(() => {
 
 describe("createRoom", () => {
 	it("inserts the room and returns it", async () => {
+		queryMock.cinemaRooms.findFirst.mockResolvedValue(undefined);
 		insertMock.mockReturnValue(mockQueryChain([baseRoom]));
 
 		const result = await createRoom({
@@ -53,6 +59,20 @@ describe("createRoom", () => {
 		});
 
 		expect(result).toEqual([baseRoom]);
+	});
+
+	it("throws DuplicateRoomNameError when the organizer already has a room with that name", async () => {
+		queryMock.cinemaRooms.findFirst.mockResolvedValue(baseRoom);
+
+		await expect(
+			createRoom({
+				organizerId: "organizer-1",
+				name: "Sala 1",
+				rows: 8,
+				columns: 10,
+			}),
+		).rejects.toThrow(DuplicateRoomNameError);
+		expect(insertMock).not.toHaveBeenCalled();
 	});
 });
 
@@ -97,17 +117,34 @@ describe("getOwnedRoom", () => {
 
 describe("updateRoom", () => {
 	it("updates the room and returns it", async () => {
+		queryMock.cinemaRooms.findFirst.mockResolvedValue(undefined);
 		updateMock.mockReturnValue(
 			mockQueryChain([{ ...baseRoom, name: "Sala renomeada" }]),
 		);
 
-		const result = await updateRoom("room-1", {
+		const result = await updateRoom("room-1", "organizer-1", {
 			name: "Sala renomeada",
 			rows: 8,
 			columns: 10,
 		});
 
 		expect(result).toEqual({ ...baseRoom, name: "Sala renomeada" });
+	});
+
+	it("throws DuplicateRoomNameError when another room already has that name", async () => {
+		queryMock.cinemaRooms.findFirst.mockResolvedValue({
+			...baseRoom,
+			id: "room-2",
+		});
+
+		await expect(
+			updateRoom("room-1", "organizer-1", {
+				name: "Sala 1",
+				rows: 8,
+				columns: 10,
+			}),
+		).rejects.toThrow(DuplicateRoomNameError);
+		expect(updateMock).not.toHaveBeenCalled();
 	});
 });
 
