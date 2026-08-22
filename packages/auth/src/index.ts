@@ -15,6 +15,8 @@ export function createAuth() {
 		? `https://${process.env.VERCEL_URL}`
 		: undefined;
 
+	const isProduction = env.BETTER_AUTH_URL.startsWith("https://");
+
 	return betterAuth({
 		database: drizzleAdapter(db, {
 			provider: "pg",
@@ -34,14 +36,49 @@ export function createAuth() {
 					defaultValue: "cliente",
 					input: false,
 				},
+				cinemaName: {
+					type: "string",
+					required: false,
+					input: false,
+				},
+				street: {
+					type: "string",
+					required: false,
+					input: false,
+				},
+				number: {
+					type: "string",
+					required: false,
+					input: false,
+				},
+				complement: {
+					type: "string",
+					required: false,
+					input: false,
+				},
+				neighborhood: {
+					type: "string",
+					required: false,
+					input: false,
+				},
+				city: {
+					type: "string",
+					required: false,
+					input: false,
+				},
+				state: {
+					type: "string",
+					required: false,
+					input: false,
+				},
 			},
 		},
 		secret: env.BETTER_AUTH_SECRET,
 		baseURL: env.BETTER_AUTH_URL,
 		advanced: {
 			defaultCookieAttributes: {
-				sameSite: "none",
-				secure: true,
+				sameSite: isProduction ? "none" : "lax",
+				secure: isProduction,
 				httpOnly: true,
 			},
 		},
