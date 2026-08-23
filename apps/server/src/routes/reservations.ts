@@ -3,12 +3,26 @@ import { z } from "zod";
 
 import { sendDomainError } from "../lib/errors";
 import { requireRole } from "../lib/require-role";
-import { createHold, getOwnedReservation } from "../lib/reservations";
+import {
+	cancelHolds,
+	createHolds,
+	getOwnedReservation,
+} from "../lib/reservations";
 
 const createReservationSchema = z.object({
 	eventId: z.string().uuid(),
-	row: z.number().int().min(0),
-	column: z.number().int().min(0),
+	seats: z
+		.array(
+			z.object({
+				row: z.number().int().min(0),
+				column: z.number().int().min(0),
+			}),
+		)
+		.min(1),
+});
+
+const cancelReservationsSchema = z.object({
+	reservationIds: z.array(z.string().uuid()).min(1),
 });
 
 export async function reservationRoutes(fastify: FastifyInstance) {
@@ -24,13 +38,12 @@ export async function reservationRoutes(fastify: FastifyInstance) {
 			}
 
 			try {
-				const reservation = await createHold(
+				const reservations = await createHolds(
 					parsed.data.eventId,
-					parsed.data.row,
-					parsed.data.column,
+					parsed.data.seats,
 					request.user?.id ?? "",
 				);
-				return reply.status(201).send(reservation);
+				return reply.status(201).send(reservations);
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to create reservation");
 			}
@@ -48,6 +61,26 @@ export async function reservationRoutes(fastify: FastifyInstance) {
 				);
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to fetch reservation");
+			}
+		},
+	);
+
+	fastify.post(
+		"/cancel",
+		{ preHandler: requireRole("cliente") },
+		async (request, reply) => {
+			const parsed = cancelReservationsSchema.safeParse(request.body);
+			if (!parsed.success) {
+				return reply
+					.status(400)
+					.send({ error: "Invalid cancellation data", code: "INVALID_INPUT" });
+			}
+
+			try {
+				await cancelHolds(parsed.data.reservationIds, request.user?.id ?? "");
+				return reply.status(204).send();
+			} catch (error) {
+				sendDomainError(reply, error, "Failed to cancel reservation");
 			}
 		},
 	);

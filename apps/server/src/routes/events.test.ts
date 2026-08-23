@@ -119,6 +119,26 @@ describe("GET /", () => {
 		const res = await app.inject({ method: "GET", url: "/api/events" });
 
 		expect(res.json()).toEqual({ results: [{ id: "event-1" }] });
+		expect(listPublishedEventsMock).toHaveBeenCalledWith({
+			search: undefined,
+			tmdbMovieId: undefined,
+		});
+	});
+
+	it("filters by tmdbMovieId", async () => {
+		listPublishedEventsMock.mockResolvedValue([{ id: "event-1" }]);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "GET",
+			url: "/api/events?tmdbMovieId=42",
+		});
+
+		expect(res.json()).toEqual({ results: [{ id: "event-1" }] });
+		expect(listPublishedEventsMock).toHaveBeenCalledWith({
+			search: undefined,
+			tmdbMovieId: 42,
+		});
 	});
 });
 

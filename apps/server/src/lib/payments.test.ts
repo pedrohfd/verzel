@@ -34,7 +34,7 @@ describe("processPayment", () => {
 		);
 
 		await expect(
-			processPayment("missing", "customer-1", "approve"),
+			processPayment(["missing"], "customer-1", "approve"),
 		).rejects.toBeInstanceOf(NotFoundError);
 	});
 
@@ -47,7 +47,7 @@ describe("processPayment", () => {
 		);
 
 		await expect(
-			processPayment("res-1", "customer-1", "approve"),
+			processPayment(["res-1"], "customer-1", "approve"),
 		).rejects.toBeInstanceOf(ReservationNotHoldingError);
 	});
 
@@ -65,11 +65,38 @@ describe("processPayment", () => {
 		);
 
 		await expect(
-			processPayment("res-1", "customer-1", "approve"),
+			processPayment(["res-1"], "customer-1", "approve"),
 		).rejects.toBeInstanceOf(HoldExpiredError);
 	});
 
-	it("approves the payment, marks the reservation paid and issues a signed ticket", async () => {
+	it("throws ReservationNotHoldingError when reservations belong to different events", async () => {
+		let selectCall = 0;
+		const select = () =>
+			mockQueryChain([
+				selectCall++ === 0
+					? holdingReservation
+					: { ...holdingReservation, id: "res-2", eventId: "event-2" },
+			]);
+
+		transactionMock.mockImplementation(async (cb) =>
+			cb({
+				select,
+				query: {
+					events: {
+						findFirst: vi.fn().mockResolvedValue({ priceCents: 5000 }),
+					},
+				},
+				insert: () => mockQueryChain([{ id: "ticket-1" }]),
+				update: () => mockQueryChain([{ id: "ticket-1", signature: "sig" }]),
+			}),
+		);
+
+		await expect(
+			processPayment(["res-1", "res-2"], "customer-1", "approve"),
+		).rejects.toBeInstanceOf(ReservationNotHoldingError);
+	});
+
+	it("approves the payments, marks the reservations paid and issues signed tickets", async () => {
 		const payment = { id: "payment-1", status: "approved" };
 		const ticketRow = { id: "ticket-1" };
 
@@ -91,14 +118,15 @@ describe("processPayment", () => {
 			}),
 		);
 
-		const result = await processPayment("res-1", "customer-1", "approve");
+		const result = await processPayment(["res-1"], "customer-1", "approve");
 
-		expect(result.payment).toBeTruthy();
-		expect(result.ticket).toMatchObject({ id: "ticket-1" });
-		expect(typeof result.ticket?.code).toBe("string");
+		expect(result.payments).toHaveLength(1);
+		expect(result.tickets).toHaveLength(1);
+		expect(result.tickets[0]).toMatchObject({ id: "ticket-1" });
+		expect(typeof result.tickets[0]?.code).toBe("string");
 	});
 
-	it("declines the payment and cancels the reservation without issuing a ticket", async () => {
+	it("declines the payments and cancels the reservations without issuing tickets", async () => {
 		const payment = { id: "payment-1", status: "declined" };
 		const updateMock = vi.fn().mockReturnValue(mockQueryChain(undefined));
 
@@ -115,9 +143,9 @@ describe("processPayment", () => {
 			}),
 		);
 
-		const result = await processPayment("res-1", "customer-1", "decline");
+		const result = await processPayment(["res-1"], "customer-1", "decline");
 
-		expect(result).toEqual({ payment, ticket: null });
+		expect(result).toEqual({ payments: [payment], tickets: [] });
 		expect(updateMock).toHaveBeenCalled();
 	});
 });

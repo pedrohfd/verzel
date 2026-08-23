@@ -7,18 +7,21 @@ import {
 	SeatAlreadyReservedError,
 } from "./errors";
 
-const { queryMock, transactionMock } = vi.hoisted(() => ({
+const { queryMock, transactionMock, updateMock } = vi.hoisted(() => ({
 	queryMock: {
 		reservations: { findFirst: vi.fn() },
 	},
 	transactionMock: vi.fn(),
+	updateMock: vi.fn(),
 }));
 
 vi.mock("@verzel/db", () => ({
-	db: { query: queryMock, transaction: transactionMock },
+	db: { query: queryMock, transaction: transactionMock, update: updateMock },
 }));
 
-const { createHold, getOwnedReservation } = await import("./reservations");
+const { cancelHolds, createHolds, getOwnedReservation } = await import(
+	"./reservations"
+);
 
 const publishedEvent = {
 	id: "event-1",
@@ -30,9 +33,10 @@ const publishedEvent = {
 beforeEach(() => {
 	queryMock.reservations.findFirst.mockReset();
 	transactionMock.mockReset();
+	updateMock.mockReset();
 });
 
-describe("createHold", () => {
+describe("createHolds", () => {
 	it("throws NotFoundError when the event is not published", async () => {
 		transactionMock.mockImplementation(async (cb) =>
 			cb({
@@ -41,7 +45,7 @@ describe("createHold", () => {
 		);
 
 		await expect(
-			createHold("event-1", 0, 0, "customer-1"),
+			createHolds("event-1", [{ row: 0, column: 0 }], "customer-1"),
 		).rejects.toBeInstanceOf(NotFoundError);
 	});
 
@@ -53,16 +57,20 @@ describe("createHold", () => {
 		);
 
 		await expect(
-			createHold("event-1", 5, 0, "customer-1"),
+			createHolds("event-1", [{ row: 5, column: 0 }], "customer-1"),
 		).rejects.toBeInstanceOf(NotFoundError);
 	});
 
-	it("creates a holding reservation for a seat never touched before", async () => {
-		const reservation = { id: "res-1", status: "holding" };
+	it("creates holding reservations for seats never touched before", async () => {
+		const reservations = [
+			{ id: "res-1", status: "holding" },
+			{ id: "res-2", status: "holding" },
+		];
+		let reservationCall = 0;
 		const insert = vi.fn((table: unknown) =>
 			table === schema.seats
 				? mockQueryChain([{ id: "seat-1", row: 0, column: 0 }])
-				: mockQueryChain([reservation]),
+				: mockQueryChain([reservations[reservationCall++]]),
 		);
 
 		transactionMock.mockImplementation(async (cb) =>
@@ -73,9 +81,16 @@ describe("createHold", () => {
 			}),
 		);
 
-		await expect(createHold("event-1", 0, 0, "customer-1")).resolves.toEqual(
-			reservation,
-		);
+		await expect(
+			createHolds(
+				"event-1",
+				[
+					{ row: 0, column: 0 },
+					{ row: 0, column: 1 },
+				],
+				"customer-1",
+			),
+		).resolves.toEqual(reservations);
 	});
 
 	it("reuses an already-materialized seat when the insert conflicts", async () => {
@@ -101,9 +116,9 @@ describe("createHold", () => {
 			}),
 		);
 
-		await expect(createHold("event-1", 0, 0, "customer-1")).resolves.toEqual(
-			reservation,
-		);
+		await expect(
+			createHolds("event-1", [{ row: 0, column: 0 }], "customer-1"),
+		).resolves.toEqual([reservation]);
 	});
 
 	it("throws SeatAlreadyReservedError on a unique-constraint violation", async () => {
@@ -123,7 +138,7 @@ describe("createHold", () => {
 		);
 
 		await expect(
-			createHold("event-1", 0, 0, "customer-1"),
+			createHolds("event-1", [{ row: 0, column: 0 }], "customer-1"),
 		).rejects.toBeInstanceOf(SeatAlreadyReservedError);
 	});
 
@@ -144,9 +159,21 @@ describe("createHold", () => {
 			}),
 		);
 
-		await expect(createHold("event-1", 0, 0, "customer-1")).rejects.toBe(
-			unrelated,
-		);
+		await expect(
+			createHolds("event-1", [{ row: 0, column: 0 }], "customer-1"),
+		).rejects.toBe(unrelated);
+	});
+});
+
+describe("cancelHolds", () => {
+	it("updates only the caller's holding reservations to cancelled", async () => {
+		const set = vi.fn(() => mockQueryChain(undefined));
+		updateMock.mockReturnValue({ set });
+
+		await cancelHolds(["res-1", "res-2"], "customer-1");
+
+		expect(updateMock).toHaveBeenCalledWith(schema.reservations);
+		expect(set).toHaveBeenCalledWith({ status: "cancelled" });
 	});
 });
 

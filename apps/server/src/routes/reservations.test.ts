@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createHoldMock, getOwnedReservationMock, requireRoleMock } = vi.hoisted(
-	() => ({
-		createHoldMock: vi.fn(),
-		getOwnedReservationMock: vi.fn(),
-		requireRoleMock: vi.fn(),
-	}),
-);
+const {
+	cancelHoldsMock,
+	createHoldsMock,
+	getOwnedReservationMock,
+	requireRoleMock,
+} = vi.hoisted(() => ({
+	cancelHoldsMock: vi.fn(),
+	createHoldsMock: vi.fn(),
+	getOwnedReservationMock: vi.fn(),
+	requireRoleMock: vi.fn(),
+}));
 
 vi.mock("../lib/reservations", () => ({
-	createHold: createHoldMock,
+	cancelHolds: cancelHoldsMock,
+	createHolds: createHoldsMock,
 	getOwnedReservation: getOwnedReservationMock,
 }));
 
@@ -26,12 +31,16 @@ function authAsCustomer(userId = "customer-1") {
 }
 
 beforeEach(() => {
-	createHoldMock.mockReset();
+	cancelHoldsMock.mockReset();
+	createHoldsMock.mockReset();
 	getOwnedReservationMock.mockReset();
 	requireRoleMock.mockReset();
 });
 
-const validBody = { eventId: crypto.randomUUID(), row: 0, column: 0 };
+const validBody = {
+	eventId: crypto.randomUUID(),
+	seats: [{ row: 0, column: 0 }],
+};
 
 describe("POST /", () => {
 	it("returns 400 for an invalid payload", async () => {
@@ -47,9 +56,9 @@ describe("POST /", () => {
 		expect(res.statusCode).toBe(400);
 	});
 
-	it("creates a reservation and returns 201", async () => {
+	it("creates reservations and returns 201", async () => {
 		authAsCustomer();
-		createHoldMock.mockResolvedValue({ id: "res-1", status: "holding" });
+		createHoldsMock.mockResolvedValue([{ id: "res-1", status: "holding" }]);
 		const app = buildTestApp();
 
 		const res = await app.inject({
@@ -59,7 +68,7 @@ describe("POST /", () => {
 		});
 
 		expect(res.statusCode).toBe(201);
-		expect(res.json()).toEqual({ id: "res-1", status: "holding" });
+		expect(res.json()).toEqual([{ id: "res-1", status: "holding" }]);
 	});
 });
 
@@ -75,5 +84,38 @@ describe("GET /:id", () => {
 		});
 
 		expect(res.json()).toEqual({ id: "res-1" });
+	});
+});
+
+describe("POST /cancel", () => {
+	it("returns 400 for an invalid payload", async () => {
+		authAsCustomer();
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/reservations/cancel",
+			payload: { reservationIds: [] },
+		});
+
+		expect(res.statusCode).toBe(400);
+	});
+
+	it("cancels the given reservations for the caller and returns 204", async () => {
+		authAsCustomer("customer-1");
+		cancelHoldsMock.mockResolvedValue(undefined);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/reservations/cancel",
+			payload: { reservationIds: [crypto.randomUUID()] },
+		});
+
+		expect(res.statusCode).toBe(204);
+		expect(cancelHoldsMock).toHaveBeenCalledWith(
+			expect.any(Array),
+			"customer-1",
+		);
 	});
 });

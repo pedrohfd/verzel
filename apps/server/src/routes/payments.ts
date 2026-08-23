@@ -6,7 +6,7 @@ import { processPayment } from "../lib/payments";
 import { requireRole } from "../lib/require-role";
 
 const processPaymentSchema = z.object({
-	reservationId: z.string().uuid(),
+	reservationIds: z.array(z.string().uuid()).min(1),
 	simulateOutcome: z.enum(["approve", "decline"]),
 });
 
@@ -24,7 +24,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 
 			try {
 				const result = await processPayment(
-					parsed.data.reservationId,
+					parsed.data.reservationIds,
 					request.user?.id ?? "",
 					parsed.data.simulateOutcome,
 				);

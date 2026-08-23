@@ -123,17 +123,45 @@ describe("cancelEvent", () => {
 });
 
 describe("listPublishedEvents", () => {
-	it("returns all published events when no search term is given", async () => {
-		queryMock.events.findMany.mockResolvedValue([baseEvent]);
+	it("returns all published events with their room name when no search term is given", async () => {
+		queryMock.events.findMany.mockResolvedValue([
+			{ ...baseEvent, room: { name: "2" } },
+		]);
 
-		await expect(listPublishedEvents()).resolves.toEqual([baseEvent]);
+		await expect(listPublishedEvents()).resolves.toEqual([
+			{ ...baseEvent, roomName: "2" },
+		]);
+	});
+
+	it("returns null roomName when the event has no room", async () => {
+		queryMock.events.findMany.mockResolvedValue([{ ...baseEvent, room: null }]);
+
+		await expect(listPublishedEvents()).resolves.toEqual([
+			{ ...baseEvent, roomName: null },
+		]);
 	});
 
 	it("filters events by case-insensitive movie title", async () => {
-		queryMock.events.findMany.mockResolvedValue([baseEvent]);
+		queryMock.events.findMany.mockResolvedValue([
+			{ ...baseEvent, room: { name: "2" } },
+		]);
 
-		await expect(listPublishedEvents("some")).resolves.toEqual([baseEvent]);
-		await expect(listPublishedEvents("nomatch")).resolves.toEqual([]);
+		await expect(listPublishedEvents({ search: "some" })).resolves.toEqual([
+			{ ...baseEvent, roomName: "2" },
+		]);
+		await expect(listPublishedEvents({ search: "nomatch" })).resolves.toEqual(
+			[],
+		);
+	});
+
+	it("filters events by tmdbMovieId", async () => {
+		queryMock.events.findMany.mockResolvedValue([
+			{ ...baseEvent, room: { name: "2" } },
+		]);
+
+		await expect(listPublishedEvents({ tmdbMovieId: 42 })).resolves.toEqual([
+			{ ...baseEvent, roomName: "2" },
+		]);
 	});
 });
 

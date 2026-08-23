@@ -85,14 +85,25 @@ export async function cancelEvent(eventId: string, organizerId: string) {
 	return updated;
 }
 
-export function listPublishedEvents(search?: string) {
+export interface ListPublishedEventsFilters {
+	search?: string;
+	tmdbMovieId?: number;
+}
+
+export function listPublishedEvents(filters: ListPublishedEventsFilters = {}) {
+	const { search, tmdbMovieId } = filters;
+
 	return db.query.events
 		.findMany({
 			where: and(
 				eq(schema.events.status, "published"),
 				gte(schema.events.sessionAt, new Date()),
+				tmdbMovieId !== undefined
+					? eq(schema.events.tmdbMovieId, tmdbMovieId)
+					: undefined,
 			),
 			orderBy: asc(schema.events.sessionAt),
+			with: { room: true },
 		})
 		.then((events) =>
 			search
@@ -100,6 +111,12 @@ export function listPublishedEvents(search?: string) {
 						event.movieTitle.toLowerCase().includes(search.toLowerCase()),
 					)
 				: events,
+		)
+		.then((events) =>
+			events.map(({ room, ...event }) => ({
+				...event,
+				roomName: room?.name ?? null,
+			})),
 		);
 }
 

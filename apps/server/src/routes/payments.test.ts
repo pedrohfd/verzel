@@ -31,17 +31,17 @@ describe("POST /", () => {
 		const res = await app.inject({
 			method: "POST",
 			url: "/api/payments",
-			payload: { reservationId: "not-a-uuid" },
+			payload: { reservationIds: ["not-a-uuid"] },
 		});
 
 		expect(res.statusCode).toBe(400);
 	});
 
-	it("processes the payment and returns the result", async () => {
+	it("processes the payments and returns the result", async () => {
 		authAsCustomer();
 		processPaymentMock.mockResolvedValue({
-			payment: { id: "payment-1" },
-			ticket: null,
+			payments: [{ id: "payment-1" }],
+			tickets: [],
 		});
 		const app = buildTestApp();
 
@@ -49,12 +49,15 @@ describe("POST /", () => {
 			method: "POST",
 			url: "/api/payments",
 			payload: {
-				reservationId: crypto.randomUUID(),
+				reservationIds: [crypto.randomUUID()],
 				simulateOutcome: "approve",
 			},
 		});
 
 		expect(res.statusCode).toBe(200);
-		expect(res.json()).toEqual({ payment: { id: "payment-1" }, ticket: null });
+		expect(res.json()).toEqual({
+			payments: [{ id: "payment-1" }],
+			tickets: [],
+		});
 	});
 });

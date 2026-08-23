@@ -1,6 +1,6 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, inArray, lt } from "drizzle-orm";
 
 import {
 	HoldExpiredError,
@@ -22,10 +22,9 @@ function isUniqueViolation(error: unknown): boolean {
 	return pgErrorCode(error) === "23505";
 }
 
-export async function createHold(
+export async function createHolds(
 	eventId: string,
-	row: number,
-	column: number,
+	seats: { row: number; column: number }[],
 	customerId: string,
 ) {
 	return db.transaction(async (tx) => {
@@ -36,60 +35,88 @@ export async function createHold(
 		if (event?.status !== "published") {
 			throw new NotFoundError("Event");
 		}
-		if (row < 0 || row >= event.rows || column < 0 || column >= event.columns) {
-			throw new NotFoundError("Seat");
-		}
 
-		const [insertedSeat] = await tx
-			.insert(schema.seats)
-			.values({ eventId, row, column, label: seatLabel(row, column) })
-			.onConflictDoNothing({
-				target: [schema.seats.eventId, schema.seats.row, schema.seats.column],
-			})
-			.returning();
+		const reservations = [];
+		for (const { row, column } of seats) {
+			if (
+				row < 0 ||
+				row >= event.rows ||
+				column < 0 ||
+				column >= event.columns
+			) {
+				throw new NotFoundError("Seat");
+			}
 
-		const seat =
-			insertedSeat ??
-			(await tx.query.seats.findFirst({
-				where: and(
-					eq(schema.seats.eventId, eventId),
-					eq(schema.seats.row, row),
-					eq(schema.seats.column, column),
-				),
-			}));
-		if (!seat) throw new NotFoundError("Seat");
-
-		// Free up any stale hold on this seat before attempting the insert, so
-		// the unique index below only ever blocks genuinely-live reservations.
-		await tx
-			.update(schema.reservations)
-			.set({ status: "expired" })
-			.where(
-				and(
-					eq(schema.reservations.seatId, seat.id),
-					eq(schema.reservations.status, "holding"),
-					lt(schema.reservations.holdExpiresAt, new Date()),
-				),
-			);
-
-		try {
-			const [reservation] = await tx
-				.insert(schema.reservations)
-				.values({
-					eventId,
-					seatId: seat.id,
-					customerId,
-					status: "holding",
-					holdExpiresAt: new Date(Date.now() + HOLD_TTL_MINUTES * 60_000),
+			const [insertedSeat] = await tx
+				.insert(schema.seats)
+				.values({ eventId, row, column, label: seatLabel(row, column) })
+				.onConflictDoNothing({
+					target: [schema.seats.eventId, schema.seats.row, schema.seats.column],
 				})
 				.returning();
 
-			return reservation;
-		} catch (error) {
-			if (isUniqueViolation(error)) throw new SeatAlreadyReservedError(seat.id);
-			throw error;
+			const seat =
+				insertedSeat ??
+				(await tx.query.seats.findFirst({
+					where: and(
+						eq(schema.seats.eventId, eventId),
+						eq(schema.seats.row, row),
+						eq(schema.seats.column, column),
+					),
+				}));
+			if (!seat) throw new NotFoundError("Seat");
+
+			// Free up any stale hold on this seat before attempting the insert, so
+			// the unique index below only ever blocks genuinely-live reservations.
+			await tx
+				.update(schema.reservations)
+				.set({ status: "expired" })
+				.where(
+					and(
+						eq(schema.reservations.seatId, seat.id),
+						eq(schema.reservations.status, "holding"),
+						lt(schema.reservations.holdExpiresAt, new Date()),
+					),
+				);
+
+			try {
+				const [reservation] = await tx
+					.insert(schema.reservations)
+					.values({
+						eventId,
+						seatId: seat.id,
+						customerId,
+						status: "holding",
+						holdExpiresAt: new Date(Date.now() + HOLD_TTL_MINUTES * 60_000),
+					})
+					.returning();
+
+				reservations.push(reservation);
+			} catch (error) {
+				if (isUniqueViolation(error))
+					throw new SeatAlreadyReservedError(seat.id);
+				throw error;
+			}
 		}
+
+		return reservations;
 	});
+}
+
+export async function cancelHolds(
+	reservationIds: string[],
+	customerId: string,
+) {
+	await db
+		.update(schema.reservations)
+		.set({ status: "cancelled" })
+		.where(
+			and(
+				inArray(schema.reservations.id, reservationIds),
+				eq(schema.reservations.customerId, customerId),
+				eq(schema.reservations.status, "holding"),
+			),
+		);
 }
 
 export async function getOwnedReservation(
@@ -101,6 +128,7 @@ export async function getOwnedReservation(
 			eq(schema.reservations.id, reservationId),
 			eq(schema.reservations.customerId, customerId),
 		),
+		with: { seat: true },
 	});
 	if (!reservation) throw new NotFoundError("Reservation");
 	if (
