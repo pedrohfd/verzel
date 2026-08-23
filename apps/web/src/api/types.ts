@@ -15,6 +15,15 @@ export interface MovieTrailer {
 	name: string;
 }
 
+export interface MovieDetails {
+	genre: string | null;
+	runtime: number | null;
+	certification: string;
+	overview: string;
+	director: string | null;
+	cast: string[];
+}
+
 export interface TmdbMovie {
 	id: number;
 	title: string;
@@ -40,6 +49,7 @@ export interface VerzelEvent {
 	venueAddress: string;
 	priceCents: number;
 	roomId: string | null;
+	roomName?: string | null;
 	rows: number;
 	columns: number;
 	status: EventStatus;
@@ -75,6 +85,13 @@ export interface Reservation {
 	holdExpiresAt: string | null;
 	createdAt: string;
 	updatedAt: string;
+	seat: {
+		id: string;
+		eventId: string;
+		row: number;
+		column: number;
+		label: string;
+	};
 }
 
 export interface Payment {

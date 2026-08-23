@@ -45,7 +45,7 @@ export default function EventCard({ event }: { event: VerzelEvent }) {
 					className="w-full"
 				>
 					<Button variant="outline" className="w-full">
-						Ver sessão
+						Ver sessões
 					</Button>
 				</Link>
 			</CardFooter>

@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { getPublishedEvents } from "@/api/requests/events/get-published-events";
 import EventCard from "@/components/molecules/event-card";
 import EventHero from "@/components/organisms/event-hero";
+import { dedupeEventsByMovie } from "@/lib/dedupe-events-by-movie";
 import { tryCatch } from "@/lib/try-catch";
 import { useEventsStore } from "@/stores/events-store";
 
@@ -20,7 +21,7 @@ function HomeComponent() {
 
 	const getPublishedEventsFn = async (controller: AbortController) => {
 		const [response, error] = await tryCatch(
-			getPublishedEvents(undefined, controller.signal),
+			getPublishedEvents({}, controller.signal),
 		);
 
 		if (error) {
@@ -28,7 +29,7 @@ function HomeComponent() {
 			return;
 		}
 
-		setEvents(response);
+		setEvents(dedupeEventsByMovie(response));
 	};
 
 	useEffect(() => {

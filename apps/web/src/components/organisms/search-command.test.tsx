@@ -95,6 +95,7 @@ describe("SearchCommand", () => {
 		getPublishedEventsMock.mockResolvedValue([
 			{
 				id: "1",
+				tmdbMovieId: 1,
 				movieTitle: "Matrix",
 				venueName: "Venue",
 				moviePosterPath: null,
@@ -120,6 +121,7 @@ describe("SearchCommand", () => {
 		getPublishedEventsMock.mockResolvedValue([
 			{
 				id: "1",
+				tmdbMovieId: 1,
 				movieTitle: "Matrix",
 				venueName: "Venue",
 				moviePosterPath: null,

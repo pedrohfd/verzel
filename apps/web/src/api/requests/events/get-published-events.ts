@@ -1,13 +1,18 @@
 import { apiClient } from "@/api/client";
 import type { VerzelEvent } from "@/api/types";
 
+export interface GetPublishedEventsFilters {
+	search?: string;
+	tmdbMovieId?: number;
+}
+
 export async function getPublishedEvents(
-	search?: string,
+	filters: GetPublishedEventsFilters = {},
 	signal?: AbortSignal,
 ) {
 	const { data } = await apiClient.get<{ results: VerzelEvent[] }>(
 		"/api/events",
-		{ params: search ? { search } : undefined, signal },
+		{ params: filters, signal },
 	);
 	return data.results;
 }

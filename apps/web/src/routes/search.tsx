@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getPublishedEvents } from "@/api/requests/events/get-published-events";
 import type { VerzelEvent } from "@/api/types";
 import EventCard from "@/components/molecules/event-card";
+import { dedupeEventsByMovie } from "@/lib/dedupe-events-by-movie";
 import { tryCatch } from "@/lib/try-catch";
 
 export const Route = createFileRoute("/search")({
@@ -32,7 +33,7 @@ function SearchComponent() {
 
 		(async () => {
 			const [response, fetchError] = await tryCatch(
-				getPublishedEvents(q, controller.signal),
+				getPublishedEvents({ search: q }, controller.signal),
 			);
 
 			if (fetchError) {
@@ -40,7 +41,7 @@ function SearchComponent() {
 				return;
 			}
 
-			setResults(response);
+			setResults(dedupeEventsByMovie(response));
 		})();
 
 		return () => controller.abort();

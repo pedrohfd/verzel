@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { getPublishedEvents } from "@/api/requests/events/get-published-events";
 import type { VerzelEvent } from "@/api/types";
 import { useDebouncedValue } from "@/hooks/use-debounce";
+import { dedupeEventsByMovie } from "@/lib/dedupe-events-by-movie";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
@@ -35,10 +36,10 @@ export default function SearchCommand() {
 
 		(async () => {
 			const [response, error] = await tryCatch(
-				getPublishedEvents(debouncedQuery, controller.signal),
+				getPublishedEvents({ search: debouncedQuery }, controller.signal),
 			);
 			if (!error) {
-				setResults(response);
+				setResults(dedupeEventsByMovie(response));
 			}
 		})();
 
@@ -53,7 +54,10 @@ export default function SearchCommand() {
 
 	const goToEvent = (eventId: string) => {
 		setOpen(false);
-		navigate({ to: "/events/$eventId", params: { eventId } });
+		navigate({
+			to: "/events/$eventId",
+			params: { eventId },
+		});
 	};
 
 	return (
