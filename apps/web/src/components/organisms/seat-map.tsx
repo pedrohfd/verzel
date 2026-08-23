@@ -1,22 +1,31 @@
+import { MAX_COLUMNS, MAX_ROWS } from "@verzel/shared/validators";
 import { cn } from "@verzel/ui/lib/utils";
+import type { CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import type { Seat } from "@/api/types";
+
+const DEFAULT_SEAT_SIZE = 32;
+const MIN_SEAT_SIZE = 16;
+const SEAT_GAP = 6;
+const AISLE_GAP = 24;
+const ROW_GAP = 4;
+const ROW_LABEL_WIDTH = 16;
+const ROW_LABEL_GAP = 12;
+const BOTTOM_MARGIN = 24;
+const SECTION_GAP = 20;
+const ROW_LIST_PADDING = 16;
 
 type SelectedSeat = { row: number; column: number };
 
 type SeatMapProps = {
 	seats: Seat[];
-	columns: number;
-	selectedSeat: SelectedSeat | null;
+	selectedSeats: SelectedSeat[];
 	onSelect: (seat: Seat) => void;
 };
 
-function isSameSeat(seat: Seat, selected: SelectedSeat | null): boolean {
-	return (
-		selected !== null &&
-		seat.row === selected.row &&
-		seat.column === selected.column
-	);
+function isSeatSelected(seat: Seat, selected: SelectedSeat[]): boolean {
+	return selected.some((s) => seat.row === s.row && seat.column === s.column);
 }
 
 type Row = { row: number; label: string; seats: Seat[] };
@@ -49,12 +58,12 @@ export function ScreenIndicator({ size = "sm" }: { size?: "sm" | "lg" }) {
 		<div
 			className={cn(
 				"mx-auto flex w-full flex-col items-center",
-				isLg ? "max-w-4xl gap-2" : "max-w-md gap-1",
+				isLg ? "max-w-2xl gap-2" : "max-w-md gap-1",
 			)}
 		>
 			<svg
 				viewBox="0 0 400 40"
-				className={cn("w-full text-destructive", isLg ? "h-12" : "h-6")}
+				className={cn("w-full text-destructive", isLg ? "h-8" : "h-6")}
 				preserveAspectRatio="none"
 				aria-hidden="true"
 			>
@@ -62,14 +71,14 @@ export function ScreenIndicator({ size = "sm" }: { size?: "sm" | "lg" }) {
 					d="M 10 10 Q 200 40 390 10"
 					fill="none"
 					stroke="currentColor"
-					strokeWidth={isLg ? 6 : 3}
+					strokeWidth={isLg ? 4 : 3}
 					strokeLinecap="round"
 				/>
 			</svg>
 			<span
 				className={cn(
 					"text-muted-foreground tracking-[0.3em]",
-					isLg ? "text-xl" : "text-[10px]",
+					isLg ? "text-sm" : "text-[10px]",
 				)}
 			>
 				TELA
@@ -96,23 +105,23 @@ export function SeatIcon({ className }: { className?: string }) {
 
 function SeatBlock({
 	seats,
-	selectedSeat,
+	selectedSeats,
 	onSelect,
 }: {
 	seats: Seat[];
-	selectedSeat: SelectedSeat | null;
+	selectedSeats: SelectedSeat[];
 	onSelect: (seat: Seat) => void;
 }) {
 	return (
 		<div
 			data-slot="seat-block"
-			className="grid gap-2"
+			className="grid gap-1.5"
 			style={{
 				gridTemplateColumns: `repeat(${seats.length}, minmax(0, 1fr))`,
 			}}
 		>
 			{seats.map((seat) => {
-				const isSelected = isSameSeat(seat, selectedSeat);
+				const isSelected = isSeatSelected(seat, selectedSeats);
 				const isTaken = seat.status === "taken";
 
 				return (
@@ -124,7 +133,7 @@ function SeatBlock({
 						aria-pressed={isSelected}
 						onClick={() => onSelect(seat)}
 						className={cn(
-							"relative flex size-9 flex-col items-center justify-center gap-0.5 rounded-md transition-colors",
+							"relative flex h-(--seat-size) w-(--seat-size) flex-col items-center justify-center gap-0.5 rounded-md transition-colors",
 							isTaken && "cursor-not-allowed text-muted-foreground/40",
 							!isTaken &&
 								!isSelected &&
@@ -132,8 +141,8 @@ function SeatBlock({
 							isSelected && "cursor-pointer bg-primary text-primary-foreground",
 						)}
 					>
-						<SeatIcon className="size-6" />
-						<span className="text-[9px] leading-none">{seat.label}</span>
+						<SeatIcon className="h-3/5 w-3/5" />
+						<span className="text-xs leading-none">{seat.label}</span>
 					</button>
 				);
 			})}
@@ -143,36 +152,114 @@ function SeatBlock({
 
 function Legend() {
 	return (
-		<div className="flex flex-wrap items-center gap-4 text-muted-foreground text-xs">
+		<div className="flex w-full flex-wrap items-center justify-center gap-3 text-muted-foreground text-xs">
 			<span className="flex items-center gap-1.5">
-				<SeatIcon className="size-4 rounded-md bg-primary p-0.5 text-primary-foreground" />
+				<span className="size-3 rounded-sm bg-primary" />
 				Selecionado
 			</span>
 			<span className="flex items-center gap-1.5">
-				<SeatIcon className="size-4 text-foreground/70" />
+				<span className="size-3 rounded-sm border border-foreground/30" />
 				Disponível
 			</span>
 			<span className="flex items-center gap-1.5">
-				<SeatIcon className="size-4 text-muted-foreground/40" />
+				<span className="size-3 rounded-sm bg-muted-foreground/40" />
 				Ocupado
 			</span>
 		</div>
 	);
 }
 
+function useFitSeatSize() {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const screenRef = useRef<HTMLDivElement>(null);
+	const legendRef = useRef<HTMLDivElement>(null);
+	const [seatSize, setSeatSize] = useState(DEFAULT_SEAT_SIZE);
+
+	useLayoutEffect(() => {
+		const el = containerRef.current;
+		if (!el) return;
+
+		function recompute() {
+			if (!el) return;
+			const rect = el.getBoundingClientRect();
+			if (!window.innerHeight || rect.width === 0) {
+				setSeatSize(DEFAULT_SEAT_SIZE);
+				return;
+			}
+
+			const availableHeight =
+				window.innerHeight - Math.max(0, rect.top) - BOTTOM_MARGIN;
+			const reserved =
+				(screenRef.current?.offsetHeight ?? 0) +
+				(legendRef.current?.offsetHeight ?? 0) +
+				SECTION_GAP * 2 +
+				ROW_LIST_PADDING;
+			const rowsHeight = Math.max(0, availableHeight - reserved);
+			const maxByHeight = (rowsHeight - (MAX_ROWS - 1) * ROW_GAP) / MAX_ROWS;
+
+			const widthForSeats =
+				el.clientWidth - ROW_LABEL_WIDTH * 2 - ROW_LABEL_GAP * 2 - AISLE_GAP;
+			const maxByWidth =
+				(widthForSeats - (MAX_COLUMNS - 1) * SEAT_GAP) / MAX_COLUMNS;
+
+			const next = Math.min(maxByHeight, maxByWidth);
+			setSeatSize(
+				Number.isFinite(next) && next > 0
+					? Math.max(MIN_SEAT_SIZE, next)
+					: DEFAULT_SEAT_SIZE,
+			);
+		}
+
+		recompute();
+
+		let raf = 0;
+		function onChange() {
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(recompute);
+		}
+
+		window.addEventListener("resize", onChange);
+		window.addEventListener("scroll", onChange, { passive: true });
+		const observer =
+			typeof ResizeObserver !== "undefined"
+				? new ResizeObserver(onChange)
+				: null;
+		observer?.observe(el);
+
+		return () => {
+			cancelAnimationFrame(raf);
+			window.removeEventListener("resize", onChange);
+			window.removeEventListener("scroll", onChange);
+			observer?.disconnect();
+		};
+	}, []);
+
+	return { containerRef, screenRef, legendRef, seatSize };
+}
+
 export default function SeatMap({
 	seats,
-	selectedSeat,
+	selectedSeats,
 	onSelect,
 }: SeatMapProps) {
 	const rows = buildRows(seats);
+	const { containerRef, screenRef, legendRef, seatSize } = useFitSeatSize();
 
 	return (
-		<div className="flex flex-col gap-6">
-			<ScreenIndicator />
+		<div
+			ref={containerRef}
+			className="flex flex-col gap-5"
+			style={{ "--seat-size": `${seatSize}px` } as CSSProperties}
+		>
+			<div ref={screenRef}>
+				<ScreenIndicator size="lg" />
+			</div>
 
-			<div className="w-full overflow-x-auto">
-				<div className="flex w-fit min-w-full flex-col items-center gap-2 px-2 py-2">
+			<div className="w-full">
+				<div
+					className="flex w-full flex-col items-center px-2 py-2"
+					style={{ gap: ROW_GAP }}
+				>
 					{rows.map((row) => {
 						const [left, right] = splitAisle(row.seats);
 						return (
@@ -181,18 +268,18 @@ export default function SeatMap({
 									{row.label}
 								</span>
 								<div
-									className="flex items-center gap-8"
+									className="flex items-center gap-6"
 									data-slot="seat-row-blocks"
 								>
 									<SeatBlock
 										seats={left}
-										selectedSeat={selectedSeat}
+										selectedSeats={selectedSeats}
 										onSelect={onSelect}
 									/>
 									{right.length > 0 && (
 										<SeatBlock
 											seats={right}
-											selectedSeat={selectedSeat}
+											selectedSeats={selectedSeats}
 											onSelect={onSelect}
 										/>
 									)}
@@ -206,7 +293,9 @@ export default function SeatMap({
 				</div>
 			</div>
 
-			<Legend />
+			<div ref={legendRef}>
+				<Legend />
+			</div>
 		</div>
 	);
 }

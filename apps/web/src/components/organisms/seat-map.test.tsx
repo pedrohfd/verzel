@@ -32,28 +32,14 @@ const seats: import("@/api/types").Seat[] = [
 
 describe("SeatMap", () => {
 	it("renders one button per seat", () => {
-		render(
-			<SeatMap
-				seats={seats}
-				columns={3}
-				selectedSeat={null}
-				onSelect={vi.fn()}
-			/>,
-		);
+		render(<SeatMap seats={seats} selectedSeats={[]} onSelect={vi.fn()} />);
 
 		expect(screen.getByLabelText("Assento A1")).toBeInTheDocument();
 		expect(screen.getByLabelText("Assento A2 (ocupado)")).toBeInTheDocument();
 	});
 
 	it("disables taken seats", () => {
-		render(
-			<SeatMap
-				seats={seats}
-				columns={3}
-				selectedSeat={null}
-				onSelect={vi.fn()}
-			/>,
-		);
+		render(<SeatMap seats={seats} selectedSeats={[]} onSelect={vi.fn()} />);
 
 		expect(screen.getByLabelText("Assento A2 (ocupado)")).toBeDisabled();
 	});
@@ -62,8 +48,7 @@ describe("SeatMap", () => {
 		render(
 			<SeatMap
 				seats={seats}
-				columns={3}
-				selectedSeat={{ row: 0, column: 0 }}
+				selectedSeats={[{ row: 0, column: 0 }]}
 				onSelect={vi.fn()}
 			/>,
 		);
@@ -76,14 +61,7 @@ describe("SeatMap", () => {
 
 	it("calls onSelect with the clicked seat", () => {
 		const onSelect = vi.fn();
-		render(
-			<SeatMap
-				seats={seats}
-				columns={3}
-				selectedSeat={null}
-				onSelect={onSelect}
-			/>,
-		);
+		render(<SeatMap seats={seats} selectedSeats={[]} onSelect={onSelect} />);
 
 		fireEvent.click(screen.getByLabelText("Assento A1"));
 
@@ -92,12 +70,7 @@ describe("SeatMap", () => {
 
 	it("renders the row letter on both sides of the row", () => {
 		const { container } = render(
-			<SeatMap
-				seats={seats}
-				columns={3}
-				selectedSeat={null}
-				onSelect={vi.fn()}
-			/>,
+			<SeatMap seats={seats} selectedSeats={[]} onSelect={vi.fn()} />,
 		);
 
 		expect(screen.getAllByText("A")).toHaveLength(2);
@@ -107,14 +80,7 @@ describe("SeatMap", () => {
 	});
 
 	it("renders a screen indicator with the TELA label", () => {
-		render(
-			<SeatMap
-				seats={seats}
-				columns={3}
-				selectedSeat={null}
-				onSelect={vi.fn()}
-			/>,
-		);
+		render(<SeatMap seats={seats} selectedSeats={[]} onSelect={vi.fn()} />);
 
 		expect(screen.getByText("TELA")).toBeInTheDocument();
 	});
@@ -133,12 +99,7 @@ describe("SeatMap", () => {
 		);
 
 		const { container } = render(
-			<SeatMap
-				seats={wideRowSeats}
-				columns={6}
-				selectedSeat={null}
-				onSelect={vi.fn()}
-			/>,
+			<SeatMap seats={wideRowSeats} selectedSeats={[]} onSelect={vi.fn()} />,
 		);
 
 		expect(container.querySelectorAll('[data-slot="seat-block"]')).toHaveLength(
