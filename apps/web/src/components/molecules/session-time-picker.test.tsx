@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import SessionTimePicker from "./session-time-picker";
 
 function dayButtonName(day: number) {
-	return new RegExp(`${day}(st|nd|rd|th)`);
+	return new RegExp(`\\b${day} de `);
 }
 
 describe("SessionTimePicker", () => {
