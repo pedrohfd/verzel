@@ -86,14 +86,14 @@ describe("POST /", () => {
 		expect(res.statusCode).toBe(400);
 	});
 
-	it("returns 400 when columns exceeds the maximum of 24", async () => {
+	it("returns 400 when columns exceeds the maximum of 14", async () => {
 		authAsOrganizer();
 		const app = buildTestApp();
 
 		const res = await app.inject({
 			method: "POST",
 			url: "/api/rooms",
-			payload: { ...validCreateBody, columns: 25 },
+			payload: { ...validCreateBody, columns: 15 },
 		});
 
 		expect(res.statusCode).toBe(400);

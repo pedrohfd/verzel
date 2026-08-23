@@ -58,7 +58,7 @@ describe("RoomForm", () => {
 		).toBeInTheDocument();
 	});
 
-	it("rejects seats per row above the maximum of 24", async () => {
+	it("rejects seats per row above the maximum of 14", async () => {
 		render(<RoomForm onSaved={vi.fn()} />);
 
 		fireEvent.change(screen.getByLabelText("Nome da sala"), {
@@ -68,12 +68,12 @@ describe("RoomForm", () => {
 			target: { value: "8" },
 		});
 		fireEvent.change(screen.getByLabelText("Assentos por fileira"), {
-			target: { value: "25" },
+			target: { value: "15" },
 		});
 
 		expect(screen.getByLabelText("Assentos por fileira")).toHaveAttribute(
 			"max",
-			"24",
+			"14",
 		);
 
 		fireEvent.click(screen.getByRole("button", { name: "Criar sala" }));
