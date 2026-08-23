@@ -77,6 +77,12 @@ export class DuplicateRoomNameError extends DomainError {
 	}
 }
 
+export class EmailAlreadyInUseError extends DomainError {
+	constructor() {
+		super("A user with this email already exists", 409, "EMAIL_ALREADY_IN_USE");
+	}
+}
+
 export class RoomScheduleConflictError extends DomainError {
 	constructor() {
 		super(

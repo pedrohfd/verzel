@@ -20,6 +20,12 @@ export default function Header() {
 							<Button variant="ghost">Portaria</Button>
 						</Link>
 					</RoleGate>
+					{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
+					<RoleGate role="organizador">
+						<Link to="/organizer/gatekeepers/new">
+							<Button variant="ghost">Cadastrar porteiro</Button>
+						</Link>
+					</RoleGate>
 					<UserMenu />
 				</div>
 			</div>
