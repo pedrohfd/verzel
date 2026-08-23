@@ -103,6 +103,7 @@ describe("useEventSessions", () => {
 			to: "/events/$eventId",
 			params: { eventId: "event-2" },
 			replace: true,
+			resetScroll: false,
 		});
 	});
 
@@ -137,6 +138,7 @@ describe("useEventSessions", () => {
 			to: "/events/$eventId",
 			params: { eventId: "event-2" },
 			replace: true,
+			resetScroll: false,
 		});
 	});
 
@@ -171,6 +173,7 @@ describe("useEventSessions", () => {
 			to: "/events/$eventId",
 			params: { eventId: "event-2" },
 			replace: true,
+			resetScroll: false,
 		});
 	});
 });
