@@ -43,6 +43,13 @@
 			"when": 1787431348060,
 			"tag": "0005_young_molly_hayes",
 			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1787505491944,
+			"tag": "0006_steep_firebird",
+			"breakpoints": true
 		}
 	]
 }

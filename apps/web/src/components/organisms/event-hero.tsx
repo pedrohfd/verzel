@@ -1,13 +1,21 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@verzel/ui/components/button";
 import {
+	Carousel,
+	type CarouselApi,
+	CarouselContent,
+	CarouselItem,
+	CarouselNext,
+	CarouselPrevious,
+} from "@verzel/ui/components/carousel";
+import {
 	Dialog,
 	DialogClose,
 	DialogContent,
 	DialogTitle,
 } from "@verzel/ui/components/dialog";
 import { Skeleton } from "@verzel/ui/components/skeleton";
-import { ChevronLeft, ChevronRight, Play, XIcon } from "lucide-react";
+import { Play, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { getMovieTrailers } from "@/api/requests/movies/get-movie-trailers";
@@ -16,7 +24,10 @@ import { formatPriceCents } from "@/lib/format-price";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
+const AUTOPLAY_INTERVAL_MS = 6000;
+
 export default function EventHero({ events }: { events: VerzelEvent[] }) {
+	const [api, setApi] = useState<CarouselApi>();
 	const [activeIndex, setActiveIndex] = useState(0);
 	const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 	const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
@@ -48,14 +59,28 @@ export default function EventHero({ events }: { events: VerzelEvent[] }) {
 	}
 
 	useEffect(() => {
-		if (events.length <= 1 || isTrailerOpen) return;
+		if (!api || events.length <= 1 || isTrailerOpen) return;
 
 		const interval = setInterval(() => {
-			setActiveIndex((i) => (i + 1) % events.length);
-		}, 6000);
+			api.scrollNext();
+		}, AUTOPLAY_INTERVAL_MS);
 
 		return () => clearInterval(interval);
-	}, [activeIndex, events.length, isTrailerOpen]);
+	}, [api, events.length, isTrailerOpen, activeIndex]);
+
+	useEffect(() => {
+		if (!api) return;
+
+		function onSelect() {
+			if (!api) return;
+			setActiveIndex(api.selectedScrollSnap());
+		}
+
+		api.on("select", onSelect);
+		return () => {
+			api.off("select", onSelect);
+		};
+	}, [api]);
 
 	useEffect(() => {
 		trailerControllerRef.current?.abort();
@@ -78,15 +103,44 @@ export default function EventHero({ events }: { events: VerzelEvent[] }) {
 
 	return (
 		<div className="group relative aspect-21/9 w-full overflow-hidden bg-muted">
-			{event.movieBackdropPath && (
-				<img
-					src={tmdbImageUrl(event.movieBackdropPath, "w1280")}
-					alt={event.movieTitle}
-					className="absolute inset-0 h-full w-full object-cover"
-					fetchPriority="high"
-				/>
-			)}
-			<div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+			<Carousel
+				setApi={setApi}
+				opts={{ loop: true }}
+				className="absolute inset-0 h-full w-full"
+			>
+				<CarouselContent className="ml-0 h-full">
+					{events.map((e) => (
+						<CarouselItem key={e.id} className="relative h-full pl-0">
+							{e.movieBackdropPath && (
+								<img
+									src={tmdbImageUrl(e.movieBackdropPath, "w1280")}
+									alt={e.movieTitle}
+									className="absolute inset-0 h-full w-full object-cover"
+									fetchPriority="high"
+								/>
+							)}
+							<div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+						</CarouselItem>
+					))}
+				</CarouselContent>
+
+				{events.length > 1 && (
+					<>
+						<div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-1/4 bg-linear-to-r from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+						<div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-1/4 bg-linear-to-l from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+						<CarouselPrevious
+							size="icon"
+							aria-label="Sessão anterior"
+							className="top-4 left-4 z-20 transition-none"
+						/>
+						<CarouselNext
+							size="icon"
+							aria-label="Próxima sessão"
+							className="top-4 right-4 z-20 transition-none"
+						/>
+					</>
+				)}
+			</Carousel>
 
 			<div className="relative z-10 flex h-full flex-col justify-end gap-3 p-6">
 				<h1 className="font-bold text-3xl text-white">{event.movieTitle}</h1>
@@ -115,40 +169,13 @@ export default function EventHero({ events }: { events: VerzelEvent[] }) {
 				</div>
 			</div>
 
-			{events.length > 1 && (
-				<>
-					<div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-linear-to-r from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-					<div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-linear-to-l from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-					<Button
-						variant="outline"
-						size="icon"
-						aria-label="Sessão anterior"
-						onClick={() =>
-							setActiveIndex((i) => (i - 1 + events.length) % events.length)
-						}
-						className="absolute top-1/2 left-4 z-10 -translate-y-1/2 transition-none active:not-aria-[haspopup]:-translate-y-1/2"
-					>
-						<ChevronLeft />
-					</Button>
-					<Button
-						variant="outline"
-						size="icon"
-						aria-label="Próxima sessão"
-						onClick={() => setActiveIndex((i) => (i + 1) % events.length)}
-						className="absolute top-1/2 right-4 z-10 -translate-y-1/2 transition-none active:not-aria-[haspopup]:-translate-y-1/2"
-					>
-						<ChevronRight />
-					</Button>
-				</>
-			)}
-
-			<div className="absolute right-6 bottom-6 flex gap-1.5">
+			<div className="absolute right-6 bottom-6 z-10 flex gap-1.5">
 				{events.map((e, index) => (
 					<button
 						key={e.id}
 						type="button"
 						aria-label={`Ver ${e.movieTitle}`}
-						onClick={() => setActiveIndex(index)}
+						onClick={() => api?.scrollTo(index)}
 						className={`size-2 cursor-pointer rounded-full transition-colors ${
 							index === activeIndex ? "bg-destructive" : "bg-white/40"
 						}`}

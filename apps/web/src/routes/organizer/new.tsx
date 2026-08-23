@@ -15,17 +15,26 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { createEvent } from "@/api/requests/events/create-event";
+import { getMovieDetails } from "@/api/requests/movies/get-movie-details";
 import { searchMovies } from "@/api/requests/movies/search-movies";
 import { getMyRooms } from "@/api/requests/rooms/get-my-rooms";
+import {
+	getRoomSchedule,
+	type RoomScheduleSlot,
+} from "@/api/requests/rooms/get-room-schedule";
 import type { CinemaRoom, TmdbMovie } from "@/api/types";
+import SessionTimePicker from "@/components/molecules/session-time-picker";
 import CinemaRoomPreview from "@/components/organisms/cinema-room-preview";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { authClient } from "@/lib/auth-client";
+import { findSlotConflict } from "@/lib/find-slot-conflict";
 import { formatAddress } from "@/lib/format-address";
 import { maskCurrencyBRL } from "@/lib/masks";
 import { requireRole } from "@/lib/route-guards";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
+
+const DEFAULT_DURATION_MINUTES = 120;
 
 const DRAFT_STORAGE_KEY = "organizer:new-event-draft";
 
@@ -68,6 +77,9 @@ function NewEventComponent() {
 	const debouncedQuery = useDebouncedValue(movieQuery, 300);
 
 	const [rooms, setRooms] = useState<CinemaRoom[]>([]);
+	const [selectedRoomId, setSelectedRoomId] = useState("");
+	const [occupiedSlots, setOccupiedSlots] = useState<RoomScheduleSlot[]>([]);
+	const [movieDuration, setMovieDuration] = useState<number | null>(null);
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -77,6 +89,39 @@ function NewEventComponent() {
 		})();
 		return () => controller.abort();
 	}, []);
+
+	useEffect(() => {
+		if (!selectedRoomId) {
+			setOccupiedSlots([]);
+			return;
+		}
+
+		const controller = new AbortController();
+		(async () => {
+			const [response, error] = await tryCatch(
+				getRoomSchedule(selectedRoomId, { signal: controller.signal }),
+			);
+			if (!error) setOccupiedSlots(response);
+		})();
+		return () => controller.abort();
+	}, [selectedRoomId]);
+
+	useEffect(() => {
+		if (!selectedMovie) {
+			setMovieDuration(null);
+			return;
+		}
+
+		const controller = new AbortController();
+		(async () => {
+			const [response, error] = await tryCatch(
+				getMovieDetails(selectedMovie.id, controller.signal),
+			);
+			if (!error)
+				setMovieDuration(response.runtime ?? DEFAULT_DURATION_MINUTES);
+		})();
+		return () => controller.abort();
+	}, [selectedMovie]);
 
 	useEffect(() => {
 		if (!debouncedQuery) {
@@ -163,6 +208,7 @@ function NewEventComponent() {
 		}
 
 		form.setFieldValue("roomId", returnedRoomId);
+		setSelectedRoomId(returnedRoomId);
 		navigate({ to: "/organizer/new", search: {}, replace: true });
 	}, [returnedRoomId]);
 
@@ -268,17 +314,48 @@ function NewEventComponent() {
 						}}
 						className="flex flex-col gap-4"
 					>
-						<form.Field name="sessionAt">
+						<form.Field name="roomId">
 							{(field) => (
 								<div className="flex flex-col gap-2">
-									<Label htmlFor={field.name}>Data e hora da sessão</Label>
-									<Input
-										id={field.name}
-										type="datetime-local"
+									<div className="flex items-center justify-between">
+										<Label htmlFor={field.name}>Sala</Label>
+										<Button
+											type="button"
+											variant="link"
+											size="sm"
+											className="h-auto p-0"
+											onClick={handleCreateRoomClick}
+										>
+											Criar nova sala
+										</Button>
+									</div>
+									<Select
 										value={field.state.value}
-										onBlur={field.handleBlur}
-										onChange={(e) => field.handleChange(e.target.value)}
-									/>
+										onValueChange={(value) => {
+											field.handleChange(value ?? "");
+											setSelectedRoomId(value ?? "");
+										}}
+										items={rooms.map((room) => ({
+											value: room.id,
+											label: `${room.name} (${room.rows}x${room.columns})`,
+										}))}
+									>
+										<SelectTrigger id={field.name} className="w-full">
+											<SelectValue placeholder="Selecione uma sala" />
+										</SelectTrigger>
+										<SelectContent>
+											{rooms.map((room) => (
+												<SelectItem key={room.id} value={room.id}>
+													{room.name} ({room.rows}x{room.columns})
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									{rooms.length === 0 && (
+										<p className="text-muted-foreground text-xs">
+											Você ainda não tem nenhuma sala cadastrada.
+										</p>
+									)}
 									{field.state.meta.errors.map((err) => (
 										<p key={err?.message} className="text-destructive text-xs">
 											{err?.message}
@@ -311,50 +388,39 @@ function NewEventComponent() {
 							)}
 						</form.Field>
 
-						<form.Field name="roomId">
+						<form.Field
+							name="sessionAt"
+							validators={{
+								onChange: ({ value }) =>
+									findSlotConflict(
+										value,
+										movieDuration ?? DEFAULT_DURATION_MINUTES,
+										occupiedSlots,
+									)
+										? "Este horário conflita com outra sessão nesta sala."
+										: undefined,
+							}}
+						>
 							{(field) => (
 								<div className="flex flex-col gap-2">
-									<div className="flex items-center justify-between">
-										<Label htmlFor={field.name}>Sala</Label>
-										<Button
-											type="button"
-											variant="link"
-											size="sm"
-											className="h-auto p-0"
-											onClick={handleCreateRoomClick}
-										>
-											Criar nova sala
-										</Button>
-									</div>
-									<Select
+									<Label htmlFor={field.name}>Data e hora da sessão</Label>
+									<SessionTimePicker
+										id={field.name}
 										value={field.state.value}
-										onValueChange={(value) => field.handleChange(value ?? "")}
-										items={rooms.map((room) => ({
-											value: room.id,
-											label: `${room.name} (${room.rows}x${room.columns})`,
-										}))}
-									>
-										<SelectTrigger id={field.name} className="w-full">
-											<SelectValue placeholder="Selecione uma sala" />
-										</SelectTrigger>
-										<SelectContent>
-											{rooms.map((room) => (
-												<SelectItem key={room.id} value={room.id}>
-													{room.name} ({room.rows}x{room.columns})
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									{rooms.length === 0 && (
-										<p className="text-muted-foreground text-xs">
-											Você ainda não tem nenhuma sala cadastrada.
-										</p>
-									)}
-									{field.state.meta.errors.map((err) => (
-										<p key={err?.message} className="text-destructive text-xs">
-											{err?.message}
-										</p>
-									))}
+										onChange={field.handleChange}
+										onBlur={field.handleBlur}
+										occupiedSlots={occupiedSlots}
+										durationMinutes={movieDuration ?? DEFAULT_DURATION_MINUTES}
+									/>
+									{field.state.meta.errors.map((err) => {
+										const message =
+											typeof err === "string" ? err : err?.message;
+										return (
+											<p key={message} className="text-destructive text-xs">
+												{message}
+											</p>
+										);
+									})}
 								</div>
 							)}
 						</form.Field>

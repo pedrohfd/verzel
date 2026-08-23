@@ -19,3 +19,18 @@ if (!window.matchMedia) {
 		dispatchEvent: () => false,
 	});
 }
+
+class MockObserver {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+
+if (!window.ResizeObserver) {
+	window.ResizeObserver = MockObserver;
+}
+
+if (!window.IntersectionObserver) {
+	window.IntersectionObserver =
+		MockObserver as unknown as typeof IntersectionObserver;
+}

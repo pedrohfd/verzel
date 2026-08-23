@@ -72,6 +72,18 @@ export async function updateRoom(
 	return room;
 }
 
+export function getRoomSchedule(roomId: string, excludeEventId?: string) {
+	return db.query.events.findMany({
+		where: and(
+			eq(schema.events.roomId, roomId),
+			inArray(schema.events.status, ["draft", "published"]),
+			excludeEventId ? ne(schema.events.id, excludeEventId) : undefined,
+		),
+		columns: { sessionAt: true, durationMinutes: true },
+		orderBy: asc(schema.events.sessionAt),
+	});
+}
+
 export async function deleteRoom(roomId: string) {
 	const activeEvent = await db.query.events.findFirst({
 		where: and(

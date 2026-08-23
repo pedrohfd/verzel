@@ -1,8 +1,12 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, asc, desc, eq, gte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, ne, or, sql } from "drizzle-orm";
 
-import { ForbiddenError, NotFoundError } from "./errors";
+import {
+	ForbiddenError,
+	NotFoundError,
+	RoomScheduleConflictError,
+} from "./errors";
 import { seatLabel } from "./seat-label";
 
 export interface CreateEventInput {
@@ -12,6 +16,7 @@ export interface CreateEventInput {
 	moviePosterPath: string | null;
 	movieBackdropPath: string | null;
 	sessionAt: Date;
+	durationMinutes: number;
 	venueName: string;
 	venueAddress: string;
 	priceCents: number;
@@ -20,7 +25,32 @@ export interface CreateEventInput {
 	columns: number;
 }
 
-export function createEvent(input: CreateEventInput) {
+async function assertNoRoomConflict(
+	roomId: string,
+	sessionAt: Date,
+	durationMinutes: number,
+	excludeEventId?: string,
+) {
+	const endsAt = new Date(sessionAt.getTime() + durationMinutes * 60_000);
+
+	const conflict = await db.query.events.findFirst({
+		where: and(
+			eq(schema.events.roomId, roomId),
+			inArray(schema.events.status, ["draft", "published"]),
+			excludeEventId ? ne(schema.events.id, excludeEventId) : undefined,
+			lt(schema.events.sessionAt, endsAt),
+			sql`${schema.events.sessionAt} + (${schema.events.durationMinutes} * interval '1 minute') > ${sessionAt}`,
+		),
+	});
+	if (conflict) throw new RoomScheduleConflictError();
+}
+
+export async function createEvent(input: CreateEventInput) {
+	await assertNoRoomConflict(
+		input.roomId,
+		input.sessionAt,
+		input.durationMinutes,
+	);
 	return db.insert(schema.events).values(input).returning();
 }
 
@@ -60,6 +90,7 @@ export interface UpdateEventInput {
 	moviePosterPath: string | null;
 	movieBackdropPath: string | null;
 	sessionAt: Date;
+	durationMinutes: number;
 	priceCents: number;
 	roomId: string;
 	rows: number;
@@ -67,6 +98,12 @@ export interface UpdateEventInput {
 }
 
 export async function updateEvent(eventId: string, patch: UpdateEventInput) {
+	await assertNoRoomConflict(
+		patch.roomId,
+		patch.sessionAt,
+		patch.durationMinutes,
+		eventId,
+	);
 	const [updated] = await db
 		.update(schema.events)
 		.set(patch)

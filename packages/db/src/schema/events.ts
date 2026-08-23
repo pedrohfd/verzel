@@ -28,6 +28,7 @@ export const events = pgTable("event", {
 	moviePosterPath: text("movie_poster_path"),
 	movieBackdropPath: text("movie_backdrop_path"),
 	sessionAt: timestamp("session_at").notNull(),
+	durationMinutes: integer("duration_minutes").notNull(),
 	venueName: text("venue_name").notNull(),
 	venueAddress: text("venue_address").notNull(),
 	priceCents: integer("price_cents").notNull(),

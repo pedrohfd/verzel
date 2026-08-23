@@ -8,6 +8,7 @@ import {
 	createRoom,
 	deleteRoom,
 	getOwnedRoom,
+	getRoomSchedule,
 	listOrganizerRooms,
 	updateRoom,
 } from "../lib/rooms";
@@ -28,6 +29,26 @@ export async function roomRoutes(fastify: FastifyInstance) {
 				return { results };
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to list your rooms");
+			}
+		},
+	);
+
+	fastify.get<{
+		Params: { id: string };
+		Querystring: { excludeEventId?: string };
+	}>(
+		"/:id/schedule",
+		{ preHandler: requireRole("organizador") },
+		async (request, reply) => {
+			try {
+				await getOwnedRoom(request.params.id, request.user?.id ?? "");
+				const results = await getRoomSchedule(
+					request.params.id,
+					request.query.excludeEventId,
+				);
+				return { results };
+			} catch (error) {
+				sendDomainError(reply, error, "Failed to fetch room schedule");
 			}
 		},
 	);

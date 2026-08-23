@@ -99,6 +99,11 @@ function getMovieDetails(id: number) {
 	return fetchTmdb<TmdbMovieDetails>(`/movie/${id}`, { language: "pt-BR" });
 }
 
+export async function getMovieRuntime(id: number): Promise<number> {
+	const details = await getMovieDetails(id);
+	return details.runtime ?? 120;
+}
+
 interface TmdbCreditsResponse {
 	cast: { name: string; order: number }[];
 	crew: { name: string; job: string }[];

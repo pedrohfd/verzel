@@ -21,6 +21,7 @@ import {
 import { formatAddress } from "../lib/format-address";
 import { requireRole } from "../lib/require-role";
 import { getOwnedRoom } from "../lib/rooms";
+import { getMovieRuntime } from "../lib/tmdb";
 
 const createEventSchema = z.object({
 	tmdbMovieId: z.number().int(),
@@ -119,10 +120,12 @@ export async function eventRoutes(fastify: FastifyInstance) {
 					parsed.data.roomId,
 					request.user?.id ?? "",
 				);
+				const durationMinutes = await getMovieRuntime(parsed.data.tmdbMovieId);
 
 				const [event] = await createEvent({
 					...parsed.data,
 					sessionAt: new Date(parsed.data.sessionAt),
+					durationMinutes,
 					organizerId: request.user?.id ?? "",
 					venueName: cinema.cinemaName,
 					venueAddress: formatAddress({
@@ -188,9 +191,14 @@ export async function eventRoutes(fastify: FastifyInstance) {
 						throw new EventSeatsLockedError();
 					}
 
+					const durationMinutes = await getMovieRuntime(
+						parsed.data.tmdbMovieId,
+					);
+
 					return await updateEvent(request.params.id, {
 						...parsed.data,
 						sessionAt: new Date(parsed.data.sessionAt),
+						durationMinutes,
 						rows: room.rows,
 						columns: room.columns,
 					});

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ForbiddenError } from "../lib/errors";
+import { ForbiddenError, RoomScheduleConflictError } from "../lib/errors";
 
 const {
 	listPublishedEventsMock,
@@ -15,6 +15,7 @@ const {
 	requireRoleMock,
 	getCinemaByUserIdMock,
 	getOwnedRoomMock,
+	getMovieRuntimeMock,
 } = vi.hoisted(() => ({
 	listPublishedEventsMock: vi.fn(),
 	listOrganizerEventsMock: vi.fn(),
@@ -28,6 +29,7 @@ const {
 	requireRoleMock: vi.fn(),
 	getCinemaByUserIdMock: vi.fn(),
 	getOwnedRoomMock: vi.fn(),
+	getMovieRuntimeMock: vi.fn(),
 }));
 
 vi.mock("../lib/events", () => ({
@@ -52,6 +54,10 @@ vi.mock("../lib/cinemas", () => ({
 
 vi.mock("../lib/rooms", () => ({
 	getOwnedRoom: getOwnedRoomMock,
+}));
+
+vi.mock("../lib/tmdb", () => ({
+	getMovieRuntime: getMovieRuntimeMock,
 }));
 
 const { buildTestApp } = await import("../test-helpers/build-test-app");
@@ -106,9 +112,11 @@ beforeEach(() => {
 		requireRoleMock,
 		getCinemaByUserIdMock,
 		getOwnedRoomMock,
+		getMovieRuntimeMock,
 	]) {
 		mock.mockReset();
 	}
+	getMovieRuntimeMock.mockResolvedValue(120);
 });
 
 describe("GET /", () => {
@@ -217,6 +225,23 @@ describe("POST /", () => {
 				venueAddress: "Rua A, 100 - Centro, São Paulo/SP",
 			}),
 		);
+	});
+
+	it("returns 409 when the room already has an overlapping session", async () => {
+		authAsOrganizer();
+		getCinemaByUserIdMock.mockResolvedValue(registeredCinema);
+		getOwnedRoomMock.mockResolvedValue(registeredRoom);
+		createEventMock.mockRejectedValue(new RoomScheduleConflictError());
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/events",
+			payload: validCreateBody,
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toMatchObject({ code: "ROOM_SCHEDULE_CONFLICT" });
 	});
 
 	it("returns 400 when the organizer has no cinema registered", async () => {

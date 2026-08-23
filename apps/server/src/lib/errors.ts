@@ -77,6 +77,16 @@ export class DuplicateRoomNameError extends DomainError {
 	}
 }
 
+export class RoomScheduleConflictError extends DomainError {
+	constructor() {
+		super(
+			"Room already has a session scheduled for this time",
+			409,
+			"ROOM_SCHEDULE_CONFLICT",
+		);
+	}
+}
+
 export function sendDomainError(
 	reply: import("fastify").FastifyReply,
 	error: unknown,
