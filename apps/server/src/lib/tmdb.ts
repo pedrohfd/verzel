@@ -92,10 +92,22 @@ export function searchMovies(query: string) {
 interface TmdbMovieDetails {
 	genres: { id: number; name: string }[];
 	runtime: number | null;
+	overview: string;
 }
 
 function getMovieDetails(id: number) {
 	return fetchTmdb<TmdbMovieDetails>(`/movie/${id}`, { language: "pt-BR" });
+}
+
+interface TmdbCreditsResponse {
+	cast: { name: string; order: number }[];
+	crew: { name: string; job: string }[];
+}
+
+function getMovieCredits(id: number) {
+	return fetchTmdb<TmdbCreditsResponse>(`/movie/${id}/credits`, {
+		language: "pt-BR",
+	});
 }
 
 interface TmdbReleaseDatesResponse {
@@ -199,4 +211,39 @@ export async function getNowPlayingMoviesEnriched(
 			};
 		}),
 	);
+}
+
+export interface MovieFullDetails {
+	genre: string | null;
+	runtime: number | null;
+	certification: string;
+	overview: string;
+	director: string | null;
+	cast: string[];
+}
+
+export async function getMovieFullDetails(
+	id: number,
+): Promise<MovieFullDetails> {
+	const [details, certification, credits] = await Promise.all([
+		getMovieDetails(id),
+		getMovieCertification(id),
+		getMovieCredits(id),
+	]);
+
+	const director =
+		credits.crew.find((member) => member.job === "Director")?.name ?? null;
+	const cast = [...credits.cast]
+		.sort((a, b) => a.order - b.order)
+		.slice(0, 3)
+		.map((member) => member.name);
+
+	return {
+		genre: details.genres[0]?.name ?? null,
+		runtime: details.runtime,
+		certification,
+		overview: details.overview,
+		director,
+		cast,
+	};
 }

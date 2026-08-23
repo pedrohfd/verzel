@@ -5,11 +5,13 @@ const {
 	getNowPlayingMoviesEnrichedMock,
 	searchMoviesMock,
 	getMovieTrailersMock,
+	getMovieFullDetailsMock,
 } = vi.hoisted(() => ({
 	getTrendingMoviesMock: vi.fn(),
 	getNowPlayingMoviesEnrichedMock: vi.fn(),
 	searchMoviesMock: vi.fn(),
 	getMovieTrailersMock: vi.fn(),
+	getMovieFullDetailsMock: vi.fn(),
 }));
 
 vi.mock("../lib/tmdb", async () => {
@@ -21,6 +23,7 @@ vi.mock("../lib/tmdb", async () => {
 		getNowPlayingMoviesEnriched: getNowPlayingMoviesEnrichedMock,
 		searchMovies: searchMoviesMock,
 		getMovieTrailers: getMovieTrailersMock,
+		getMovieFullDetails: getMovieFullDetailsMock,
 	};
 });
 
@@ -32,6 +35,7 @@ beforeEach(() => {
 	getNowPlayingMoviesEnrichedMock.mockReset();
 	searchMoviesMock.mockReset();
 	getMovieTrailersMock.mockReset();
+	getMovieFullDetailsMock.mockReset();
 });
 
 describe("GET /trending", () => {
@@ -112,5 +116,40 @@ describe("GET /:id/trailer", () => {
 		});
 
 		expect(res.json()).toEqual({ trailers: [{ key: "a", name: "A" }] });
+	});
+});
+
+describe("GET /:id/details", () => {
+	it("returns the full movie details", async () => {
+		const details = {
+			genre: "Musical",
+			runtime: 160,
+			certification: "10 anos",
+			overview: "Sinopse.",
+			director: "Jon M. Chu",
+			cast: ["Cynthia Erivo", "Ariana Grande"],
+		};
+		getMovieFullDetailsMock.mockResolvedValue(details);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "GET",
+			url: "/api/movies/1/details",
+		});
+
+		expect(res.statusCode).toBe(200);
+		expect(res.json()).toEqual(details);
+	});
+
+	it("returns 502 when TMDB fails", async () => {
+		getMovieFullDetailsMock.mockRejectedValue(new TmdbError("boom", 500));
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "GET",
+			url: "/api/movies/1/details",
+		});
+
+		expect(res.statusCode).toBe(502);
 	});
 });

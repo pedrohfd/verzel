@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import {
+	getMovieFullDetails,
 	getMovieTrailers,
 	getNowPlayingMoviesEnriched,
 	getTrendingMovies,
@@ -75,6 +76,23 @@ export async function movieRoutes(fastify: FastifyInstance) {
 				fastify.log.error({ err: error }, "TMDB request failed:");
 				reply.status(502).send({
 					error: "Failed to fetch movie trailer from TMDB",
+					code: "TMDB_UPSTREAM_ERROR",
+					upstreamStatus: status,
+				});
+			}
+		},
+	);
+
+	fastify.get<{ Params: { id: string } }>(
+		"/:id/details",
+		async (request, reply) => {
+			try {
+				return await getMovieFullDetails(Number(request.params.id));
+			} catch (error) {
+				const status = error instanceof TmdbError ? error.status : 502;
+				fastify.log.error({ err: error }, "TMDB request failed:");
+				reply.status(502).send({
+					error: "Failed to fetch movie details from TMDB",
 					code: "TMDB_UPSTREAM_ERROR",
 					upstreamStatus: status,
 				});
