@@ -68,6 +68,18 @@ export default function UserMenu() {
 						<DropdownMenuItem render={<Link to="/organizer/rooms" />}>
 							Minhas Salas
 						</DropdownMenuItem>
+						<DropdownMenuItem render={<Link to="/organizer/gatekeepers" />}>
+							Porteiros
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+				</RoleGate>
+				{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
+				<RoleGate role="portaria">
+					<DropdownMenuGroup>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem render={<Link to="/portaria" />}>
+							Portaria
+						</DropdownMenuItem>
 					</DropdownMenuGroup>
 				</RoleGate>
 				<DropdownMenuGroup>

@@ -1,7 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Button } from "@verzel/ui/components/button";
 
-import RoleGate from "../molecules/role-gate";
 import UserMenu from "../molecules/user-menu";
 import SearchCommand from "./search-command";
 
@@ -14,18 +12,6 @@ export default function Header() {
 				</Link>
 				<SearchCommand />
 				<div className="flex items-center gap-2">
-					{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
-					<RoleGate role="portaria">
-						<Link to="/portaria">
-							<Button variant="ghost">Portaria</Button>
-						</Link>
-					</RoleGate>
-					{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
-					<RoleGate role="organizador">
-						<Link to="/organizer/gatekeepers/new">
-							<Button variant="ghost">Cadastrar porteiro</Button>
-						</Link>
-					</RoleGate>
 					<UserMenu />
 				</div>
 			</div>
