@@ -22,6 +22,8 @@ import type { CinemaRoom, TmdbMovie, VerzelEvent } from "@/api/types";
 import CinemaRoomPreview from "@/components/organisms/cinema-room-preview";
 import Loader from "@/components/ui/loader";
 import { useDebouncedValue } from "@/hooks/use-debounce";
+import { authClient } from "@/lib/auth-client";
+import { formatAddress } from "@/lib/format-address";
 import { maskCurrencyBRL } from "@/lib/masks";
 import { requireRole } from "@/lib/route-guards";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
@@ -47,6 +49,16 @@ export const Route = createFileRoute("/organizer/$eventId/edit")({
 
 function draftStorageKey(eventId: string) {
 	return `organizer:edit-event-draft:${eventId}`;
+}
+
+interface SessionCinemaFields {
+	cinemaName?: string;
+	street?: string;
+	number?: string;
+	complement?: string | null;
+	neighborhood?: string;
+	city?: string;
+	state?: string;
 }
 
 function toDatetimeLocalValue(isoString: string): string {
@@ -112,6 +124,8 @@ function EditEventForm({
 }) {
 	const navigate = useNavigate();
 	const { roomId: returnedRoomId } = Route.useSearch();
+	const { data: session } = authClient.useSession();
+	const cinema = session?.user as SessionCinemaFields | undefined;
 	const [movieQuery, setMovieQuery] = useState("");
 	const [movieResults, setMovieResults] = useState<TmdbMovie[]>([]);
 	const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>({
@@ -306,6 +320,23 @@ function EditEventForm({
 							</div>
 						)}
 					</div>
+
+					{cinema?.cinemaName && (
+						<div className="flex flex-col gap-2">
+							<Label>Cinema</Label>
+							<p className="text-sm">{cinema.cinemaName}</p>
+							<span className="text-muted-foreground text-xs">
+								{formatAddress({
+									street: cinema.street ?? "",
+									number: cinema.number ?? "",
+									complement: cinema.complement,
+									neighborhood: cinema.neighborhood ?? "",
+									city: cinema.city ?? "",
+									state: cinema.state ?? "",
+								})}
+							</span>
+						</div>
+					)}
 
 					<form
 						onSubmit={(e) => {

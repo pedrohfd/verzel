@@ -244,9 +244,10 @@ function NewEventComponent() {
 					</div>
 
 					{cinema?.cinemaName && (
-						<div className="flex flex-col gap-2 border border-border p-3 text-sm">
-							<span className="font-medium">{cinema.cinemaName}</span>
-							<span className="text-muted-foreground">
+						<div className="flex flex-col gap-2">
+							<Label>Cinema</Label>
+							<p className="text-sm">{cinema.cinemaName}</p>
+							<span className="text-muted-foreground text-xs">
 								{formatAddress({
 									street: cinema.street ?? "",
 									number: cinema.number ?? "",
