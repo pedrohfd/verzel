@@ -2,7 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { sendDomainError } from "../lib/errors";
-import { registerGatekeeper } from "../lib/gatekeepers";
+import {
+	deleteGatekeeper,
+	listOrganizerGatekeepers,
+	registerGatekeeper,
+} from "../lib/gatekeepers";
 import { requireRole } from "../lib/require-role";
 
 const registerGatekeeperSchema = z.object({
@@ -12,6 +16,19 @@ const registerGatekeeperSchema = z.object({
 });
 
 export async function gatekeeperRoutes(fastify: FastifyInstance) {
+	fastify.get(
+		"/mine",
+		{ preHandler: requireRole("organizador") },
+		async (request, reply) => {
+			try {
+				const results = await listOrganizerGatekeepers(request.user?.id ?? "");
+				return { results };
+			} catch (error) {
+				sendDomainError(reply, error, "Failed to list your gatekeepers");
+			}
+		},
+	);
+
 	fastify.post(
 		"/",
 		{ preHandler: requireRole("organizador") },
@@ -26,10 +43,26 @@ export async function gatekeeperRoutes(fastify: FastifyInstance) {
 			}
 
 			try {
-				const gatekeeper = await registerGatekeeper(parsed.data);
+				const gatekeeper = await registerGatekeeper({
+					...parsed.data,
+					organizerId: request.user?.id ?? "",
+				});
 				return reply.status(201).send(gatekeeper);
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to register gatekeeper");
+			}
+		},
+	);
+
+	fastify.delete<{ Params: { id: string } }>(
+		"/:id",
+		{ preHandler: requireRole("organizador") },
+		async (request, reply) => {
+			try {
+				await deleteGatekeeper(request.params.id, request.user?.id ?? "");
+				return reply.status(204).send();
+			} catch (error) {
+				sendDomainError(reply, error, "Failed to delete gatekeeper");
 			}
 		},
 	);

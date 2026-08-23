@@ -50,6 +50,13 @@
 			"when": 1787505491944,
 			"tag": "0006_steep_firebird",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1787524853119,
+			"tag": "0007_bored_mephistopheles",
+			"breakpoints": true
 		}
 	]
 }

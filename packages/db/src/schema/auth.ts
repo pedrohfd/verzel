@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	type AnyPgColumn,
 	boolean,
 	char,
 	index,
@@ -32,6 +33,7 @@ export const user = pgTable("user", {
 	neighborhood: varchar("neighborhood", { length: 100 }),
 	city: varchar("city", { length: 100 }),
 	state: char("state", { length: 2 }),
+	createdBy: text("created_by").references((): AnyPgColumn => user.id),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
