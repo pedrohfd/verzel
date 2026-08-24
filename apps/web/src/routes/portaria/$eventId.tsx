@@ -3,7 +3,7 @@ import { Badge } from "@verzel/ui/components/badge";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { Scanner } from "@yudiel/react-qr-scanner";
 import { Ban, CheckCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -16,8 +16,6 @@ export const Route = createFileRoute("/portaria/$eventId")({
 	component: PortariaScanComponent,
 	beforeLoad: () => requireRole("portaria"),
 });
-
-const SCANNER_ELEMENT_ID = "qr-scanner";
 
 const resultLabel: Record<CheckinResult["result"], string> = {
 	valid: "Ingresso válido",
@@ -36,7 +34,7 @@ function PortariaScanComponent() {
 	const [manualCode, setManualCode] = useState("");
 	const [isChecking, setIsChecking] = useState(false);
 	const [result, setResult] = useState<CheckinResult | null>(null);
-	const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+	const [isPaused, setIsPaused] = useState(false);
 	const isCheckingRef = useRef(false);
 	const resultRef = useRef<HTMLDivElement | null>(null);
 
@@ -52,9 +50,7 @@ function PortariaScanComponent() {
 	async function handleValidate(code: string) {
 		if (!code.trim() || isCheckingRef.current) return;
 
-		try {
-			scannerRef.current?.pause();
-		} catch {}
+		setIsPaused(true);
 		setIsChecking(true);
 		const [response, error] = await tryCatch(
 			validateTicketCode(eventId, code.trim()),
@@ -72,53 +68,20 @@ function PortariaScanComponent() {
 	function handleScanNext() {
 		setResult(null);
 		setManualCode("");
-		try {
-			scannerRef.current?.resume();
-		} catch {}
+		setIsPaused(false);
 	}
-
-	useEffect(() => {
-		const scanner = new Html5QrcodeScanner(
-			SCANNER_ELEMENT_ID,
-			{
-				fps: 10,
-				qrbox: (viewfinderWidth, viewfinderHeight) => {
-					const size = Math.floor(
-						Math.min(viewfinderWidth, viewfinderHeight) * 0.7,
-					);
-					return { width: size, height: size };
-				},
-				formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-				useBarCodeDetectorIfSupported: false,
-			},
-			false,
-		);
-		scannerRef.current = scanner;
-
-		scanner.render(
-			(decodedText) => handleValidate(decodedText),
-			(errorMessage) => {
-				if (
-					errorMessage.includes(
-						"No MultiFormat Readers were able to detect the code",
-					)
-				)
-					return;
-				console.error("[qr-scanner]", errorMessage);
-			},
-		);
-
-		return () => {
-			scanner.clear().catch(() => {});
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [eventId]);
 
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
 			<h1 className="mb-6 font-bold text-2xl">Validar ingresso</h1>
 
-			<div id={SCANNER_ELEMENT_ID} className="mb-6" />
+			<Scanner
+				onScan={(codes) => handleValidate(codes[0]?.rawValue ?? "")}
+				onError={(error) => console.error("[qr-scanner]", error.message)}
+				formats={["qr_code"]}
+				paused={isPaused}
+				classNames={{ container: "mb-6" }}
+			/>
 
 			<div className="mb-6 flex flex-col gap-2">
 				<Label htmlFor="manual-code">Ou digite o código manualmente</Label>
