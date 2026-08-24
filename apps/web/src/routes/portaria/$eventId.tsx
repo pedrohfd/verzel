@@ -89,6 +89,7 @@ function PortariaScanComponent() {
 					return { width: size, height: size };
 				},
 				formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+				useBarCodeDetectorIfSupported: false,
 			},
 			false,
 		);
