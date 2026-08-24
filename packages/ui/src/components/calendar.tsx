@@ -41,7 +41,7 @@ function Calendar({
 				day: "size-8 p-0 text-center text-sm",
 				day_button: cn(
 					buttonVariants({ variant: "ghost" }),
-					"size-8 rounded-none p-0 font-normal aria-selected:opacity-100",
+					"size-8 rounded-sm p-0 font-normal aria-selected:opacity-100",
 				),
 				outside: "text-muted-foreground opacity-50",
 				disabled: "text-muted-foreground opacity-50",
@@ -75,7 +75,7 @@ function CalendarDayButton({
 			data-selected={modifiers.selected}
 			className={cn(
 				buttonVariants({ variant: "ghost" }),
-				"size-8 rounded-none p-0 font-normal aria-selected:opacity-100",
+				"size-8 rounded-sm p-0 font-normal aria-selected:opacity-100",
 				modifiers.selected &&
 					"bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
 				modifiers.today &&

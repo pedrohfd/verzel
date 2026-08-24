@@ -45,7 +45,7 @@ function DialogContent({
 				<DialogPrimitive.Popup
 					data-slot="dialog-content"
 					className={cn(
-						"data-open:fade-in-0 data-open:zoom-in-95 data-closed:fade-out-0 data-closed:zoom-out-95 relative grid w-full max-w-lg gap-4 rounded-none border border-border bg-background p-6 shadow-lg outline-none data-closed:animate-out data-open:animate-in",
+						"data-open:fade-in-0 data-open:zoom-in-95 data-closed:fade-out-0 data-closed:zoom-out-95 relative grid w-full max-w-lg gap-4 rounded-lg border border-border bg-background p-6 shadow-lg outline-none data-closed:animate-out data-open:animate-in",
 						className,
 					)}
 					{...props}
@@ -54,7 +54,7 @@ function DialogContent({
 					{showCloseButton && (
 						<DialogPrimitive.Close
 							data-slot="dialog-close"
-							className="absolute top-4 right-4 rounded-none opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none"
+							className="absolute top-4 right-4 rounded-md opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none"
 						>
 							<XIcon className="size-4" />
 							<span className="sr-only">Fechar</span>

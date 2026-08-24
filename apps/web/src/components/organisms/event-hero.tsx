@@ -187,7 +187,7 @@ export default function EventHero({ events }: { events: VerzelEvent[] }) {
 				<DialogContent className="max-w-3xl p-0" showCloseButton={false}>
 					<div className="flex items-center justify-between border-border border-b p-4">
 						<DialogTitle>{event.movieTitle}</DialogTitle>
-						<DialogClose className="cursor-pointer rounded-none opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none">
+						<DialogClose className="cursor-pointer rounded-md opacity-70 outline-none transition-opacity hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none">
 							<XIcon className="size-4" />
 							<span className="sr-only">Fechar</span>
 						</DialogClose>
