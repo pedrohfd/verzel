@@ -6,7 +6,10 @@ import { getPublishedEvents } from "@/api/requests/events/get-published-events";
 import EventCard from "@/components/molecules/event-card";
 import EventHero from "@/components/organisms/event-hero";
 import { authClient } from "@/lib/auth-client";
-import { dedupeEventsByMovie } from "@/lib/dedupe-events-by-movie";
+import {
+	countSessionsByMovie,
+	dedupeEventsByMovie,
+} from "@/lib/dedupe-events-by-movie";
 import type { Role } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 import { useEventsStore } from "@/stores/events-store";
@@ -17,8 +20,10 @@ export const Route = createFileRoute("/")({
 
 function HomeComponent() {
 	const events = useEventsStore((state) => state.events);
+	const sessionCounts = useEventsStore((state) => state.sessionCounts);
 	const error = useEventsStore((state) => state.error);
 	const setEvents = useEventsStore((state) => state.setEvents);
+	const setSessionCounts = useEventsStore((state) => state.setSessionCounts);
 	const setError = useEventsStore((state) => state.setError);
 	const { data: session } = authClient.useSession();
 	const role = (session?.user as { role?: Role } | undefined)?.role;
@@ -35,6 +40,7 @@ function HomeComponent() {
 		}
 
 		setEvents(dedupeEventsByMovie(response));
+		setSessionCounts(countSessionsByMovie(response));
 	};
 
 	useEffect(() => {
@@ -74,7 +80,11 @@ function HomeComponent() {
 						<h2 className="mb-4 font-semibold text-xl">Sessões em cartaz</h2>
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
 							{events.slice(4).map((event) => (
-								<EventCard key={event.id} event={event} />
+								<EventCard
+									key={event.id}
+									event={event}
+									sessionCount={sessionCounts?.[event.tmdbMovieId]}
+								/>
 							))}
 						</div>
 					</section>

@@ -8,3 +8,11 @@ export function dedupeEventsByMovie(events: VerzelEvent[]) {
 		return true;
 	});
 }
+
+export function countSessionsByMovie(events: VerzelEvent[]) {
+	const counts: Record<number, number> = {};
+	for (const event of events) {
+		counts[event.tmdbMovieId] = (counts[event.tmdbMovieId] ?? 0) + 1;
+	}
+	return counts;
+}
