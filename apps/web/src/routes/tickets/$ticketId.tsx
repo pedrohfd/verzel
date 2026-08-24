@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Badge } from "@verzel/ui/components/badge";
+import { Button } from "@verzel/ui/components/button";
+import { Copy } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { getTicket } from "@/api/requests/tickets/get-ticket";
 import type { TicketDetail } from "@/api/types";
@@ -52,6 +55,17 @@ function TicketDetailComponent() {
 	const shareUrl = `${window.location.origin}/share/${ticket.shareToken}`;
 	const isUsed = ticket.checkedInAt !== null;
 
+	const handleCopyShareLink = async () => {
+		const [, copyError] = await tryCatch(
+			navigator.clipboard.writeText(shareUrl),
+		);
+		if (copyError) {
+			toast.error("Não foi possível copiar o link.");
+			return;
+		}
+		toast.success("Link copiado.");
+	};
+
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
 			<div className="mb-6 flex items-start gap-4">
@@ -93,7 +107,18 @@ function TicketDetailComponent() {
 
 			<div className="mt-6 flex flex-col gap-2">
 				<p className="font-medium text-sm">Link de compartilhamento</p>
-				<p className="break-all text-muted-foreground text-xs">{shareUrl}</p>
+				<div className="flex items-center gap-2">
+					<p className="break-all text-muted-foreground text-xs">{shareUrl}</p>
+					<Button
+						variant="outline"
+						size="icon-sm"
+						className="shrink-0"
+						onClick={handleCopyShareLink}
+						aria-label="Copiar link de compartilhamento"
+					>
+						<Copy />
+					</Button>
+				</div>
 			</div>
 		</div>
 	);
