@@ -41,7 +41,7 @@ export default function TimeSelect({
 						hour: "2-digit",
 						minute: "2-digit",
 					})}
-					{roomName ? ` · Sala ${roomName}` : ""}
+					{roomName ? ` · ${roomName}` : ""}
 				</ToggleGroupItem>
 			))}
 		</ToggleGroup>
