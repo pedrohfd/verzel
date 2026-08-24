@@ -57,6 +57,22 @@ export interface VerzelEvent {
 	updatedAt: string;
 }
 
+export interface MyProfile {
+	id: string;
+	name: string;
+	email: string;
+	role: "cliente" | "organizador" | "portaria";
+	cinemaName: string | null;
+	cnpj: string | null;
+	zipCode: string | null;
+	street: string | null;
+	number: string | null;
+	complement: string | null;
+	neighborhood: string | null;
+	city: string | null;
+	state: string | null;
+}
+
 export interface Gatekeeper {
 	id: string;
 	name: string;
