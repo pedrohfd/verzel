@@ -7,6 +7,7 @@ import {
 	NotFoundError,
 	RoomScheduleConflictError,
 } from "./errors";
+import { matchesMovieSearch } from "./search-movie-title";
 import { seatLabel } from "./seat-label";
 
 export interface CreateEventInput {
@@ -144,9 +145,7 @@ export function listPublishedEvents(filters: ListPublishedEventsFilters = {}) {
 		})
 		.then((events) =>
 			search
-				? events.filter((event) =>
-						event.movieTitle.toLowerCase().includes(search.toLowerCase()),
-					)
+				? events.filter((event) => matchesMovieSearch(event.movieTitle, search))
 				: events,
 		)
 		.then((events) =>

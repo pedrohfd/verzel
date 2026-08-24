@@ -239,6 +239,22 @@ describe("listPublishedEvents", () => {
 		);
 	});
 
+	it("filters events by movie title ignoring accents and word order", async () => {
+		queryMock.events.findMany.mockResolvedValue([
+			{
+				...baseEvent,
+				movieTitle: "The Matrix Reloaded",
+				room: { name: "2" },
+			},
+		]);
+
+		await expect(
+			listPublishedEvents({ search: "reloaded matrix" }),
+		).resolves.toEqual([
+			{ ...baseEvent, movieTitle: "The Matrix Reloaded", roomName: "2" },
+		]);
+	});
+
 	it("filters events by tmdbMovieId", async () => {
 		queryMock.events.findMany.mockResolvedValue([
 			{ ...baseEvent, room: { name: "2" } },
