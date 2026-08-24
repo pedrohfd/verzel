@@ -148,6 +148,8 @@ export interface SharedTicket {
 	venueName: string;
 	venueAddress: string;
 	seatLabel: string;
+	checkedInAt: string | null;
+	code: string;
 }
 
 export type CheckinResult =

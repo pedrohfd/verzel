@@ -46,6 +46,12 @@ export async function getTicketByShareToken(shareToken: string) {
 	});
 	if (!ticket) throw new NotFoundError("Ticket");
 
+	const { code } = signTicket({
+		ticketId: ticket.id,
+		eventId: ticket.eventId,
+		issuedAt: ticket.issuedAt.getTime(),
+	});
+
 	return {
 		movieTitle: ticket.event.movieTitle,
 		moviePosterPath: ticket.event.moviePosterPath,
@@ -53,5 +59,7 @@ export async function getTicketByShareToken(shareToken: string) {
 		venueName: ticket.event.venueName,
 		venueAddress: ticket.event.venueAddress,
 		seatLabel: ticket.seat.label,
+		checkedInAt: ticket.checkedInAt,
+		code,
 	};
 }

@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Badge } from "@verzel/ui/components/badge";
+import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 
 import { getSharedTicket } from "@/api/requests/tickets/get-shared-ticket";
@@ -44,6 +46,7 @@ function SharedTicketComponent() {
 	if (!ticket) return <Loader />;
 
 	const sessionDate = new Date(ticket.sessionAt);
+	const isUsed = ticket.checkedInAt !== null;
 
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
@@ -67,13 +70,18 @@ function SharedTicketComponent() {
 					<p className="text-muted-foreground text-sm">{ticket.venueName}</p>
 					<p className="text-muted-foreground text-sm">{ticket.venueAddress}</p>
 					<p className="font-medium text-sm">Assento {ticket.seatLabel}</p>
+					<Badge variant={isUsed ? "secondary" : "default"} className="w-fit">
+						{isUsed ? "Utilizado" : "Válido"}
+					</Badge>
 				</div>
 			</div>
 
-			<p className="mt-6 text-muted-foreground text-xs">
-				Este é um link de compartilhamento — o código de entrada (QR) só fica
-				disponível para o dono do ingresso em "Meus Ingressos".
-			</p>
+			<div className="mt-6 flex flex-col items-center gap-4 border border-border p-6">
+				<QRCodeSVG value={ticket.code} size={320} marginSize={4} />
+				<p className="break-all text-center text-muted-foreground text-xs">
+					{ticket.code}
+				</p>
+			</div>
 		</div>
 	);
 }
