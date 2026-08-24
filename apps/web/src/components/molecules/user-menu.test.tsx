@@ -98,6 +98,36 @@ describe("UserMenu", () => {
 		expect(navigateMock).toHaveBeenCalledWith({ to: "/" });
 	});
 
+	it("shows the account link for the cliente role", () => {
+		useSessionMock.mockReturnValue({
+			isPending: false,
+			data: {
+				user: { name: "Alice", email: "alice@example.com", role: "cliente" },
+			},
+		});
+
+		render(<UserMenu />);
+
+		expect(screen.getByText("Minha Conta")).toBeInTheDocument();
+	});
+
+	it("shows the account link for the organizador role", () => {
+		useSessionMock.mockReturnValue({
+			isPending: false,
+			data: {
+				user: {
+					name: "Alice",
+					email: "alice@example.com",
+					role: "organizador",
+				},
+			},
+		});
+
+		render(<UserMenu />);
+
+		expect(screen.getByText("Minha Conta")).toBeInTheDocument();
+	});
+
 	it("shows only the sign out button for the portaria role", () => {
 		useSessionMock.mockReturnValue({
 			isPending: false,

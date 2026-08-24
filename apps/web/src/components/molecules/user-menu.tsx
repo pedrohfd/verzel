@@ -5,21 +5,18 @@ import {
 	DropdownMenuContent,
 	DropdownMenuGroup,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@verzel/ui/components/dropdown-menu";
 import { Skeleton } from "@verzel/ui/components/skeleton";
 
 import { authClient } from "@/lib/auth-client";
-import type { Role } from "@/lib/route-guards";
 
 import RoleGate from "./role-gate";
 
 export default function UserMenu() {
 	const navigate = useNavigate();
 	const { data: session, isPending } = authClient.useSession();
-	const role = (session?.user as { role?: Role } | undefined)?.role;
 
 	if (isPending) {
 		return <Skeleton className="h-9 w-24" />;
@@ -46,13 +43,22 @@ export default function UserMenu() {
 				Olá, {session.user.name}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="bg-card">
-				{role !== "portaria" && (
+				{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
+				<RoleGate role="cliente">
 					<DropdownMenuGroup>
-						<DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+						<DropdownMenuItem render={<Link to="/account" />}>
+							Minha Conta
+						</DropdownMenuItem>
 					</DropdownMenuGroup>
-				)}
+				</RoleGate>
+				{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
+				<RoleGate role="organizador">
+					<DropdownMenuGroup>
+						<DropdownMenuItem render={<Link to="/account" />}>
+							Minha Conta
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+				</RoleGate>
 				{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}
 				<RoleGate role="cliente">
 					<DropdownMenuGroup>
