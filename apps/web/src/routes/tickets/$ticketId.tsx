@@ -85,7 +85,7 @@ function TicketDetailComponent() {
 			</div>
 
 			<div className="flex flex-col items-center gap-4 border border-border p-6">
-				<QRCodeSVG value={ticket.code} size={320} />
+				<QRCodeSVG value={ticket.code} size={320} marginSize={4} />
 				<p className="break-all text-center text-muted-foreground text-xs">
 					{ticket.code}
 				</p>
