@@ -1,6 +1,6 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, eq, gte } from "drizzle-orm";
+import { and, asc, eq, gte } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { validateTicket } from "../lib/checkin";
@@ -23,6 +23,7 @@ export async function checkinRoutes(fastify: FastifyInstance) {
 							new Date(Date.now() - 24 * 60 * 60_000),
 						),
 					),
+					orderBy: asc(schema.events.sessionAt),
 				});
 				return { results };
 			} catch (error) {

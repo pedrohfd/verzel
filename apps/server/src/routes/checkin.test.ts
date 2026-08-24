@@ -42,6 +42,18 @@ describe("GET /events", () => {
 
 		expect(res.json()).toEqual({ results: [{ id: "event-1" }] });
 	});
+
+	it("orders events by session time", async () => {
+		authAsStaff();
+		findManyMock.mockResolvedValue([]);
+		const app = buildTestApp();
+
+		await app.inject({ method: "GET", url: "/api/checkin/events" });
+
+		expect(findManyMock).toHaveBeenCalledWith(
+			expect.objectContaining({ orderBy: expect.anything() }),
+		);
+	});
 });
 
 describe("POST /:eventId/validate", () => {
