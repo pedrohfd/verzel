@@ -53,7 +53,7 @@ function PortariaScanComponent() {
 		if (!code.trim() || isCheckingRef.current) return;
 
 		try {
-			scannerRef.current?.pause(true);
+			scannerRef.current?.pause();
 		} catch {}
 		setIsChecking(true);
 		const [response, error] = await tryCatch(
