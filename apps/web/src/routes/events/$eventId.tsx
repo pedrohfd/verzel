@@ -293,7 +293,6 @@ function EventDetailComponent() {
 					</div>
 
 					<div className="lg:sticky lg:top-6">
-						<h2 className="mb-4 font-semibold text-lg">Escolha seu assento</h2>
 						<SeatMap
 							seats={seats}
 							selectedSeats={selectedSeats}
