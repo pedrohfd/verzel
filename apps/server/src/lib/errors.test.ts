@@ -2,12 +2,15 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
 	DomainError,
+	EventAlreadyStartedError,
 	ForbiddenError,
 	HoldExpiredError,
 	NotFoundError,
 	ReservationNotHoldingError,
 	SeatAlreadyReservedError,
 	sendDomainError,
+	TicketAlreadyCancelledError,
+	TicketAlreadyCheckedInError,
 } from "./errors";
 
 function createMockReply() {
@@ -91,5 +94,23 @@ describe("domain error subclasses", () => {
 
 	it("all domain errors are instances of DomainError", () => {
 		expect(new NotFoundError("x")).toBeInstanceOf(DomainError);
+	});
+
+	it("TicketAlreadyCancelledError has status 409 and its code", () => {
+		const error = new TicketAlreadyCancelledError();
+		expect(error.status).toBe(409);
+		expect(error.code).toBe("TICKET_ALREADY_CANCELLED");
+	});
+
+	it("TicketAlreadyCheckedInError has status 409 and its code", () => {
+		const error = new TicketAlreadyCheckedInError();
+		expect(error.status).toBe(409);
+		expect(error.code).toBe("TICKET_ALREADY_CHECKED_IN");
+	});
+
+	it("EventAlreadyStartedError has status 409 and its code", () => {
+		const error = new EventAlreadyStartedError();
+		expect(error.status).toBe(409);
+		expect(error.code).toBe("EVENT_ALREADY_STARTED");
 	});
 });

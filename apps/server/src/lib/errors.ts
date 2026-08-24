@@ -93,6 +93,32 @@ export class RoomScheduleConflictError extends DomainError {
 	}
 }
 
+export class TicketAlreadyCancelledError extends DomainError {
+	constructor() {
+		super("Ticket has already been cancelled", 409, "TICKET_ALREADY_CANCELLED");
+	}
+}
+
+export class TicketAlreadyCheckedInError extends DomainError {
+	constructor() {
+		super(
+			"Checked-in tickets cannot be cancelled",
+			409,
+			"TICKET_ALREADY_CHECKED_IN",
+		);
+	}
+}
+
+export class EventAlreadyStartedError extends DomainError {
+	constructor() {
+		super(
+			"Tickets cannot be cancelled after the session has started",
+			409,
+			"EVENT_ALREADY_STARTED",
+		);
+	}
+}
+
 export function sendDomainError(
 	reply: import("fastify").FastifyReply,
 	error: unknown,

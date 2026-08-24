@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { TicketAlreadyCheckedInError } from "../lib/errors";
+
 const {
 	listMyTicketsMock,
 	getTicketByShareTokenMock,
 	getOwnedTicketMock,
+	cancelTicketMock,
 	requireRoleMock,
 } = vi.hoisted(() => ({
 	listMyTicketsMock: vi.fn(),
 	getTicketByShareTokenMock: vi.fn(),
 	getOwnedTicketMock: vi.fn(),
+	cancelTicketMock: vi.fn(),
 	requireRoleMock: vi.fn(),
 }));
 
@@ -16,6 +20,7 @@ vi.mock("../lib/tickets", () => ({
 	listMyTickets: listMyTicketsMock,
 	getTicketByShareToken: getTicketByShareTokenMock,
 	getOwnedTicket: getOwnedTicketMock,
+	cancelTicket: cancelTicketMock,
 }));
 
 vi.mock("../lib/require-role", () => ({ requireRole: requireRoleMock }));
@@ -34,6 +39,7 @@ beforeEach(() => {
 	listMyTicketsMock.mockReset();
 	getTicketByShareTokenMock.mockReset();
 	getOwnedTicketMock.mockReset();
+	cancelTicketMock.mockReset();
 	requireRoleMock.mockReset();
 });
 
@@ -75,5 +81,38 @@ describe("GET /:ticketId", () => {
 		});
 
 		expect(res.json()).toEqual({ id: "ticket-1" });
+	});
+});
+
+describe("POST /:ticketId/cancel", () => {
+	it("cancels the ticket and returns 204", async () => {
+		authAsCustomer();
+		cancelTicketMock.mockResolvedValue({ id: "ticket-1" });
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/tickets/ticket-1/cancel",
+		});
+
+		expect(res.statusCode).toBe(204);
+		expect(cancelTicketMock).toHaveBeenCalledWith("ticket-1", "customer-1");
+	});
+
+	it("maps a domain error to its status and code", async () => {
+		authAsCustomer();
+		cancelTicketMock.mockRejectedValue(new TicketAlreadyCheckedInError());
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/tickets/ticket-1/cancel",
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toEqual({
+			error: "Checked-in tickets cannot be cancelled",
+			code: "TICKET_ALREADY_CHECKED_IN",
+		});
 	});
 });

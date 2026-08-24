@@ -23,6 +23,7 @@ export const tickets = pgTable("ticket", {
 	issuedAt: timestamp("issued_at").notNull(),
 	checkedInAt: timestamp("checked_in_at"),
 	checkedInByUserId: text("checked_in_by_user_id").references(() => user.id),
+	cancelledAt: timestamp("cancelled_at"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

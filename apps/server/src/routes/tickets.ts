@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { sendDomainError } from "../lib/errors";
 import { requireRole } from "../lib/require-role";
 import {
+	cancelTicket,
 	getOwnedTicket,
 	getTicketByShareToken,
 	listMyTickets,
@@ -44,6 +45,19 @@ export async function ticketRoutes(fastify: FastifyInstance) {
 				);
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to fetch ticket");
+			}
+		},
+	);
+
+	fastify.post<{ Params: { ticketId: string } }>(
+		"/:ticketId/cancel",
+		{ preHandler: requireRole("cliente") },
+		async (request, reply) => {
+			try {
+				await cancelTicket(request.params.ticketId, request.user?.id ?? "");
+				return reply.status(204).send();
+			} catch (error) {
+				sendDomainError(reply, error, "Failed to cancel ticket");
 			}
 		},
 	);

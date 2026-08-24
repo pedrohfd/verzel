@@ -57,6 +57,33 @@ describe("validateTicket", () => {
 		});
 	});
 
+	it("returns cancelled when the ticket has been cancelled", async () => {
+		const { code } = signTicket({
+			ticketId: "ticket-1",
+			eventId: "event-1",
+			issuedAt: 1000,
+		});
+		const cancelledAt = new Date(1_700_000_000_000);
+		transactionMock.mockImplementation(async (cb) =>
+			cb({
+				select: () =>
+					mockQueryChain([
+						{
+							id: "ticket-1",
+							eventId: "event-1",
+							cancelledAt,
+							checkedInAt: null,
+						},
+					]),
+			}),
+		);
+
+		await expect(validateTicket("event-1", code, "staff-1")).resolves.toEqual({
+			result: "cancelled",
+			cancelledAt: cancelledAt.toISOString(),
+		});
+	});
+
 	it("returns already_used when the ticket was already checked in", async () => {
 		const { code } = signTicket({
 			ticketId: "ticket-1",

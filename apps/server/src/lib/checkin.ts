@@ -13,7 +13,8 @@ export type CheckinResult =
 	  }
 	| { result: "invalid" }
 	| { result: "already_used"; checkedInAt: string; checkedInBy: string | null }
-	| { result: "wrong_event"; ticketEventId: string };
+	| { result: "wrong_event"; ticketEventId: string }
+	| { result: "cancelled"; cancelledAt: string };
 
 export async function validateTicket(
 	eventId: string,
@@ -33,6 +34,13 @@ export async function validateTicket(
 		if (!ticket) return { result: "invalid" };
 		if (ticket.eventId !== eventId || parsed.eventId !== eventId) {
 			return { result: "wrong_event", ticketEventId: ticket.eventId };
+		}
+
+		if (ticket.cancelledAt) {
+			return {
+				result: "cancelled",
+				cancelledAt: ticket.cancelledAt.toISOString(),
+			};
 		}
 
 		if (ticket.checkedInAt) {

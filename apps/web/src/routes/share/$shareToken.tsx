@@ -13,6 +13,19 @@ export const Route = createFileRoute("/share/$shareToken")({
 	component: SharedTicketComponent,
 });
 
+function ticketStatusBadge(ticket: {
+	checkedInAt: string | null;
+	cancelledAt: string | null;
+}) {
+	if (ticket.cancelledAt) {
+		return { variant: "destructive" as const, label: "Cancelado" };
+	}
+	if (ticket.checkedInAt) {
+		return { variant: "secondary" as const, label: "Utilizado" };
+	}
+	return { variant: "default" as const, label: "Válido" };
+}
+
 function SharedTicketComponent() {
 	const { shareToken } = Route.useParams();
 	const [ticket, setTicket] = useState<SharedTicket | null>(null);
@@ -46,7 +59,7 @@ function SharedTicketComponent() {
 	if (!ticket) return <Loader />;
 
 	const sessionDate = new Date(ticket.sessionAt);
-	const isUsed = ticket.checkedInAt !== null;
+	const statusBadge = ticketStatusBadge(ticket);
 
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
@@ -70,8 +83,8 @@ function SharedTicketComponent() {
 					<p className="text-muted-foreground text-sm">{ticket.venueName}</p>
 					<p className="text-muted-foreground text-sm">{ticket.venueAddress}</p>
 					<p className="font-medium text-sm">Assento {ticket.seatLabel}</p>
-					<Badge variant={isUsed ? "secondary" : "default"} className="w-fit">
-						{isUsed ? "Utilizado" : "Válido"}
+					<Badge variant={statusBadge.variant} className="w-fit">
+						{statusBadge.label}
 					</Badge>
 				</div>
 			</div>

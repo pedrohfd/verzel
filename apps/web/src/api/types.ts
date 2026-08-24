@@ -121,6 +121,7 @@ export interface Ticket {
 	issuedAt: string;
 	checkedInAt: string | null;
 	checkedInByUserId: string | null;
+	cancelledAt: string | null;
 	createdAt: string;
 }
 
@@ -149,6 +150,7 @@ export interface SharedTicket {
 	venueAddress: string;
 	seatLabel: string;
 	checkedInAt: string | null;
+	cancelledAt: string | null;
 	code: string;
 }
 
@@ -161,4 +163,5 @@ export type CheckinResult =
 	  }
 	| { result: "invalid" }
 	| { result: "already_used"; checkedInAt: string; checkedInBy: string | null }
-	| { result: "wrong_event"; ticketEventId: string };
+	| { result: "wrong_event"; ticketEventId: string }
+	| { result: "cancelled"; cancelledAt: string };

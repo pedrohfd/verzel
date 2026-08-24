@@ -24,6 +24,7 @@ const resultLabel: Record<CheckinResult["result"], string> = {
 	invalid: "Código inválido",
 	already_used: "Ingresso já utilizado",
 	wrong_event: "Ingresso de outra sessão",
+	cancelled: "Ingresso cancelado",
 };
 
 function resultBadgeVariant(result: CheckinResult["result"]) {
@@ -162,6 +163,10 @@ function PortariaScanComponent() {
 						<Ban className="size-12 animate-shake text-amber-600 dark:text-amber-500" />
 					)}
 
+					{result.result === "cancelled" && (
+						<Ban className="size-12 text-destructive" />
+					)}
+
 					<Badge variant={resultBadgeVariant(result.result)} className="w-fit">
 						{resultLabel[result.result]}
 					</Badge>
@@ -184,6 +189,13 @@ function PortariaScanComponent() {
 					{result.result === "wrong_event" && (
 						<p className="text-muted-foreground text-sm">
 							Este ingresso pertence a outra sessão.
+						</p>
+					)}
+
+					{result.result === "cancelled" && (
+						<p className="text-muted-foreground text-sm">
+							Cancelado em{" "}
+							{new Date(result.cancelledAt).toLocaleString("pt-BR")}
 						</p>
 					)}
 

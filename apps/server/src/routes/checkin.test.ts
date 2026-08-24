@@ -88,4 +88,24 @@ describe("POST /:eventId/validate", () => {
 			"staff-1",
 		);
 	});
+
+	it("returns a cancelled result for a cancelled ticket", async () => {
+		authAsStaff("staff-1");
+		validateTicketMock.mockResolvedValue({
+			result: "cancelled",
+			cancelledAt: "2026-01-01T00:00:00.000Z",
+		});
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/checkin/event-1/validate",
+			payload: { code: "some-code" },
+		});
+
+		expect(res.json()).toEqual({
+			result: "cancelled",
+			cancelledAt: "2026-01-01T00:00:00.000Z",
+		});
+	});
 });
