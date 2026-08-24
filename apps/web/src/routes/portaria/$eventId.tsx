@@ -3,7 +3,7 @@ import { Badge } from "@verzel/ui/components/badge";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Ban, CheckCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -36,8 +36,9 @@ function PortariaScanComponent() {
 	const [manualCode, setManualCode] = useState("");
 	const [isChecking, setIsChecking] = useState(false);
 	const [result, setResult] = useState<CheckinResult | null>(null);
-	const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+	const [cameraError, setCameraError] = useState(false);
 	const isCheckingRef = useRef(false);
+	const hasResultRef = useRef(false);
 	const resultRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
@@ -45,16 +46,15 @@ function PortariaScanComponent() {
 	}, [isChecking]);
 
 	useEffect(() => {
+		hasResultRef.current = result !== null;
 		if (result)
 			resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 	}, [result]);
 
-	async function handleValidate(code: string) {
+	async function handleValidate(code: string, fromCamera = false) {
 		if (!code.trim() || isCheckingRef.current) return;
+		if (fromCamera && hasResultRef.current) return;
 
-		try {
-			scannerRef.current?.pause();
-		} catch {}
 		setIsChecking(true);
 		const [response, error] = await tryCatch(
 			validateTicketCode(eventId, code.trim()),
@@ -72,44 +72,48 @@ function PortariaScanComponent() {
 	function handleScanNext() {
 		setResult(null);
 		setManualCode("");
-		try {
-			scannerRef.current?.resume();
-		} catch {}
 	}
 
 	useEffect(() => {
-		const scanner = new Html5QrcodeScanner(
-			SCANNER_ELEMENT_ID,
-			{
-				fps: 10,
-				qrbox: (viewfinderWidth, viewfinderHeight) => {
-					const size = Math.floor(
-						Math.min(viewfinderWidth, viewfinderHeight) * 0.7,
-					);
-					return { width: size, height: size };
-				},
-				formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-				useBarCodeDetectorIfSupported: false,
-			},
-			false,
-		);
-		scannerRef.current = scanner;
+		const html5Qrcode = new Html5Qrcode(SCANNER_ELEMENT_ID, {
+			formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+			useBarCodeDetectorIfSupported: false,
+			verbose: false,
+		});
 
-		scanner.render(
-			(decodedText) => handleValidate(decodedText),
-			(errorMessage) => {
-				if (
-					errorMessage.includes(
-						"No MultiFormat Readers were able to detect the code",
+		html5Qrcode
+			.start(
+				{ facingMode: "user" },
+				{
+					fps: 10,
+					qrbox: (viewfinderWidth, viewfinderHeight) => {
+						const size = Math.floor(
+							Math.min(viewfinderWidth, viewfinderHeight) * 0.9,
+						);
+						return { width: size, height: size };
+					},
+				},
+				(decodedText) => handleValidate(decodedText, true),
+				(errorMessage) => {
+					if (
+						errorMessage.includes(
+							"No MultiFormat Readers were able to detect the code",
+						)
 					)
-				)
-					return;
-				console.error("[qr-scanner]", errorMessage);
-			},
-		);
+						return;
+					console.error("[qr-scanner]", errorMessage);
+				},
+			)
+			.catch((err) => {
+				console.error("[qr-scanner] failed to start", err);
+				setCameraError(true);
+			});
 
 		return () => {
-			scanner.clear().catch(() => {});
+			html5Qrcode
+				.stop()
+				.then(() => html5Qrcode.clear())
+				.catch(() => {});
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [eventId]);
@@ -117,6 +121,13 @@ function PortariaScanComponent() {
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
 			<h1 className="mb-6 font-bold text-2xl">Validar ingresso</h1>
+
+			{cameraError && (
+				<p className="mb-4 text-destructive text-sm">
+					Não foi possível acessar a câmera. Verifique as permissões ou use o
+					código manual abaixo.
+				</p>
+			)}
 
 			<div id={SCANNER_ELEMENT_ID} className="mb-6" />
 
