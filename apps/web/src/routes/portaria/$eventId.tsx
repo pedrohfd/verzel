@@ -81,13 +81,16 @@ function PortariaScanComponent() {
 		const scanner = new Html5QrcodeScanner(
 			SCANNER_ELEMENT_ID,
 			{ fps: 10, qrbox: 250 },
-			false,
+			true,
 		);
 		scannerRef.current = scanner;
 
 		scanner.render(
 			(decodedText) => handleValidate(decodedText),
-			() => {},
+			(errorMessage) => {
+				if (errorMessage.includes("NotFoundException")) return;
+				console.error("[qr-scanner]", errorMessage);
+			},
 		);
 
 		return () => {
