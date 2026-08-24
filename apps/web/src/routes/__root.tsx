@@ -8,12 +8,14 @@ import { Toaster } from "@verzel/ui/components/sonner";
 
 import Header from "@/components/organisms/header";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import { restrictPortariaAccess } from "@/lib/route-guards";
 
 import "../index.css";
 
 export type RouterAppContext = Record<string, never>;
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
+	beforeLoad: ({ location }) => restrictPortariaAccess(location.pathname),
 	component: RootComponent,
 	head: () => ({
 		meta: [

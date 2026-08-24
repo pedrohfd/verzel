@@ -12,7 +12,8 @@ vi.mock("@tanstack/react-router", () => ({
 	},
 }));
 
-const { requireRole, redirectIfAuthenticated } = await import("./route-guards");
+const { requireRole, redirectIfAuthenticated, restrictPortariaAccess } =
+	await import("./route-guards");
 
 beforeEach(() => {
 	getSessionMock.mockReset();
@@ -62,6 +63,64 @@ describe("redirectIfAuthenticated", () => {
 		await expect(redirectIfAuthenticated()).rejects.toMatchObject({
 			isRedirect: true,
 			options: { to: "/" },
+		});
+	});
+});
+
+describe("restrictPortariaAccess", () => {
+	it("does not redirect when there is no session", async () => {
+		getSessionMock.mockResolvedValue({ data: null });
+
+		await expect(restrictPortariaAccess("/")).resolves.toBeUndefined();
+	});
+
+	it("does not redirect non-portaria roles", async () => {
+		getSessionMock.mockResolvedValue({
+			data: { user: { role: "cliente" } },
+		});
+
+		await expect(
+			restrictPortariaAccess("/organizer/dashboard"),
+		).resolves.toBeUndefined();
+	});
+
+	it("does not redirect portaria users already on /portaria", async () => {
+		getSessionMock.mockResolvedValue({
+			data: { user: { role: "portaria" } },
+		});
+
+		await expect(restrictPortariaAccess("/portaria")).resolves.toBeUndefined();
+	});
+
+	it("does not redirect portaria users on nested /portaria/:eventId", async () => {
+		getSessionMock.mockResolvedValue({
+			data: { user: { role: "portaria" } },
+		});
+
+		await expect(
+			restrictPortariaAccess("/portaria/abc123"),
+		).resolves.toBeUndefined();
+	});
+
+	it("redirects portaria users away from other routes", async () => {
+		getSessionMock.mockResolvedValue({
+			data: { user: { role: "portaria" } },
+		});
+
+		await expect(restrictPortariaAccess("/")).rejects.toMatchObject({
+			isRedirect: true,
+			options: { to: "/portaria" },
+		});
+	});
+
+	it("redirects portaria users away from /login", async () => {
+		getSessionMock.mockResolvedValue({
+			data: { user: { role: "portaria" } },
+		});
+
+		await expect(restrictPortariaAccess("/login")).rejects.toMatchObject({
+			isRedirect: true,
+			options: { to: "/portaria" },
 		});
 	});
 });

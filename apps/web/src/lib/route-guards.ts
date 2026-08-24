@@ -22,3 +22,12 @@ export async function redirectIfAuthenticated() {
 		throw redirect({ to: "/" });
 	}
 }
+
+export async function restrictPortariaAccess(pathname: string) {
+	const { data: session } = await authClient.getSession();
+	const role = (session?.user as { role?: Role } | undefined)?.role;
+
+	if (role === "portaria" && !pathname.startsWith("/portaria")) {
+		throw redirect({ to: "/portaria" });
+	}
+}

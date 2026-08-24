@@ -97,4 +97,23 @@ describe("UserMenu", () => {
 
 		expect(navigateMock).toHaveBeenCalledWith({ to: "/" });
 	});
+
+	it("shows only the sign out button for the portaria role", () => {
+		useSessionMock.mockReturnValue({
+			isPending: false,
+			data: {
+				user: {
+					name: "Porteiro",
+					email: "porteiro@example.com",
+					role: "portaria",
+				},
+			},
+		});
+
+		render(<UserMenu />);
+
+		expect(screen.queryByText("porteiro@example.com")).not.toBeInTheDocument();
+		expect(screen.queryByText("Portaria")).not.toBeInTheDocument();
+		expect(screen.getByText("Sair")).toBeInTheDocument();
+	});
 });
