@@ -80,6 +80,10 @@ describe("getTicketByShareToken", () => {
 
 	it("returns the public ticket details", async () => {
 		queryMock.tickets.findFirst.mockResolvedValue({
+			id: "ticket-1",
+			eventId: "event-1",
+			issuedAt: new Date(1_700_000_000_000),
+			checkedInAt: null,
 			event: {
 				movieTitle: "Some Movie",
 				moviePosterPath: null,
@@ -90,13 +94,17 @@ describe("getTicketByShareToken", () => {
 			seat: { label: "A1" },
 		});
 
-		await expect(getTicketByShareToken("token-1")).resolves.toEqual({
+		const result = await getTicketByShareToken("token-1");
+
+		expect(result).toEqual({
 			movieTitle: "Some Movie",
 			moviePosterPath: null,
 			sessionAt: new Date(1_700_000_000_000),
 			venueName: "Venue",
 			venueAddress: "Address",
 			seatLabel: "A1",
+			checkedInAt: null,
+			code: expect.any(String),
 		});
 	});
 });
