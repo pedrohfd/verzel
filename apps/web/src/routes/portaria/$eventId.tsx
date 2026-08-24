@@ -45,6 +45,9 @@ function PortariaScanComponent() {
 	async function handleValidate(code: string) {
 		if (!code.trim() || isCheckingRef.current) return;
 
+		try {
+			scannerRef.current?.pause(true);
+		} catch {}
 		setIsChecking(true);
 		const [response, error] = await tryCatch(
 			validateTicketCode(eventId, code.trim()),
@@ -57,6 +60,14 @@ function PortariaScanComponent() {
 		}
 
 		setResult(response);
+	}
+
+	function handleScanNext() {
+		setResult(null);
+		setManualCode("");
+		try {
+			scannerRef.current?.resume();
+		} catch {}
 	}
 
 	useEffect(() => {
@@ -128,6 +139,10 @@ function PortariaScanComponent() {
 							Este ingresso pertence a outra sessão.
 						</p>
 					)}
+
+					<Button onClick={handleScanNext} className="w-fit">
+						Escanear próximo
+					</Button>
 				</div>
 			)}
 		</div>
