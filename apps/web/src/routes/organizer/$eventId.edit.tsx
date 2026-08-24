@@ -17,7 +17,6 @@ import { z } from "zod";
 import { getEvent } from "@/api/requests/events/get-event";
 import { updateEvent } from "@/api/requests/events/update-event";
 import { getMovieDetails } from "@/api/requests/movies/get-movie-details";
-import { searchMovies } from "@/api/requests/movies/search-movies";
 import { getMyRooms } from "@/api/requests/rooms/get-my-rooms";
 import {
 	getRoomSchedule,
@@ -26,14 +25,13 @@ import {
 import type { CinemaRoom, TmdbMovie, VerzelEvent } from "@/api/types";
 import SessionTimePicker from "@/components/molecules/session-time-picker";
 import CinemaRoomPreview from "@/components/organisms/cinema-room-preview";
+import MovieSearchField from "@/components/organisms/movie-search-field";
 import Loader from "@/components/ui/loader";
-import { useDebouncedValue } from "@/hooks/use-debounce";
 import { authClient } from "@/lib/auth-client";
 import { findSlotConflict } from "@/lib/find-slot-conflict";
 import { formatAddress } from "@/lib/format-address";
 import { maskCurrencyBRL } from "@/lib/masks";
 import { requireRole } from "@/lib/route-guards";
-import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
 const DEFAULT_DURATION_MINUTES = 120;
@@ -135,8 +133,6 @@ function EditEventForm({
 	const { roomId: returnedRoomId } = Route.useSearch();
 	const { data: session } = authClient.useSession();
 	const cinema = session?.user as SessionCinemaFields | undefined;
-	const [movieQuery, setMovieQuery] = useState("");
-	const [movieResults, setMovieResults] = useState<TmdbMovie[]>([]);
 	const [selectedMovie, setSelectedMovie] = useState<TmdbMovie | null>({
 		id: event.tmdbMovieId,
 		title: event.movieTitle,
@@ -145,7 +141,6 @@ function EditEventForm({
 		release_date: "",
 		vote_average: 0,
 	});
-	const debouncedQuery = useDebouncedValue(movieQuery, 300);
 
 	const [rooms, setRooms] = useState<CinemaRoom[]>([]);
 	const [selectedRoomId, setSelectedRoomId] = useState(event.roomId ?? "");
@@ -198,23 +193,6 @@ function EditEventForm({
 		})();
 		return () => controller.abort();
 	}, [selectedMovie]);
-
-	useEffect(() => {
-		if (!debouncedQuery) {
-			setMovieResults([]);
-			return;
-		}
-
-		const controller = new AbortController();
-		(async () => {
-			const [response, searchError] = await tryCatch(
-				searchMovies(debouncedQuery, controller.signal),
-			);
-			if (!searchError) setMovieResults(response);
-		})();
-
-		return () => controller.abort();
-	}, [debouncedQuery]);
 
 	const form = useForm({
 		defaultValues: {
@@ -314,60 +292,10 @@ function EditEventForm({
 				<div className="flex flex-1 flex-col gap-6">
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="movie-search">Filme</Label>
-						{selectedMovie ? (
-							<div className="flex items-center gap-3 border border-border p-2">
-								{selectedMovie.poster_path && (
-									<img
-										src={tmdbImageUrl(selectedMovie.poster_path, "w342")}
-										alt={selectedMovie.title}
-										className="h-16 w-11 object-cover"
-									/>
-								)}
-								<span className="flex-1 text-sm">{selectedMovie.title}</span>
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									onClick={() => setSelectedMovie(null)}
-								>
-									Trocar
-								</Button>
-							</div>
-						) : (
-							<div className="relative">
-								<Input
-									id="movie-search"
-									placeholder="Buscar filme no TMDb..."
-									value={movieQuery}
-									onChange={(e) => setMovieQuery(e.target.value)}
-								/>
-								{movieResults.length > 0 && (
-									<div className="absolute top-full right-0 left-0 z-10 max-h-72 overflow-y-auto border border-border bg-background">
-										{movieResults.slice(0, 6).map((movie) => (
-											<button
-												key={movie.id}
-												type="button"
-												className="flex w-full cursor-pointer items-center gap-3 border-border border-b p-2 text-left last:border-b-0 hover:bg-muted"
-												onClick={() => {
-													setSelectedMovie(movie);
-													setMovieResults([]);
-													setMovieQuery("");
-												}}
-											>
-												{movie.poster_path && (
-													<img
-														src={tmdbImageUrl(movie.poster_path, "w342")}
-														alt={movie.title}
-														className="h-16 w-11 object-cover"
-													/>
-												)}
-												<span className="text-sm">{movie.title}</span>
-											</button>
-										))}
-									</div>
-								)}
-							</div>
-						)}
+						<MovieSearchField
+							value={selectedMovie}
+							onChange={setSelectedMovie}
+						/>
 					</div>
 
 					{cinema?.cinemaName && (
