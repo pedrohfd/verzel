@@ -98,12 +98,12 @@ describe("SessionPicker", () => {
 					{
 						id: "event-1",
 						date: new Date("2026-08-19T14:20:00"),
-						roomName: "2",
+						roomName: "Sala 2",
 					},
 					{
 						id: "event-2",
 						date: new Date("2026-08-19T21:00:00"),
-						roomName: "1",
+						roomName: "Sala 1",
 					},
 				]}
 				selectedTimeId="event-1"
