@@ -264,6 +264,16 @@ describe("listPublishedEvents", () => {
 			{ ...baseEvent, roomName: "2" },
 		]);
 	});
+
+	it("filters events by organizerId", async () => {
+		queryMock.events.findMany.mockResolvedValue([
+			{ ...baseEvent, room: { name: "2" } },
+		]);
+
+		await expect(
+			listPublishedEvents({ organizerId: "organizer-1" }),
+		).resolves.toEqual([{ ...baseEvent, roomName: "2" }]);
+	});
 });
 
 describe("listOrganizerEvents", () => {

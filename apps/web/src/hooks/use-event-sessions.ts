@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 
 import { getPublishedEvents } from "@/api/requests/events/get-published-events";
 import type { VerzelEvent } from "@/api/types";
+import { authClient } from "@/lib/auth-client";
 import { isSameDay } from "@/lib/format-session-date-label";
+import type { Role } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 
 export type SessionDateOption = { key: string; date: Date };
@@ -20,6 +22,9 @@ function sortByDate(a: VerzelEvent, b: VerzelEvent) {
 export function useEventSessions(event: VerzelEvent | null) {
 	const navigate = useNavigate();
 	const [sessions, setSessions] = useState<VerzelEvent[]>([]);
+	const { data: session } = authClient.useSession();
+	const role = (session?.user as { role?: Role } | undefined)?.role;
+	const organizerId = role === "organizador" ? session?.user.id : undefined;
 
 	useEffect(() => {
 		if (!event) return;
@@ -29,7 +34,7 @@ export function useEventSessions(event: VerzelEvent | null) {
 		(async () => {
 			const [response, error] = await tryCatch(
 				getPublishedEvents(
-					{ tmdbMovieId: event.tmdbMovieId },
+					{ tmdbMovieId: event.tmdbMovieId, organizerId },
 					controller.signal,
 				),
 			);
@@ -38,7 +43,7 @@ export function useEventSessions(event: VerzelEvent | null) {
 		})();
 
 		return () => controller.abort();
-	}, [event]);
+	}, [event, organizerId]);
 
 	function goToEvent(target: VerzelEvent) {
 		if (!event || target.id === event.id) return;

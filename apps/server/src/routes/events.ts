@@ -41,21 +41,25 @@ const createEventSchema = z.object({
 });
 
 export async function eventRoutes(fastify: FastifyInstance) {
-	fastify.get<{ Querystring: { search?: string; tmdbMovieId?: string } }>(
-		"/",
-		async (request, reply) => {
-			try {
-				const { search, tmdbMovieId } = request.query;
-				const results = await listPublishedEvents({
-					search,
-					tmdbMovieId: tmdbMovieId ? Number(tmdbMovieId) : undefined,
-				});
-				return { results };
-			} catch (error) {
-				sendDomainError(reply, error, "Failed to list events");
-			}
-		},
-	);
+	fastify.get<{
+		Querystring: {
+			search?: string;
+			tmdbMovieId?: string;
+			organizerId?: string;
+		};
+	}>("/", async (request, reply) => {
+		try {
+			const { search, tmdbMovieId, organizerId } = request.query;
+			const results = await listPublishedEvents({
+				search,
+				tmdbMovieId: tmdbMovieId ? Number(tmdbMovieId) : undefined,
+				organizerId,
+			});
+			return { results };
+		} catch (error) {
+			sendDomainError(reply, error, "Failed to list events");
+		}
+	});
 
 	fastify.get(
 		"/mine",

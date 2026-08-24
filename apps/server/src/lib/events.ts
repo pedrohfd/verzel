@@ -131,10 +131,11 @@ export async function cancelEvent(eventId: string, organizerId: string) {
 export interface ListPublishedEventsFilters {
 	search?: string;
 	tmdbMovieId?: number;
+	organizerId?: string;
 }
 
 export function listPublishedEvents(filters: ListPublishedEventsFilters = {}) {
-	const { search, tmdbMovieId } = filters;
+	const { search, tmdbMovieId, organizerId } = filters;
 
 	return db.query.events
 		.findMany({
@@ -143,6 +144,9 @@ export function listPublishedEvents(filters: ListPublishedEventsFilters = {}) {
 				gte(schema.events.sessionAt, new Date()),
 				tmdbMovieId !== undefined
 					? eq(schema.events.tmdbMovieId, tmdbMovieId)
+					: undefined,
+				organizerId !== undefined
+					? eq(schema.events.organizerId, organizerId)
 					: undefined,
 			),
 			orderBy: asc(schema.events.sessionAt),

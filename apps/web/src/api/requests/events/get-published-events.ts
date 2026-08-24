@@ -4,6 +4,7 @@ import type { VerzelEvent } from "@/api/types";
 export interface GetPublishedEventsFilters {
 	search?: string;
 	tmdbMovieId?: number;
+	organizerId?: string;
 }
 
 export async function getPublishedEvents(
