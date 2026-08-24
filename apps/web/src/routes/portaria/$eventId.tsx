@@ -38,10 +38,16 @@ function PortariaScanComponent() {
 	const [result, setResult] = useState<CheckinResult | null>(null);
 	const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 	const isCheckingRef = useRef(false);
+	const resultRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
 		isCheckingRef.current = isChecking;
 	}, [isChecking]);
+
+	useEffect(() => {
+		if (result)
+			resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+	}, [result]);
 
 	async function handleValidate(code: string) {
 		if (!code.trim() || isCheckingRef.current) return;
@@ -115,7 +121,10 @@ function PortariaScanComponent() {
 			</div>
 
 			{result && (
-				<div className="flex flex-col items-center gap-2 border border-border p-4">
+				<div
+					ref={resultRef}
+					className="flex flex-col items-center gap-2 border border-border p-4"
+				>
 					{result.result === "valid" && (
 						<CheckCircle2 className="zoom-in-50 fade-in size-12 animate-in text-green-600 duration-300 dark:text-green-500" />
 					)}
