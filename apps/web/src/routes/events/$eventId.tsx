@@ -17,6 +17,7 @@ import Loader from "@/components/ui/loader";
 import { useEventSessions } from "@/hooks/use-event-sessions";
 import { useSeatMapPolling } from "@/hooks/use-seat-map-polling";
 import { authClient } from "@/lib/auth-client";
+import type { Role } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 
 interface EventDetailSearch {
@@ -38,6 +39,8 @@ function EventDetailComponent() {
 	const { reservationIds } = Route.useSearch();
 	const navigate = useNavigate();
 	const { data: session } = authClient.useSession();
+	const role = (session?.user as { role?: Role } | undefined)?.role;
+	const isOrganizer = role === "organizador";
 
 	const [event, setEvent] = useState<VerzelEvent | null>(null);
 	const [seats, setSeats] = useState<Seat[] | null>(null);
@@ -272,19 +275,21 @@ function EventDetailComponent() {
 							selectedTimeId={eventSessions.selectedTimeId}
 							onSelectTime={eventSessions.onSelectTime}
 						/>
-						<SeatSelectionSummary
-							selectedSeats={selectedSeats}
-							priceCents={event.priceCents}
-							isReserving={isReserving}
-							onRemove={(seat) => {
-								setSelectedSeats((current) =>
-									current.filter(
-										(s) => s.row !== seat.row || s.column !== seat.column,
-									),
-								);
-							}}
-							onReserve={handleReserve}
-						/>
+						{!isOrganizer && (
+							<SeatSelectionSummary
+								selectedSeats={selectedSeats}
+								priceCents={event.priceCents}
+								isReserving={isReserving}
+								onRemove={(seat) => {
+									setSelectedSeats((current) =>
+										current.filter(
+											(s) => s.row !== seat.row || s.column !== seat.column,
+										),
+									);
+								}}
+								onReserve={handleReserve}
+							/>
+						)}
 					</div>
 
 					<div className="lg:sticky lg:top-6">
@@ -292,8 +297,9 @@ function EventDetailComponent() {
 						<SeatMap
 							seats={seats}
 							selectedSeats={selectedSeats}
+							readOnly={isOrganizer}
 							onSelect={(seat) => {
-								if (seat.status === "taken") return;
+								if (isOrganizer || seat.status === "taken") return;
 								setSelectedSeats((current) =>
 									current.some(
 										(s) => s.row === seat.row && s.column === seat.column,

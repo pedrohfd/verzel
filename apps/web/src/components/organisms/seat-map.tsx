@@ -22,6 +22,7 @@ type SeatMapProps = {
 	seats: Seat[];
 	selectedSeats: SelectedSeat[];
 	onSelect: (seat: Seat) => void;
+	readOnly?: boolean;
 };
 
 function isSeatSelected(seat: Seat, selected: SelectedSeat[]): boolean {
@@ -107,10 +108,12 @@ function SeatBlock({
 	seats,
 	selectedSeats,
 	onSelect,
+	readOnly,
 }: {
 	seats: Seat[];
 	selectedSeats: SelectedSeat[];
 	onSelect: (seat: Seat) => void;
+	readOnly?: boolean;
 }) {
 	return (
 		<div
@@ -128,14 +131,16 @@ function SeatBlock({
 					<button
 						key={`${seat.row}-${seat.column}`}
 						type="button"
-						disabled={isTaken}
+						disabled={isTaken || readOnly}
 						aria-label={`Assento ${seat.label}${isTaken ? " (ocupado)" : ""}`}
 						aria-pressed={isSelected}
 						onClick={() => onSelect(seat)}
 						className={cn(
 							"relative flex h-(--seat-size) w-(--seat-size) flex-col items-center justify-center gap-0.5 rounded-md transition-colors",
 							isTaken && "cursor-not-allowed text-muted-foreground/40",
+							!isTaken && readOnly && "cursor-default text-foreground/70",
 							!isTaken &&
+								!readOnly &&
 								!isSelected &&
 								"cursor-pointer text-foreground/70 hover:bg-muted hover:text-foreground",
 							isSelected && "cursor-pointer bg-primary text-primary-foreground",
@@ -241,6 +246,7 @@ export default function SeatMap({
 	seats,
 	selectedSeats,
 	onSelect,
+	readOnly,
 }: SeatMapProps) {
 	const rows = buildRows(seats);
 	const { containerRef, screenRef, legendRef, seatSize } = useFitSeatSize();
@@ -275,12 +281,14 @@ export default function SeatMap({
 										seats={left}
 										selectedSeats={selectedSeats}
 										onSelect={onSelect}
+										readOnly={readOnly}
 									/>
 									{right.length > 0 && (
 										<SeatBlock
 											seats={right}
 											selectedSeats={selectedSeats}
 											onSelect={onSelect}
+											readOnly={readOnly}
 										/>
 									)}
 								</div>

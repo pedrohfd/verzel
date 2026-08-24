@@ -106,4 +106,17 @@ describe("SeatMap", () => {
 			2,
 		);
 	});
+
+	it("disables every seat and ignores clicks when readOnly", () => {
+		const onSelect = vi.fn();
+		render(
+			<SeatMap seats={seats} selectedSeats={[]} onSelect={onSelect} readOnly />,
+		);
+
+		expect(screen.getByLabelText("Assento A1")).toBeDisabled();
+
+		fireEvent.click(screen.getByLabelText("Assento A1"));
+
+		expect(onSelect).not.toHaveBeenCalled();
+	});
 });
