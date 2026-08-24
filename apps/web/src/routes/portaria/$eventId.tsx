@@ -97,7 +97,12 @@ function PortariaScanComponent() {
 		scanner.render(
 			(decodedText) => handleValidate(decodedText),
 			(errorMessage) => {
-				if (errorMessage.includes("NotFoundException")) return;
+				if (
+					errorMessage.includes(
+						"No MultiFormat Readers were able to detect the code",
+					)
+				)
+					return;
 				console.error("[qr-scanner]", errorMessage);
 			},
 		);
