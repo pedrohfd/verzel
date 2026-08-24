@@ -10,6 +10,8 @@ import {
 import { matchesMovieSearch } from "./search-movie-title";
 import { seatLabel } from "./seat-label";
 
+const ROOM_CLEANUP_BUFFER_MINUTES = 10;
+
 export interface CreateEventInput {
 	organizerId: string;
 	tmdbMovieId: number;
@@ -32,7 +34,10 @@ async function assertNoRoomConflict(
 	durationMinutes: number,
 	excludeEventId?: string,
 ) {
-	const endsAt = new Date(sessionAt.getTime() + durationMinutes * 60_000);
+	const endsAt = new Date(
+		sessionAt.getTime() +
+			(durationMinutes + ROOM_CLEANUP_BUFFER_MINUTES) * 60_000,
+	);
 
 	const conflict = await db.query.events.findFirst({
 		where: and(
@@ -40,7 +45,7 @@ async function assertNoRoomConflict(
 			inArray(schema.events.status, ["draft", "published"]),
 			excludeEventId ? ne(schema.events.id, excludeEventId) : undefined,
 			lt(schema.events.sessionAt, endsAt),
-			sql`${schema.events.sessionAt} + (${schema.events.durationMinutes} * interval '1 minute') > ${sessionAt}`,
+			sql`${schema.events.sessionAt} + ((${schema.events.durationMinutes} + ${ROOM_CLEANUP_BUFFER_MINUTES}) * interval '1 minute') > ${sessionAt}`,
 		),
 	});
 	if (conflict) throw new RoomScheduleConflictError();
