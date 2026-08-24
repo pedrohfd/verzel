@@ -72,6 +72,18 @@ function formatLocalDate(value: Date) {
 	return `${year}-${month}-${day}`;
 }
 
+function isPastHour(date: string, hour: string) {
+	if (!date || !hour) return false;
+	return (
+		date === formatLocalDate(new Date()) && Number(hour) < new Date().getHours()
+	);
+}
+
+function isPastMinute(date: string, hour: string, minute: string) {
+	if (!date || !hour || !minute) return false;
+	return new Date(`${date}T${hour}:${minute}`) <= new Date();
+}
+
 export default function SessionTimePicker({
 	id,
 	value,
@@ -79,6 +91,7 @@ export default function SessionTimePicker({
 	onBlur,
 	occupiedSlots,
 	durationMinutes,
+	loading,
 }: {
 	id?: string;
 	value: string;
@@ -86,6 +99,7 @@ export default function SessionTimePicker({
 	onBlur?: () => void;
 	occupiedSlots: RoomScheduleSlot[];
 	durationMinutes: number;
+	loading?: boolean;
 }) {
 	const [calendarOpen, setCalendarOpen] = useState(false);
 	const { date, time } = splitDatetimeLocal(value);
@@ -139,13 +153,14 @@ export default function SessionTimePicker({
 						mode="single"
 						selected={selectedDate}
 						onSelect={changeDate}
+						disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
 					/>
 				</PopoverContent>
 			</Popover>
 			<Select
 				value={hour}
 				onValueChange={(nextHour) => changeTime(nextHour ?? "", minute || "00")}
-				disabled={!date}
+				disabled={!date || loading}
 				items={hourOptions.map((h) => ({ value: h, label: h }))}
 			>
 				<SelectTrigger className="w-20">
@@ -160,10 +175,14 @@ export default function SessionTimePicker({
 								occupiedSlots,
 							),
 						);
+						const past = isPastHour(date, h);
+						let suffix = "";
+						if (occupied) suffix = " (ocupado)";
+						else if (past) suffix = " (passado)";
 						return (
-							<SelectItem key={h} value={h} disabled={occupied}>
+							<SelectItem key={h} value={h} disabled={occupied || past}>
 								{h}
-								{occupied ? " (ocupado)" : ""}
+								{suffix}
 							</SelectItem>
 						);
 					})}
@@ -172,7 +191,7 @@ export default function SessionTimePicker({
 			<Select
 				value={minute}
 				onValueChange={(nextMinute) => changeTime(hour, nextMinute ?? "")}
-				disabled={!date || !hour}
+				disabled={!date || !hour || loading}
 				items={minuteOptions.map((m) => ({ value: m, label: m }))}
 			>
 				<SelectTrigger className="w-20">
@@ -187,10 +206,14 @@ export default function SessionTimePicker({
 								occupiedSlots,
 							),
 						);
+						const past = isPastMinute(date, hour, m);
+						let suffix = "";
+						if (occupied) suffix = " (ocupado)";
+						else if (past) suffix = " (passado)";
 						return (
-							<SelectItem key={m} value={m} disabled={occupied}>
+							<SelectItem key={m} value={m} disabled={occupied || past}>
 								{m}
-								{occupied ? " (ocupado)" : ""}
+								{suffix}
 							</SelectItem>
 						);
 					})}

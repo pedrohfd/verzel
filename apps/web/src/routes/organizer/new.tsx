@@ -74,6 +74,7 @@ function NewEventComponent() {
 	const [rooms, setRooms] = useState<CinemaRoom[]>([]);
 	const [selectedRoomId, setSelectedRoomId] = useState("");
 	const [occupiedSlots, setOccupiedSlots] = useState<RoomScheduleSlot[]>([]);
+	const [occupiedSlotsLoading, setOccupiedSlotsLoading] = useState(false);
 	const [movieDuration, setMovieDuration] = useState<number | null>(null);
 
 	useEffect(() => {
@@ -92,11 +93,13 @@ function NewEventComponent() {
 		}
 
 		const controller = new AbortController();
+		setOccupiedSlotsLoading(true);
 		(async () => {
 			const [response, error] = await tryCatch(
 				getRoomSchedule(selectedRoomId, { signal: controller.signal }),
 			);
 			if (!error) setOccupiedSlots(response);
+			if (!controller.signal.aborted) setOccupiedSlotsLoading(false);
 		})();
 		return () => controller.abort();
 	}, [selectedRoomId]);
@@ -171,6 +174,11 @@ function NewEventComponent() {
 			}),
 		},
 	});
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: only re-check sessionAt validity when the schedule/duration it depends on changes
+	useEffect(() => {
+		form.validateField("sessionAt", "change");
+	}, [occupiedSlots, movieDuration]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: only run once for the returned roomId
 	useEffect(() => {
@@ -339,6 +347,7 @@ function NewEventComponent() {
 										onBlur={field.handleBlur}
 										occupiedSlots={occupiedSlots}
 										durationMinutes={movieDuration ?? DEFAULT_DURATION_MINUTES}
+										loading={occupiedSlotsLoading}
 									/>
 									{field.state.meta.errors.map((err) => {
 										const message =

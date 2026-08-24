@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import SessionTimePicker from "./session-time-picker";
 
@@ -8,6 +8,15 @@ function dayButtonName(day: number) {
 }
 
 describe("SessionTimePicker", () => {
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date(2026, 7, 15, 14, 30));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	it("keeps the hour and minute selects disabled until a date is chosen", () => {
 		render(
 			<SessionTimePicker
@@ -20,6 +29,21 @@ describe("SessionTimePicker", () => {
 
 		expect(screen.getByText("Hora").closest("button")).toBeDisabled();
 		expect(screen.getByText("Min").closest("button")).toBeDisabled();
+	});
+
+	it("keeps the hour and minute selects disabled while the schedule is loading", () => {
+		render(
+			<SessionTimePicker
+				value="2026-08-19T09:00"
+				onChange={vi.fn()}
+				occupiedSlots={[]}
+				durationMinutes={120}
+				loading
+			/>,
+		);
+
+		expect(screen.getByText("09").closest("button")).toBeDisabled();
+		expect(screen.getByText("00").closest("button")).toBeDisabled();
 	});
 
 	it("disables hours that conflict with an occupied slot", async () => {
@@ -167,5 +191,89 @@ describe("SessionTimePicker", () => {
 		fireEvent.click(minuteCombobox);
 		const extraMinute = await screen.findByRole("option", { name: "37" });
 		expect(extraMinute).not.toHaveAttribute("aria-disabled", "true");
+	});
+
+	it("disables past days in the calendar", async () => {
+		render(
+			<SessionTimePicker
+				value=""
+				onChange={vi.fn()}
+				occupiedSlots={[]}
+				durationMinutes={120}
+			/>,
+		);
+
+		fireEvent.click(screen.getByText("Selecionar data"));
+
+		const day10 = await screen.findByRole("button", {
+			name: dayButtonName(10),
+		});
+		expect(day10).toBeDisabled();
+
+		const day20 = await screen.findByRole("button", {
+			name: dayButtonName(20),
+		});
+		expect(day20).not.toBeDisabled();
+	});
+
+	it("disables hours that already passed when the selected date is today", async () => {
+		render(
+			<SessionTimePicker
+				value="2026-08-15T09:00"
+				onChange={vi.fn()}
+				occupiedSlots={[]}
+				durationMinutes={120}
+			/>,
+		);
+
+		const [hourCombobox] = screen.getAllByRole("combobox");
+		fireEvent.click(hourCombobox);
+
+		const pastHour = await screen.findByRole("option", {
+			name: "10 (passado)",
+		});
+		expect(pastHour).toHaveAttribute("aria-disabled", "true");
+
+		const futureHour = screen.getByRole("option", { name: "15" });
+		expect(futureHour).not.toHaveAttribute("aria-disabled", "true");
+	});
+
+	it("does not disable past hours for a future date", async () => {
+		render(
+			<SessionTimePicker
+				value="2026-08-20T09:00"
+				onChange={vi.fn()}
+				occupiedSlots={[]}
+				durationMinutes={120}
+			/>,
+		);
+
+		const [hourCombobox] = screen.getAllByRole("combobox");
+		fireEvent.click(hourCombobox);
+
+		const hour = await screen.findByRole("option", { name: "10" });
+		expect(hour).not.toHaveAttribute("aria-disabled", "true");
+	});
+
+	it("disables minutes that already passed within the current hour", async () => {
+		render(
+			<SessionTimePicker
+				value="2026-08-15T14:00"
+				onChange={vi.fn()}
+				occupiedSlots={[]}
+				durationMinutes={120}
+			/>,
+		);
+
+		const [, minuteCombobox] = screen.getAllByRole("combobox");
+		fireEvent.click(minuteCombobox);
+
+		const pastMinute = await screen.findByRole("option", {
+			name: "00 (passado)",
+		});
+		expect(pastMinute).toHaveAttribute("aria-disabled", "true");
+
+		const futureMinute = screen.getByRole("option", { name: "35" });
+		expect(futureMinute).not.toHaveAttribute("aria-disabled", "true");
 	});
 });
