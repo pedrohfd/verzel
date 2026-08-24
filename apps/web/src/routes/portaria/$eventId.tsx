@@ -3,7 +3,7 @@ import { Badge } from "@verzel/ui/components/badge";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Ban, CheckCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -80,8 +80,17 @@ function PortariaScanComponent() {
 	useEffect(() => {
 		const scanner = new Html5QrcodeScanner(
 			SCANNER_ELEMENT_ID,
-			{ fps: 10, qrbox: 250 },
-			true,
+			{
+				fps: 10,
+				qrbox: (viewfinderWidth, viewfinderHeight) => {
+					const size = Math.floor(
+						Math.min(viewfinderWidth, viewfinderHeight) * 0.7,
+					);
+					return { width: size, height: size };
+				},
+				formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+			},
+			false,
 		);
 		scannerRef.current = scanner;
 
