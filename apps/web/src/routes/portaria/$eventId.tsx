@@ -4,6 +4,7 @@ import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { Ban, CheckCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { validateTicketCode } from "@/api/requests/checkin/validate-ticket-code";
@@ -114,7 +115,15 @@ function PortariaScanComponent() {
 			</div>
 
 			{result && (
-				<div className="flex flex-col gap-2 border border-border p-4">
+				<div className="flex flex-col items-center gap-2 border border-border p-4">
+					{result.result === "valid" && (
+						<CheckCircle2 className="zoom-in-50 fade-in size-12 animate-in text-green-600 duration-300 dark:text-green-500" />
+					)}
+
+					{result.result === "already_used" && (
+						<Ban className="size-12 animate-shake text-amber-600 dark:text-amber-500" />
+					)}
+
 					<Badge variant={resultBadgeVariant(result.result)} className="w-fit">
 						{resultLabel[result.result]}
 					</Badge>
