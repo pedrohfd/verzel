@@ -13,7 +13,9 @@ import { useEffect, useState } from "react";
 import { getPublishedEvents } from "@/api/requests/events/get-published-events";
 import type { VerzelEvent } from "@/api/types";
 import { useDebouncedValue } from "@/hooks/use-debounce";
+import { authClient } from "@/lib/auth-client";
 import { dedupeEventsByMovie } from "@/lib/dedupe-events-by-movie";
+import type { Role } from "@/lib/route-guards";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
@@ -25,6 +27,9 @@ export default function SearchCommand() {
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<VerzelEvent[]>([]);
 	const debouncedQuery = useDebouncedValue(query, 300);
+	const { data: session } = authClient.useSession();
+	const role = (session?.user as { role?: Role } | undefined)?.role;
+	const organizerId = role === "organizador" ? session?.user.id : undefined;
 
 	useEffect(() => {
 		if (!debouncedQuery) {
@@ -36,7 +41,10 @@ export default function SearchCommand() {
 
 		(async () => {
 			const [response, error] = await tryCatch(
-				getPublishedEvents({ search: debouncedQuery }, controller.signal),
+				getPublishedEvents(
+					{ search: debouncedQuery, organizerId },
+					controller.signal,
+				),
 			);
 			if (!error) {
 				setResults(dedupeEventsByMovie(response));
@@ -44,7 +52,7 @@ export default function SearchCommand() {
 		})();
 
 		return () => controller.abort();
-	}, [debouncedQuery]);
+	}, [debouncedQuery, organizerId]);
 
 	const goToResults = () => {
 		if (!query) return;

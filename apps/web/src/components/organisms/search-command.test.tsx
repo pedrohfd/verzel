@@ -14,6 +14,12 @@ vi.mock("@/api/requests/events/get-published-events", () => ({
 	getPublishedEvents: getPublishedEventsMock,
 }));
 
+vi.mock("@/lib/auth-client", () => ({
+	authClient: {
+		useSession: () => ({ isPending: false, data: null }),
+	},
+}));
+
 vi.mock("@verzel/ui/components/command", () => ({
 	CommandDialog: ({
 		open,
