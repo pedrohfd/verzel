@@ -15,6 +15,7 @@ import {
 	getSeatMap,
 	listOrganizerEvents,
 	listPublishedEvents,
+	listPublishedVenues,
 	publishEvent,
 	updateEvent,
 } from "../lib/events";
@@ -46,14 +47,30 @@ export async function eventRoutes(fastify: FastifyInstance) {
 			search?: string;
 			tmdbMovieId?: string;
 			organizerId?: string;
+			date?: string;
+			venue?: string;
+			priceMin?: string;
+			priceMax?: string;
 		};
 	}>("/", async (request, reply) => {
 		try {
-			const { search, tmdbMovieId, organizerId } = request.query;
+			const {
+				search,
+				tmdbMovieId,
+				organizerId,
+				date,
+				venue,
+				priceMin,
+				priceMax,
+			} = request.query;
 			const results = await listPublishedEvents({
 				search,
 				tmdbMovieId: tmdbMovieId ? Number(tmdbMovieId) : undefined,
 				organizerId,
+				date,
+				venue,
+				priceMinCents: priceMin ? Number(priceMin) : undefined,
+				priceMaxCents: priceMax ? Number(priceMax) : undefined,
 			});
 			return { results };
 		} catch (error) {
@@ -61,12 +78,27 @@ export async function eventRoutes(fastify: FastifyInstance) {
 		}
 	});
 
-	fastify.get(
+	fastify.get("/venues", async (_request, reply) => {
+		try {
+			const results = await listPublishedVenues();
+			return { results };
+		} catch (error) {
+			sendDomainError(reply, error, "Failed to list venues");
+		}
+	});
+
+	fastify.get<{
+		Querystring: { status?: "draft" | "published" | "cancelled"; q?: string };
+	}>(
 		"/mine",
 		{ preHandler: requireRole("organizador") },
 		async (request, reply) => {
 			try {
-				const results = await listOrganizerEvents(request.user?.id ?? "");
+				const { status, q } = request.query;
+				const results = await listOrganizerEvents(request.user?.id ?? "", {
+					status,
+					search: q,
+				});
 				return { results };
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to list your events");

@@ -4,6 +4,7 @@ import { ForbiddenError, RoomScheduleConflictError } from "../lib/errors";
 
 const {
 	listPublishedEventsMock,
+	listPublishedVenuesMock,
 	listOrganizerEventsMock,
 	getPublicEventMock,
 	getSeatMapMock,
@@ -18,6 +19,7 @@ const {
 	getMovieRuntimeMock,
 } = vi.hoisted(() => ({
 	listPublishedEventsMock: vi.fn(),
+	listPublishedVenuesMock: vi.fn(),
 	listOrganizerEventsMock: vi.fn(),
 	getPublicEventMock: vi.fn(),
 	getSeatMapMock: vi.fn(),
@@ -34,6 +36,7 @@ const {
 
 vi.mock("../lib/events", () => ({
 	listPublishedEvents: listPublishedEventsMock,
+	listPublishedVenues: listPublishedVenuesMock,
 	listOrganizerEvents: listOrganizerEventsMock,
 	getPublicEvent: getPublicEventMock,
 	getSeatMap: getSeatMapMock,
@@ -101,6 +104,7 @@ function authAsOrganizer(userId = "organizer-1") {
 beforeEach(() => {
 	for (const mock of [
 		listPublishedEventsMock,
+		listPublishedVenuesMock,
 		listOrganizerEventsMock,
 		getPublicEventMock,
 		getSeatMapMock,
@@ -148,6 +152,40 @@ describe("GET /", () => {
 			tmdbMovieId: 42,
 		});
 	});
+
+	it("filters by date, venue and price range", async () => {
+		listPublishedEventsMock.mockResolvedValue([{ id: "event-1" }]);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "GET",
+			url: "/api/events?date=2026-01-01&venue=Cine%20Downtown&priceMin=1000&priceMax=5000",
+		});
+
+		expect(res.json()).toEqual({ results: [{ id: "event-1" }] });
+		expect(listPublishedEventsMock).toHaveBeenCalledWith({
+			search: undefined,
+			tmdbMovieId: undefined,
+			organizerId: undefined,
+			date: "2026-01-01",
+			venue: "Cine Downtown",
+			priceMinCents: 1000,
+			priceMaxCents: 5000,
+		});
+	});
+});
+
+describe("GET /venues", () => {
+	it("lists distinct published venues", async () => {
+		listPublishedVenuesMock.mockResolvedValue(["Cine Downtown", "Cine Norte"]);
+		const app = buildTestApp();
+
+		const res = await app.inject({ method: "GET", url: "/api/events/venues" });
+
+		expect(res.json()).toEqual({
+			results: ["Cine Downtown", "Cine Norte"],
+		});
+	});
 });
 
 describe("GET /mine", () => {
@@ -159,7 +197,27 @@ describe("GET /mine", () => {
 		const res = await app.inject({ method: "GET", url: "/api/events/mine" });
 
 		expect(res.json()).toEqual({ results: [{ id: "event-1" }] });
-		expect(listOrganizerEventsMock).toHaveBeenCalledWith("organizer-1");
+		expect(listOrganizerEventsMock).toHaveBeenCalledWith("organizer-1", {
+			status: undefined,
+			search: undefined,
+		});
+	});
+
+	it("filters by status and search", async () => {
+		authAsOrganizer();
+		listOrganizerEventsMock.mockResolvedValue([{ id: "event-1" }]);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "GET",
+			url: "/api/events/mine?status=published&q=matrix",
+		});
+
+		expect(res.json()).toEqual({ results: [{ id: "event-1" }] });
+		expect(listOrganizerEventsMock).toHaveBeenCalledWith("organizer-1", {
+			status: "published",
+			search: "matrix",
+		});
 	});
 });
 

@@ -1,6 +1,18 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, asc, desc, eq, gte, inArray, lt, ne, or, sql } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	gte,
+	inArray,
+	lt,
+	lte,
+	ne,
+	or,
+	sql,
+} from "drizzle-orm";
 
 import {
 	ForbiddenError,
@@ -128,25 +140,52 @@ export async function cancelEvent(eventId: string, organizerId: string) {
 	return updated;
 }
 
+function dayRange(date: string): { start: Date; end: Date } {
+	const start = new Date(`${date}T00:00:00`);
+	const end = new Date(start.getTime() + 24 * 60 * 60_000);
+	return { start, end };
+}
+
 export interface ListPublishedEventsFilters {
 	search?: string;
 	tmdbMovieId?: number;
 	organizerId?: string;
+	date?: string;
+	venue?: string;
+	priceMinCents?: number;
+	priceMaxCents?: number;
 }
 
 export function listPublishedEvents(filters: ListPublishedEventsFilters = {}) {
-	const { search, tmdbMovieId, organizerId } = filters;
+	const {
+		search,
+		tmdbMovieId,
+		organizerId,
+		date,
+		venue,
+		priceMinCents,
+		priceMaxCents,
+	} = filters;
+	const range = date ? dayRange(date) : undefined;
 
 	return db.query.events
 		.findMany({
 			where: and(
 				eq(schema.events.status, "published"),
-				gte(schema.events.sessionAt, new Date()),
+				gte(schema.events.sessionAt, range ? range.start : new Date()),
+				range ? lt(schema.events.sessionAt, range.end) : undefined,
 				tmdbMovieId !== undefined
 					? eq(schema.events.tmdbMovieId, tmdbMovieId)
 					: undefined,
 				organizerId !== undefined
 					? eq(schema.events.organizerId, organizerId)
+					: undefined,
+				venue !== undefined ? eq(schema.events.venueName, venue) : undefined,
+				priceMinCents !== undefined
+					? gte(schema.events.priceCents, priceMinCents)
+					: undefined,
+				priceMaxCents !== undefined
+					? lte(schema.events.priceCents, priceMaxCents)
 					: undefined,
 			),
 			orderBy: asc(schema.events.sessionAt),
@@ -165,11 +204,38 @@ export function listPublishedEvents(filters: ListPublishedEventsFilters = {}) {
 		);
 }
 
-export function listOrganizerEvents(organizerId: string) {
-	return db.query.events.findMany({
-		where: eq(schema.events.organizerId, organizerId),
-		orderBy: desc(schema.events.createdAt),
-	});
+export async function listPublishedVenues() {
+	const rows = await db
+		.selectDistinct({ venueName: schema.events.venueName })
+		.from(schema.events)
+		.where(eq(schema.events.status, "published"));
+	return rows.map((row) => row.venueName);
+}
+
+export interface ListOrganizerEventsFilters {
+	status?: (typeof schema.eventStatusEnum.enumValues)[number];
+	search?: string;
+}
+
+export function listOrganizerEvents(
+	organizerId: string,
+	filters: ListOrganizerEventsFilters = {},
+) {
+	const { status, search } = filters;
+
+	return db.query.events
+		.findMany({
+			where: and(
+				eq(schema.events.organizerId, organizerId),
+				status !== undefined ? eq(schema.events.status, status) : undefined,
+			),
+			orderBy: desc(schema.events.createdAt),
+		})
+		.then((events) =>
+			search
+				? events.filter((event) => matchesMovieSearch(event.movieTitle, search))
+				: events,
+		);
 }
 
 export async function getPublicEvent(eventId: string) {

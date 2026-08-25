@@ -6,15 +6,17 @@ import {
 	RoomScheduleConflictError,
 } from "./errors";
 
-const { queryMock, insertMock, transactionMock } = vi.hoisted(() => ({
-	queryMock: {
-		events: { findFirst: vi.fn(), findMany: vi.fn() },
-		seats: { findMany: vi.fn() },
-		reservations: { findMany: vi.fn() },
-	},
-	insertMock: vi.fn(),
-	transactionMock: vi.fn(),
-}));
+const { queryMock, insertMock, transactionMock, selectDistinctMock } =
+	vi.hoisted(() => ({
+		queryMock: {
+			events: { findFirst: vi.fn(), findMany: vi.fn() },
+			seats: { findMany: vi.fn() },
+			reservations: { findMany: vi.fn() },
+		},
+		insertMock: vi.fn(),
+		transactionMock: vi.fn(),
+		selectDistinctMock: vi.fn(),
+	}));
 
 vi.mock("@verzel/db", () => ({
 	db: {
@@ -22,6 +24,7 @@ vi.mock("@verzel/db", () => ({
 		insert: insertMock,
 		transaction: transactionMock,
 		update: vi.fn(),
+		selectDistinct: selectDistinctMock,
 	},
 }));
 
@@ -31,6 +34,7 @@ const {
 	getOwnedEvent,
 	cancelEvent,
 	listPublishedEvents,
+	listPublishedVenues,
 	listOrganizerEvents,
 	getPublicEvent,
 	getSeatMap,
@@ -54,6 +58,7 @@ beforeEach(() => {
 	queryMock.reservations.findMany.mockReset();
 	insertMock.mockReset();
 	transactionMock.mockReset();
+	selectDistinctMock.mockReset();
 });
 
 describe("createEvent", () => {
@@ -274,6 +279,37 @@ describe("listPublishedEvents", () => {
 			listPublishedEvents({ organizerId: "organizer-1" }),
 		).resolves.toEqual([{ ...baseEvent, roomName: "2" }]);
 	});
+
+	it("filters events by date, venue and price range", async () => {
+		queryMock.events.findMany.mockResolvedValue([
+			{ ...baseEvent, room: { name: "2" } },
+		]);
+
+		await expect(
+			listPublishedEvents({
+				date: "2026-01-01",
+				venue: "Cine Downtown",
+				priceMinCents: 1000,
+				priceMaxCents: 5000,
+			}),
+		).resolves.toEqual([{ ...baseEvent, roomName: "2" }]);
+	});
+});
+
+describe("listPublishedVenues", () => {
+	it("returns distinct venue names for published events", async () => {
+		selectDistinctMock.mockReturnValue(
+			mockQueryChain([
+				{ venueName: "Cine Downtown" },
+				{ venueName: "Cine Norte" },
+			]),
+		);
+
+		await expect(listPublishedVenues()).resolves.toEqual([
+			"Cine Downtown",
+			"Cine Norte",
+		]);
+	});
 });
 
 describe("listOrganizerEvents", () => {
@@ -283,6 +319,27 @@ describe("listOrganizerEvents", () => {
 		await expect(listOrganizerEvents("organizer-1")).resolves.toEqual([
 			baseEvent,
 		]);
+	});
+
+	it("filters events by status", async () => {
+		queryMock.events.findMany.mockResolvedValue([
+			{ ...baseEvent, status: "published" },
+		]);
+
+		await expect(
+			listOrganizerEvents("organizer-1", { status: "published" }),
+		).resolves.toEqual([{ ...baseEvent, status: "published" }]);
+	});
+
+	it("filters events by movie title search", async () => {
+		queryMock.events.findMany.mockResolvedValue([baseEvent]);
+
+		await expect(
+			listOrganizerEvents("organizer-1", { search: "some" }),
+		).resolves.toEqual([baseEvent]);
+		await expect(
+			listOrganizerEvents("organizer-1", { search: "nomatch" }),
+		).resolves.toEqual([]);
 	});
 });
 
