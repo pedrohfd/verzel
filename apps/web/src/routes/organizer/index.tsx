@@ -1,6 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Badge } from "@verzel/ui/components/badge";
 import { Button } from "@verzel/ui/components/button";
+import { Input } from "@verzel/ui/components/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@verzel/ui/components/select";
 import {
 	Table,
 	TableBody,
@@ -14,15 +22,29 @@ import { toast } from "sonner";
 
 import { getMyEvents } from "@/api/requests/events/get-my-events";
 import { updateEventStatus } from "@/api/requests/events/update-event-status";
-import type { VerzelEvent } from "@/api/types";
+import type { EventStatus, VerzelEvent } from "@/api/types";
 import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 
+interface OrganizerSearch {
+	status?: EventStatus | "all";
+	q?: string;
+}
+
 export const Route = createFileRoute("/organizer/")({
 	component: OrganizerDashboardComponent,
 	beforeLoad: () => requireRole("organizador"),
+	validateSearch: (search: Record<string, unknown>): OrganizerSearch => ({
+		status:
+			search.status === "draft" ||
+			search.status === "published" ||
+			search.status === "cancelled"
+				? search.status
+				: "all",
+		q: typeof search.q === "string" ? search.q : "",
+	}),
 });
 
 const statusLabel: Record<VerzelEvent["status"], string> = {
@@ -32,13 +54,18 @@ const statusLabel: Record<VerzelEvent["status"], string> = {
 };
 
 function OrganizerDashboardComponent() {
+	const { status = "all", q = "" } = Route.useSearch();
+	const navigate = Route.useNavigate();
 	const [events, setEvents] = useState<VerzelEvent[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [pendingId, setPendingId] = useState<string | null>(null);
 
 	async function load(controller?: AbortController) {
 		const [response, fetchError] = await tryCatch(
-			getMyEvents(controller?.signal),
+			getMyEvents(
+				{ status: status === "all" ? undefined : status, q: q || undefined },
+				controller?.signal,
+			),
 		);
 		if (fetchError) {
 			setError("Não foi possível carregar suas sessões.");
@@ -51,7 +78,7 @@ function OrganizerDashboardComponent() {
 		const controller = new AbortController();
 		load(controller);
 		return () => controller.abort();
-	}, []);
+	}, [status, q]);
 
 	async function handleAction(eventId: string, action: "publish" | "cancel") {
 		setPendingId(eventId);
@@ -90,9 +117,53 @@ function OrganizerDashboardComponent() {
 				</div>
 			</div>
 
+			<div className="mb-4 flex flex-wrap items-center gap-2">
+				<Select
+					value={status}
+					onValueChange={(value) => {
+						if (!value) return;
+						navigate({
+							search: (prev) => ({
+								...prev,
+								status: value as EventStatus | "all",
+							}),
+						});
+					}}
+					items={[
+						{ value: "all", label: "Todos os status" },
+						{ value: "draft", label: statusLabel.draft },
+						{ value: "published", label: statusLabel.published },
+						{ value: "cancelled", label: statusLabel.cancelled },
+					]}
+				>
+					<SelectTrigger className="w-44">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">Todos os status</SelectItem>
+						<SelectItem value="draft">{statusLabel.draft}</SelectItem>
+						<SelectItem value="published">{statusLabel.published}</SelectItem>
+						<SelectItem value="cancelled">{statusLabel.cancelled}</SelectItem>
+					</SelectContent>
+				</Select>
+
+				<Input
+					placeholder="Buscar por filme"
+					className="w-56"
+					value={q}
+					onChange={(e) =>
+						navigate({
+							search: (prev) => ({ ...prev, q: e.target.value }),
+						})
+					}
+				/>
+			</div>
+
 			{events.length === 0 ? (
 				<p className="text-muted-foreground text-sm">
-					Você ainda não criou nenhuma sessão.
+					{status !== "all" || q
+						? "Nenhuma sessão encontrada para os filtros aplicados."
+						: "Você ainda não criou nenhuma sessão."}
 				</p>
 			) : (
 				<Table>
