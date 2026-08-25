@@ -1,5 +1,7 @@
 export * from "./auth";
+export * from "./combos";
 export * from "./events";
+export * from "./payment-combo-items";
 export * from "./payments";
 export * from "./reservations";
 export * from "./rooms";
