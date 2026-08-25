@@ -10,11 +10,38 @@ import { authClient } from "@/lib/auth-client";
 
 import Loader from "../ui/loader";
 
+const TEST_ACCOUNTS = [
+	{ label: "Cliente 1", email: "cliente1.teste@verzel.app" },
+	{ label: "Cliente 2", email: "cliente2.teste@verzel.app" },
+	{ label: "Organizador", email: "organizador.teste@verzel.app" },
+	{ label: "Portaria", email: "portaria.teste@verzel.app" },
+];
+const TEST_ACCOUNT_PASSWORD = "teste1234";
+
 export default function SignInForm() {
 	const navigate = useNavigate({
 		from: "/",
 	});
 	const { isPending } = authClient.useSession();
+
+	const signIn = (email: string, password: string) =>
+		authClient.signIn.email(
+			{
+				email,
+				password,
+			},
+			{
+				onSuccess: () => {
+					navigate({
+						to: "/",
+					});
+					toast.success("Login realizado com sucesso");
+				},
+				onError: (error) => {
+					toast.error(error.error.message || error.error.statusText);
+				},
+			},
+		);
 
 	const form = useForm({
 		defaultValues: {
@@ -22,23 +49,7 @@ export default function SignInForm() {
 			password: "",
 		},
 		onSubmit: async ({ value }) => {
-			await authClient.signIn.email(
-				{
-					email: value.email,
-					password: value.password,
-				},
-				{
-					onSuccess: () => {
-						navigate({
-							to: "/",
-						});
-						toast.success("Login realizado com sucesso");
-					},
-					onError: (error) => {
-						toast.error(error.error.message || error.error.statusText);
-					},
-				},
-			);
+			await signIn(value.email, value.password);
 		},
 		validators: {
 			onSubmit: z.object({
@@ -139,6 +150,24 @@ export default function SignInForm() {
 						Precisa de uma conta? Cadastre-se
 					</Button>
 				</Link>
+			</div>
+
+			<div className="mt-6 border-t pt-4">
+				<p className="mb-2 text-center text-muted-foreground text-sm">
+					Login rápido (teste)
+				</p>
+				<div className="grid grid-cols-2 gap-2">
+					{TEST_ACCOUNTS.map((account) => (
+						<Button
+							key={account.email}
+							type="button"
+							variant="outline"
+							onClick={() => signIn(account.email, TEST_ACCOUNT_PASSWORD)}
+						>
+							{account.label}
+						</Button>
+					))}
+				</div>
 			</div>
 		</div>
 	);
