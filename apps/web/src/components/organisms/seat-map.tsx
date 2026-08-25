@@ -91,15 +91,15 @@ export function ScreenIndicator({ size = "sm" }: { size?: "sm" | "lg" }) {
 export function SeatIcon({ className }: { className?: string }) {
 	return (
 		<svg
-			viewBox="0 0 24 24"
+			viewBox="0 0 100 100"
 			fill="currentColor"
 			className={className}
 			aria-hidden="true"
 		>
-			<path d="M6 3a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9H6V3Z" opacity={0.55} />
-			<path d="M4 10a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5Z" />
-			<path d="M5 17h1v3a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1Z" />
-			<path d="M18 17h1a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-3Z" />
+			<path d="M19 28C19 22.4772 23.4772 18 29 18H71C76.5228 18 81 22.4772 81 28V82C73.931 75.9278 62.6764 72 50 72C37.3236 72 26.069 75.9278 19 82V28Z" />
+			<path d="M50 73C37.3236 73 29 76 20 82H80C71 76 62.6764 73 50 73Z" />
+			<path d="M82 37C82 32.0294 86.0294 28 91 28V28C95.9706 28 100 32.0294 100 37V82H82V37Z" />
+			<path d="M0 37C0 32.0294 4.02944 28 9 28V28C13.9706 28 18 32.0294 18 37V82H0V37Z" />
 		</svg>
 	);
 }
