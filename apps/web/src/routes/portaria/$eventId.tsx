@@ -3,6 +3,7 @@ import { Badge } from "@verzel/ui/components/badge";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
+import { Skeleton } from "@verzel/ui/components/skeleton";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Ban, CheckCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -39,6 +40,7 @@ function PortariaScanComponent() {
 	const [isChecking, setIsChecking] = useState(false);
 	const [result, setResult] = useState<CheckinResult | null>(null);
 	const [cameraError, setCameraError] = useState(false);
+	const [isCameraLoading, setIsCameraLoading] = useState(true);
 	const isCheckingRef = useRef(false);
 	const hasResultRef = useRef(false);
 	const resultRef = useRef<HTMLDivElement | null>(null);
@@ -106,9 +108,11 @@ function PortariaScanComponent() {
 					console.error("[qr-scanner]", errorMessage);
 				},
 			)
+			.then(() => setIsCameraLoading(false))
 			.catch((err) => {
 				console.error("[qr-scanner] failed to start", err);
 				setCameraError(true);
+				setIsCameraLoading(false);
 			});
 
 		return () => {
@@ -132,7 +136,12 @@ function PortariaScanComponent() {
 				</p>
 			)}
 
-			<div id={SCANNER_ELEMENT_ID} className="mb-6" />
+			<div className="relative mb-6 aspect-square w-full overflow-hidden rounded-md">
+				{isCameraLoading && (
+					<Skeleton className="absolute inset-0 h-full w-full" />
+				)}
+				<div id={SCANNER_ELEMENT_ID} className="h-full w-full" />
+			</div>
 
 			<div className="mb-6 flex flex-col gap-2">
 				<Label htmlFor="manual-code">Ou digite o código manualmente</Label>
