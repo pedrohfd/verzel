@@ -8,6 +8,15 @@ import { requireRole } from "../lib/require-role";
 const processPaymentSchema = z.object({
 	reservationIds: z.array(z.string().uuid()).min(1),
 	simulateOutcome: z.enum(["approve", "decline"]),
+	comboItems: z
+		.array(
+			z.object({
+				comboId: z.string().uuid(),
+				quantity: z.number().int().min(1),
+			}),
+		)
+		.optional()
+		.default([]),
 });
 
 export async function paymentRoutes(fastify: FastifyInstance) {
@@ -27,6 +36,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 					parsed.data.reservationIds,
 					request.user?.id ?? "",
 					parsed.data.simulateOutcome,
+					parsed.data.comboItems,
 				);
 				return result;
 			} catch (error) {

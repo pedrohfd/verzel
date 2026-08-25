@@ -77,6 +77,16 @@ export class DuplicateRoomNameError extends DomainError {
 	}
 }
 
+export class DuplicateComboNameError extends DomainError {
+	constructor() {
+		super(
+			"You already have a combo with this name",
+			409,
+			"DUPLICATE_COMBO_NAME",
+		);
+	}
+}
+
 export class EmailAlreadyInUseError extends DomainError {
 	constructor() {
 		super("A user with this email already exists", 409, "EMAIL_ALREADY_IN_USE");

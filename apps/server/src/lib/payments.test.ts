@@ -148,4 +148,79 @@ describe("processPayment", () => {
 		expect(result).toEqual({ payments: [payment], tickets: [] });
 		expect(updateMock).toHaveBeenCalled();
 	});
+
+	it("adds the combo subtotal to the first payment and records the purchased items", async () => {
+		const payment = { id: "payment-1", status: "approved", amountCents: 6480 };
+		const ticketRow = { id: "ticket-1" };
+		const insertMock = vi.fn();
+		insertMock
+			.mockReturnValueOnce(mockQueryChain([payment])) // payment
+			.mockReturnValueOnce(mockQueryChain(undefined)) // payment_combo_items
+			.mockReturnValueOnce(mockQueryChain([ticketRow])); // ticket
+
+		transactionMock.mockImplementation(async (cb) =>
+			cb({
+				select: () => mockQueryChain([holdingReservation]),
+				query: {
+					events: {
+						findFirst: vi
+							.fn()
+							.mockResolvedValue({ priceCents: 5000, organizerId: "org-1" }),
+					},
+					combos: {
+						findMany: vi.fn().mockResolvedValue([
+							{
+								id: "combo-1",
+								organizerId: "org-1",
+								name: "Combo Casal",
+								priceCents: 4490,
+							},
+						]),
+					},
+				},
+				insert: insertMock,
+				update: () => mockQueryChain([{ ...ticketRow, signature: "sig" }]),
+			}),
+		);
+
+		const result = await processPayment(["res-1"], "customer-1", "approve", [
+			{ comboId: "combo-1", quantity: 1 },
+		]);
+
+		expect(result.payments).toHaveLength(1);
+		expect(insertMock).toHaveBeenCalledTimes(3);
+	});
+
+	it("throws NotFoundError when a combo does not belong to the event's organizer", async () => {
+		transactionMock.mockImplementation(async (cb) =>
+			cb({
+				select: () => mockQueryChain([holdingReservation]),
+				query: {
+					events: {
+						findFirst: vi
+							.fn()
+							.mockResolvedValue({ priceCents: 5000, organizerId: "org-1" }),
+					},
+					combos: {
+						findMany: vi.fn().mockResolvedValue([
+							{
+								id: "combo-1",
+								organizerId: "another-org",
+								name: "Combo Casal",
+								priceCents: 4490,
+							},
+						]),
+					},
+				},
+				insert: () => mockQueryChain([{ id: "payment-1" }]),
+				update: () => mockQueryChain(undefined),
+			}),
+		);
+
+		await expect(
+			processPayment(["res-1"], "customer-1", "approve", [
+				{ comboId: "combo-1", quantity: 1 },
+			]),
+		).rejects.toBeInstanceOf(NotFoundError);
+	});
 });

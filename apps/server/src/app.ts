@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import { authRoutes } from "./routes/auth";
 import { checkinRoutes } from "./routes/checkin";
 import { cinemaRoutes } from "./routes/cinemas";
+import { comboRoutes } from "./routes/combos";
 import { eventRoutes } from "./routes/events";
 import { gatekeeperRoutes } from "./routes/gatekeepers";
 import { movieRoutes } from "./routes/movies";
@@ -31,6 +32,7 @@ export function buildApp(corsConfig: CorsConfig, { logger = true } = {}) {
 	fastify.register(checkinRoutes, { prefix: "/api/checkin" });
 	fastify.register(cinemaRoutes, { prefix: "/api/cinemas" });
 	fastify.register(roomRoutes, { prefix: "/api/rooms" });
+	fastify.register(comboRoutes, { prefix: "/api/combos" });
 	fastify.register(gatekeeperRoutes, { prefix: "/api/gatekeepers" });
 	fastify.register(userRoutes, { prefix: "/api/users" });
 
