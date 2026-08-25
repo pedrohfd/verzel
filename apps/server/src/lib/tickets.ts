@@ -1,6 +1,6 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import {
 	EventAlreadyStartedError,
@@ -83,6 +83,7 @@ export async function listMyTickets(customerId: string) {
 	const reservations = await db.query.reservations.findMany({
 		where: eq(schema.reservations.customerId, customerId),
 		with: { ticket: true, event: true, seat: true },
+		orderBy: desc(schema.reservations.createdAt),
 	});
 	return reservations.filter((r) => r.ticket !== null);
 }

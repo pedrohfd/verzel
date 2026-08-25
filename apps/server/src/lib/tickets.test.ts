@@ -75,6 +75,16 @@ describe("listMyTickets", () => {
 
 		expect(result).toEqual([{ ticket: { id: "t1" } }]);
 	});
+
+	it("orders reservations by most recently created first", async () => {
+		queryMock.reservations.findMany.mockResolvedValue([]);
+
+		await listMyTickets("customer-1");
+
+		expect(queryMock.reservations.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({ orderBy: expect.anything() }),
+		);
+	});
 });
 
 describe("getTicketByShareToken", () => {
