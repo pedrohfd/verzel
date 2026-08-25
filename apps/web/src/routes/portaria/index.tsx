@@ -5,16 +5,26 @@ import { useEffect, useState } from "react";
 
 import { getCheckinEvents } from "@/api/requests/checkin/get-checkin-events";
 import type { VerzelEvent } from "@/api/types";
+import DateFilterPicker from "@/components/molecules/date-filter-picker";
 import Loader from "@/components/ui/loader";
 import { requireRole } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 
+interface PortariaSearch {
+	date?: string;
+}
+
 export const Route = createFileRoute("/portaria/")({
 	component: PortariaEventsComponent,
 	beforeLoad: () => requireRole("portaria"),
+	validateSearch: (search: Record<string, unknown>): PortariaSearch => ({
+		date: typeof search.date === "string" ? search.date : "",
+	}),
 });
 
 function PortariaEventsComponent() {
+	const { date = "" } = Route.useSearch();
+	const navigate = Route.useNavigate();
 	const [events, setEvents] = useState<VerzelEvent[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +33,7 @@ function PortariaEventsComponent() {
 
 		(async () => {
 			const [response, fetchError] = await tryCatch(
-				getCheckinEvents(controller.signal),
+				getCheckinEvents({ date: date || undefined }, controller.signal),
 			);
 			if (fetchError) {
 				setError("Não foi possível carregar as sessões.");
@@ -33,7 +43,7 @@ function PortariaEventsComponent() {
 		})();
 
 		return () => controller.abort();
-	}, []);
+	}, [date]);
 
 	if (error) {
 		return (
@@ -49,9 +59,21 @@ function PortariaEventsComponent() {
 		<div className="container mx-auto max-w-2xl px-4 py-6">
 			<h1 className="mb-6 font-bold text-2xl">Portaria</h1>
 
+			<div className="mb-4">
+				<DateFilterPicker
+					value={date}
+					onChange={(next) =>
+						navigate({ search: () => ({ date: next || undefined }) })
+					}
+					placeholder="Próximas 24h"
+				/>
+			</div>
+
 			{events.length === 0 && (
 				<p className="text-muted-foreground text-sm">
-					Nenhuma sessão disponível para validação no momento.
+					{date
+						? "Nenhuma sessão encontrada para a data selecionada."
+						: "Nenhuma sessão disponível para validação no momento."}
 				</p>
 			)}
 
