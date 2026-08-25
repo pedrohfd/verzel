@@ -13,6 +13,13 @@ import {
 import { Badge } from "@verzel/ui/components/badge";
 import { Button } from "@verzel/ui/components/button";
 import { Card, CardContent } from "@verzel/ui/components/card";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@verzel/ui/components/select";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -29,22 +36,39 @@ export const Route = createFileRoute("/tickets/")({
 	beforeLoad: () => requireRole("cliente"),
 });
 
+type TicketStatusKey = "valid" | "used" | "cancelled";
+
+function ticketStatusKey(ticket: {
+	checkedInAt: string | null;
+	cancelledAt: string | null;
+}): TicketStatusKey {
+	if (ticket.cancelledAt) return "cancelled";
+	if (ticket.checkedInAt) return "used";
+	return "valid";
+}
+
+const ticketStatusBadgeConfig: Record<
+	TicketStatusKey,
+	{ variant: "destructive" | "secondary" | "default"; label: string }
+> = {
+	cancelled: { variant: "destructive", label: "Cancelado" },
+	used: { variant: "secondary", label: "Utilizado" },
+	valid: { variant: "default", label: "Válido" },
+};
+
 function ticketStatusBadge(ticket: {
 	checkedInAt: string | null;
 	cancelledAt: string | null;
 }) {
-	if (ticket.cancelledAt) {
-		return { variant: "destructive" as const, label: "Cancelado" };
-	}
-	if (ticket.checkedInAt) {
-		return { variant: "secondary" as const, label: "Utilizado" };
-	}
-	return { variant: "default" as const, label: "Válido" };
+	return ticketStatusBadgeConfig[ticketStatusKey(ticket)];
 }
 
 function MyTicketsComponent() {
 	const [tickets, setTickets] = useState<MyTicket[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [statusFilter, setStatusFilter] = useState<TicketStatusKey | "all">(
+		"all",
+	);
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -97,10 +121,48 @@ function MyTicketsComponent() {
 	};
 
 	const withTicket = tickets.filter((t) => t.ticket !== null);
+	const filteredTickets =
+		statusFilter === "all"
+			? withTicket
+			: withTicket.filter(
+					(entry) =>
+						ticketStatusKey({
+							checkedInAt: entry.ticket?.checkedInAt ?? null,
+							cancelledAt: entry.ticket?.cancelledAt ?? null,
+						}) === statusFilter,
+				);
 
 	return (
 		<div className="container mx-auto max-w-3xl px-4 py-6">
 			<h1 className="mb-6 font-bold text-2xl">Meus Ingressos</h1>
+
+			{withTicket.length > 0 && (
+				<div className="mb-4">
+					<Select
+						value={statusFilter}
+						onValueChange={(value) => {
+							if (!value) return;
+							setStatusFilter(value as TicketStatusKey | "all");
+						}}
+						items={[
+							{ value: "all", label: "Todos os status" },
+							{ value: "valid", label: "Válido" },
+							{ value: "used", label: "Utilizado" },
+							{ value: "cancelled", label: "Cancelado" },
+						]}
+					>
+						<SelectTrigger className="w-44">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">Todos os status</SelectItem>
+							<SelectItem value="valid">Válido</SelectItem>
+							<SelectItem value="used">Utilizado</SelectItem>
+							<SelectItem value="cancelled">Cancelado</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
+			)}
 
 			{withTicket.length === 0 && (
 				<p className="text-muted-foreground text-sm">
@@ -108,8 +170,14 @@ function MyTicketsComponent() {
 				</p>
 			)}
 
+			{withTicket.length > 0 && filteredTickets.length === 0 && (
+				<p className="text-muted-foreground text-sm">
+					Nenhum ingresso encontrado para o filtro selecionado.
+				</p>
+			)}
+
 			<div className="flex flex-col gap-3">
-				{withTicket.map((entry) => {
+				{filteredTickets.map((entry) => {
 					const sessionDate = new Date(entry.event.sessionAt);
 					const statusBadge = ticketStatusBadge({
 						checkedInAt: entry.ticket?.checkedInAt ?? null,
