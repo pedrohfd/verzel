@@ -57,6 +57,8 @@ function HomeComponent() {
 	const organizerId = role === "organizador" ? session?.user.id : undefined;
 
 	const getPublishedEventsFn = async (controller: AbortController) => {
+		setError(null);
+
 		const [response, error] = await tryCatch(
 			getPublishedEvents(
 				{
@@ -71,7 +73,9 @@ function HomeComponent() {
 		);
 
 		if (error) {
-			setError("Não foi possível carregar as sessões.");
+			if (!controller.signal.aborted) {
+				setError("Não foi possível carregar as sessões.");
+			}
 			return;
 		}
 
