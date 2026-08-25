@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
+import BackLink from "@/components/molecules/back-link";
 import GatekeeperForm from "@/components/organisms/gatekeeper-form";
 import { requireRole } from "@/lib/route-guards";
 
@@ -13,6 +14,7 @@ function NewGatekeeperComponent() {
 
 	return (
 		<div className="container mx-auto max-w-[1600px] px-4 py-6">
+			<BackLink to="/organizer/gatekeepers" label="Porteiros" />
 			<h1 className="mb-6 font-bold text-2xl">Cadastrar porteiro</h1>
 			<GatekeeperForm
 				onSaved={() => navigate({ to: "/organizer/gatekeepers" })}

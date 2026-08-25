@@ -8,6 +8,7 @@ import { cancelReservations } from "@/api/requests/reservations/cancel-reservati
 import { createReservation } from "@/api/requests/reservations/create-reservation";
 import { getReservation } from "@/api/requests/reservations/get-reservation";
 import type { Seat, VerzelEvent } from "@/api/types";
+import BackLink from "@/components/molecules/back-link";
 import DateSelect from "@/components/molecules/date-select";
 import SeatSelectionSummary from "@/components/molecules/seat-selection-summary";
 import EventInfo from "@/components/organisms/event-info";
@@ -236,6 +237,7 @@ function EventDetailComponent() {
 
 	return (
 		<div className="container mx-auto max-w-[1800px] px-4 py-6">
+			<BackLink to="/search" label="Filmes em cartaz" />
 			{seats.length === 0 ? (
 				<>
 					<DateSelect

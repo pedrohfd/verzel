@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import type { CinemaRoom } from "@/api/types";
+import BackLink from "@/components/molecules/back-link";
 import RoomForm from "@/components/organisms/room-form";
 import { requireRole } from "@/lib/route-guards";
 
@@ -45,6 +46,7 @@ function NewRoomComponent() {
 
 	return (
 		<div className="container mx-auto max-w-[1600px] px-4 py-6">
+			<BackLink to="/organizer/rooms" label="Minhas salas" />
 			<h1 className="mb-6 font-bold text-2xl">Criar sala</h1>
 			<RoomForm onSaved={handleSaved} />
 		</div>

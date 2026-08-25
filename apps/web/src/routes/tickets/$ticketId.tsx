@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { cancelTicket } from "@/api/requests/tickets/cancel-ticket";
 import { getTicket } from "@/api/requests/tickets/get-ticket";
 import type { TicketDetail } from "@/api/types";
+import BackLink from "@/components/molecules/back-link";
 import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
@@ -105,6 +106,7 @@ function TicketDetailComponent() {
 
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
+			<BackLink to="/tickets" label="Meus ingressos" />
 			<div className="mb-6 flex items-start gap-4">
 				{ticket.event.moviePosterPath && (
 					<img

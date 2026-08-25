@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { validateTicketCode } from "@/api/requests/checkin/validate-ticket-code";
 import type { CheckinResult } from "@/api/types";
+import BackLink from "@/components/molecules/back-link";
 import { requireRole } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 
@@ -121,6 +122,7 @@ function PortariaScanComponent() {
 
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
+			<BackLink to="/portaria" label="Sessões" />
 			<h1 className="mb-6 font-bold text-2xl">Validar ingresso</h1>
 
 			{cameraError && (

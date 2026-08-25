@@ -23,6 +23,7 @@ import {
 	type RoomScheduleSlot,
 } from "@/api/requests/rooms/get-room-schedule";
 import type { CinemaRoom, TmdbMovie, VerzelEvent } from "@/api/types";
+import BackLink from "@/components/molecules/back-link";
 import SessionTimePicker from "@/components/molecules/session-time-picker";
 import CinemaRoomPreview from "@/components/organisms/cinema-room-preview";
 import MovieSearchField from "@/components/organisms/movie-search-field";
@@ -294,6 +295,7 @@ function EditEventForm({
 
 	return (
 		<div className="container mx-auto max-w-[1600px] px-4 py-6">
+			<BackLink to="/organizer" label="Minhas sessões" />
 			<h1 className="mb-6 font-bold text-2xl">Editar sessão</h1>
 
 			<div className="flex flex-col gap-6 lg:flex-row lg:items-start">

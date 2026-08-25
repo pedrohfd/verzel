@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { deleteRoom } from "@/api/requests/rooms/delete-room";
 import { getMyRooms } from "@/api/requests/rooms/get-my-rooms";
 import type { CinemaRoom } from "@/api/types";
+import BackLink from "@/components/molecules/back-link";
 import RoomForm from "@/components/organisms/room-form";
 import Loader from "@/components/ui/loader";
 import { requireRole } from "@/lib/route-guards";
@@ -90,6 +91,7 @@ function EditRoomComponent() {
 
 	return (
 		<div className="container mx-auto max-w-[1600px] px-4 py-6">
+			<BackLink to="/organizer/rooms" label="Minhas salas" />
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="font-bold text-2xl">Editar sala</h1>
 				<AlertDialog>
