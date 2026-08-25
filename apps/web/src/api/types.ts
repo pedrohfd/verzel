@@ -90,6 +90,17 @@ export interface CinemaRoom {
 	updatedAt: string;
 }
 
+export interface Combo {
+	id: string;
+	organizerId: string;
+	name: string;
+	description: string | null;
+	priceCents: number;
+	active: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface Seat {
 	id?: string;
 	eventId: string;

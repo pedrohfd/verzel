@@ -5,26 +5,39 @@ import { Label } from "@verzel/ui/components/label";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { getEventCombos } from "@/api/requests/combos/get-event-combos";
 import { getEvent } from "@/api/requests/events/get-event";
 import { processPayment } from "@/api/requests/payments/process-payment";
 import { cancelReservations } from "@/api/requests/reservations/cancel-reservations";
 import { getReservation } from "@/api/requests/reservations/get-reservation";
-import type { Reservation, VerzelEvent } from "@/api/types";
+import type { Combo, Reservation, VerzelEvent } from "@/api/types";
+import CheckoutStepper from "@/components/molecules/checkout-stepper";
 import Loader from "@/components/ui/loader";
+import { parseComboSelection } from "@/lib/combo-selection";
 import { formatPriceCents } from "@/lib/format-price";
 import { tryCatch } from "@/lib/try-catch";
 
-export const Route = createFileRoute("/checkout/$reservationIds")({
+interface CheckoutSearch {
+	combos?: string;
+}
+
+export const Route = createFileRoute("/checkout/$reservationIds/payment")({
 	component: CheckoutComponent,
+	validateSearch: (search: Record<string, unknown>): CheckoutSearch => ({
+		combos: typeof search.combos === "string" ? search.combos : undefined,
+	}),
 });
 
 function CheckoutComponent() {
 	const { reservationIds } = Route.useParams();
+	const { combos: combosParam } = Route.useSearch();
 	const navigate = useNavigate();
 	const ids = reservationIds.split(",");
+	const comboSelection = parseComboSelection(combosParam);
 
 	const [reservations, setReservations] = useState<Reservation[] | null>(null);
 	const [event, setEvent] = useState<VerzelEvent | null>(null);
+	const [combos, setCombos] = useState<Combo[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
@@ -52,6 +65,11 @@ function CheckoutComponent() {
 				return;
 			}
 			setEvent(eventResponse);
+
+			const [combosResponse, combosError] = await tryCatch(
+				getEventCombos(reservationsResponse[0].eventId, controller.signal),
+			);
+			if (!combosError) setCombos(combosResponse);
 		})();
 
 		return () => {
@@ -63,16 +81,15 @@ function CheckoutComponent() {
 	function handleBack() {
 		resolvedRef.current = true;
 		navigate({
-			to: "/events/$eventId",
-			params: { eventId: reservations?.[0]?.eventId ?? "" },
-			search: { reservationIds: ids.join(",") },
+			to: "/checkout/$reservationIds/combo",
+			params: { reservationIds },
 		});
 	}
 
 	async function handlePay(simulateOutcome: "approve" | "decline") {
 		setIsProcessing(true);
 		const [result, payError] = await tryCatch(
-			processPayment(ids, simulateOutcome),
+			processPayment(ids, simulateOutcome, comboSelection),
 		);
 		setIsProcessing(false);
 
@@ -115,8 +132,25 @@ function CheckoutComponent() {
 
 	if (!reservations || !event) return <Loader />;
 
+	const ticketsTotalCents = event.priceCents * reservations.length;
+	const comboLines = comboSelection.map((entry) => {
+		const combo = combos.find((c) => c.id === entry.comboId);
+		return {
+			id: entry.comboId,
+			name: combo?.name ?? "Combo",
+			quantity: entry.quantity,
+			subtotalCents: (combo?.priceCents ?? 0) * entry.quantity,
+		};
+	});
+	const combosTotalCents = comboLines.reduce(
+		(sum, line) => sum + line.subtotalCents,
+		0,
+	);
+	const totalCents = ticketsTotalCents + combosTotalCents;
+
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
+			<CheckoutStepper current={3} />
 			<Button
 				variant="ghost"
 				className="mb-4 -ml-3"
@@ -126,9 +160,14 @@ function CheckoutComponent() {
 				Voltar
 			</Button>
 			<h1 className="mb-2 font-bold text-2xl">Pagamento</h1>
-			<p className="mb-6 text-muted-foreground text-sm">
-				{event.movieTitle} —{" "}
-				{formatPriceCents(event.priceCents * reservations.length)}
+			<p className="text-muted-foreground text-sm">{event.movieTitle}</p>
+			{comboLines.map((line) => (
+				<p key={line.id} className="text-muted-foreground text-sm">
+					{line.quantity}x {line.name} — {formatPriceCents(line.subtotalCents)}
+				</p>
+			))}
+			<p className="mb-6 font-semibold text-sm">
+				Total: {formatPriceCents(totalCents)}
 			</p>
 
 			<div className="mb-6 flex flex-col gap-2">

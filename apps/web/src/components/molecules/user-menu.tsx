@@ -78,6 +78,9 @@ export default function UserMenu() {
 						<DropdownMenuItem render={<Link to="/organizer/rooms" />}>
 							Minhas Salas
 						</DropdownMenuItem>
+						<DropdownMenuItem render={<Link to="/organizer/combos" />}>
+							Combos
+						</DropdownMenuItem>
 						<DropdownMenuItem render={<Link to="/organizer/gatekeepers" />}>
 							Porteiros
 						</DropdownMenuItem>

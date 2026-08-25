@@ -9,6 +9,7 @@ import { createReservation } from "@/api/requests/reservations/create-reservatio
 import { getReservation } from "@/api/requests/reservations/get-reservation";
 import type { Seat, VerzelEvent } from "@/api/types";
 import BackLink from "@/components/molecules/back-link";
+import CheckoutStepper from "@/components/molecules/checkout-stepper";
 import DateSelect from "@/components/molecules/date-select";
 import SeatSelectionSummary from "@/components/molecules/seat-selection-summary";
 import EventInfo from "@/components/organisms/event-info";
@@ -182,7 +183,7 @@ function EventDetailComponent() {
 		if (toCancelIds.length === 0 && toCreateSeats.length === 0) {
 			proceedingToCheckoutRef.current = true;
 			navigate({
-				to: "/checkout/$reservationIds",
+				to: "/checkout/$reservationIds/combo",
 				params: { reservationIds: keptIds.join(",") },
 			});
 			return;
@@ -218,7 +219,7 @@ function EventDetailComponent() {
 
 		proceedingToCheckoutRef.current = true;
 		navigate({
-			to: "/checkout/$reservationIds",
+			to: "/checkout/$reservationIds/combo",
 			params: {
 				reservationIds: [...keptIds, ...newIds].join(","),
 			},
@@ -238,6 +239,7 @@ function EventDetailComponent() {
 	return (
 		<div className="container mx-auto max-w-[1800px] px-4 py-6">
 			<BackLink to="/search" label="Filmes em cartaz" />
+			{!isOrganizer && <CheckoutStepper current={1} />}
 			{seats.length === 0 ? (
 				<>
 					<DateSelect
