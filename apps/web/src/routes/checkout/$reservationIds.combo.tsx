@@ -37,7 +37,9 @@ function ComboComponent() {
 
 		(async () => {
 			const [reservationsResponse, reservationsError] = await tryCatch(
-				Promise.all(ids.map((id) => getReservation(id, controller.signal))),
+				Promise.all(
+					ids.map((id: string) => getReservation(id, controller.signal)),
+				),
 			);
 			if (reservationsError) {
 				setError("Reserva não encontrada ou expirada.");
