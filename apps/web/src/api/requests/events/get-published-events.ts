@@ -5,6 +5,10 @@ export interface GetPublishedEventsFilters {
 	search?: string;
 	tmdbMovieId?: number;
 	organizerId?: string;
+	date?: string;
+	venue?: string;
+	priceMin?: number;
+	priceMax?: number;
 }
 
 export async function getPublishedEvents(
