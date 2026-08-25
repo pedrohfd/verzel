@@ -113,6 +113,7 @@ function TicketDetailComponent() {
 						src={tmdbImageUrl(ticket.event.moviePosterPath, "w342")}
 						alt={ticket.event.movieTitle}
 						className="h-32 w-24 object-cover"
+						decoding="async"
 					/>
 				)}
 				<div className="flex flex-col gap-1">

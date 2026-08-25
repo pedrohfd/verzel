@@ -45,6 +45,7 @@ export default function EventCard({
 					alt={event.movieTitle}
 					className="aspect-2/3 w-full object-cover"
 					loading="lazy"
+					decoding="async"
 				/>
 			)}
 			<CardContent className="flex flex-1 flex-col gap-1">

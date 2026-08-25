@@ -43,6 +43,7 @@ export default function EventInfo({ event }: { event: VerzelEvent }) {
 						src={tmdbImageUrl(event.moviePosterPath, "w342")}
 						alt={event.movieTitle}
 						className="h-96 w-64 object-cover"
+						decoding="async"
 					/>
 				) : (
 					<div className="flex h-96 w-64 flex-col items-center justify-center gap-1 border border-dashed text-center">

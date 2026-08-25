@@ -90,12 +90,12 @@ export default function EventHero({ events }: { events: VerzelEvent[] }) {
 	}, [activeIndex]);
 
 	useEffect(() => {
-		for (const event of events) {
-			if (!event.movieBackdropPath) continue;
-			const preload = new Image();
-			preload.src = tmdbImageUrl(event.movieBackdropPath, "w1280");
-		}
-	}, [events]);
+		const nextEvent = events[(activeIndex + 1) % events.length];
+		if (!nextEvent?.movieBackdropPath) return;
+
+		const preload = new Image();
+		preload.src = tmdbImageUrl(nextEvent.movieBackdropPath, "w1280");
+	}, [events, activeIndex]);
 
 	if (!event) return null;
 
@@ -109,14 +109,16 @@ export default function EventHero({ events }: { events: VerzelEvent[] }) {
 				className="absolute inset-0 h-full w-full"
 			>
 				<CarouselContent className="ml-0 h-full">
-					{events.map((e) => (
+					{events.map((e, index) => (
 						<CarouselItem key={e.id} className="relative h-full pl-0">
 							{e.movieBackdropPath && (
 								<img
 									src={tmdbImageUrl(e.movieBackdropPath, "w1280")}
 									alt={e.movieTitle}
 									className="absolute inset-0 h-full w-full object-cover"
-									fetchPriority="high"
+									fetchPriority={index === 0 ? "high" : "low"}
+									loading={index === 0 ? "eager" : "lazy"}
+									decoding="async"
 								/>
 							)}
 							<div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />

@@ -43,9 +43,10 @@ export default function MovieSearchField({
 			<div className="flex items-center gap-3 border border-border p-2">
 				{value.poster_path && (
 					<img
-						src={tmdbImageUrl(value.poster_path, "w342")}
+						src={tmdbImageUrl(value.poster_path, "w92")}
 						alt={value.title}
 						className="h-16 w-11 object-cover"
+						decoding="async"
 					/>
 				)}
 				<span className="flex-1 text-sm">{value.title}</span>
@@ -84,9 +85,10 @@ export default function MovieSearchField({
 						>
 							{movie.poster_path && (
 								<img
-									src={tmdbImageUrl(movie.poster_path, "w342")}
+									src={tmdbImageUrl(movie.poster_path, "w92")}
 									alt={movie.title}
 									className="h-16 w-11 object-cover"
+									decoding="async"
 								/>
 							)}
 							<span className="text-sm">{movie.title}</span>

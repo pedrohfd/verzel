@@ -113,10 +113,11 @@ export default function SearchCommand() {
 								>
 									{event.moviePosterPath && (
 										<img
-											src={tmdbImageUrl(event.moviePosterPath, "w342")}
+											src={tmdbImageUrl(event.moviePosterPath, "w92")}
 											alt={event.movieTitle}
 											className="h-10 w-7 shrink-0 object-cover"
 											loading="lazy"
+											decoding="async"
 										/>
 									)}
 									<span className="flex flex-col">
