@@ -163,6 +163,17 @@ export default function SignUpForm() {
 					</Button>
 				</Link>
 			</div>
+
+			<div className="mt-2 text-center">
+				<Link to="/cinema-register">
+					<Button
+						variant="link"
+						className="text-indigo-600 hover:text-indigo-800"
+					>
+						É organizador de cinema? Cadastre-se aqui
+					</Button>
+				</Link>
+			</div>
 		</div>
 	);
 }
