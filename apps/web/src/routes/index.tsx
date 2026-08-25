@@ -79,7 +79,7 @@ function HomeComponent() {
 					<section>
 						<h2 className="mb-4 font-semibold text-xl">Sessões em cartaz</h2>
 						<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-							{events.slice(4).map((event) => (
+							{events.map((event) => (
 								<EventCard
 									key={event.id}
 									event={event}
