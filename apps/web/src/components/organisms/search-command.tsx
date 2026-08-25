@@ -58,6 +58,8 @@ export default function SearchCommand() {
 		if (!query) return;
 		setOpen(false);
 		navigate({ to: "/search", search: { q: query } });
+		setQuery("");
+		setResults([]);
 	};
 
 	const goToEvent = (eventId: string) => {
