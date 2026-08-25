@@ -150,6 +150,16 @@ Há um hook `.husky/pre-push` que roda `bun run test` antes de qualquer `git pus
 
 A infraestrutura de testes (configuração do Vitest, o refactor de `apps/server/src/index.ts` para extrair `buildApp()`, o script de migração do banco de teste, o hook `pre-push` e os arquivos de teste iniciais listados acima) foi escrita com apoio de IA (Claude Code), incluindo a escolha das ferramentas (Vitest, Testing Library, `fastify.inject()`) e a cobertura dos principais fluxos de sucesso e erro de cada camada.
 
+## Funcionalidades além do escopo mínimo
+
+### Combos (lanchonete)
+
+Adicionado um passo de **"Monte seu combo"** entre a seleção de assentos e o pagamento, com CRUD de combos para o organizador. Não fazia parte do escopo mínimo do desafio, mas as imagens de referência em `ui/combos.jpeg` e `ui/pagamento.jpeg` já desenhavam um fluxo de checkout de 3 passos (**1. Sessão & Assentos → 2. Combo → 3. Pagamento**), então foi implementado para completar esse fluxo.
+
+- **Organizador** (`/organizer/combos`): criar, listar, editar e excluir combos (nome, descrição, preço, ativo/inativo). Os combos pertencem ao organizador — como as salas de cinema —, então aparecem em todas as sessões dele, não em um evento específico.
+- **Cliente**: após reservar os assentos, a nova etapa `/checkout/$reservationIds/combo` lista os combos ativos do organizador daquela sessão, com um contador de quantidade por item. O total (ingressos + combos) é exibido no resumo do pedido e propagado para a tela de pagamento via query param.
+- **Pagamento**: o valor dos combos escolhidos é somado ao pagamento simulado (não é apenas visual) — a integração acontece em `apps/server/src/lib/payments.ts`, que valida se os combos pertencem ao organizador do evento, soma o subtotal ao primeiro pagamento do lote e grava um snapshot dos itens comprados (nome/preço no momento da compra) na tabela `payment_combo_item`, para o caso de o combo ser editado ou removido depois.
+
 ## Estrutura do projeto
 
 ```
