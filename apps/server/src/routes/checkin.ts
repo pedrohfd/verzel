@@ -1,30 +1,18 @@
-import { db } from "@verzel/db";
-import * as schema from "@verzel/db/schema";
-import { and, asc, eq, gte } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { validateTicket } from "../lib/checkin";
+import { listCheckinEvents, validateTicket } from "../lib/checkin";
 import { sendDomainError } from "../lib/errors";
 import { requireRole } from "../lib/require-role";
 
 const validateSchema = z.object({ code: z.string().min(1) });
 
 export async function checkinRoutes(fastify: FastifyInstance) {
-	fastify.get(
+	fastify.get<{ Querystring: { date?: string } }>(
 		"/events",
 		{ preHandler: requireRole("portaria") },
-		async (_request, reply) => {
+		async (request, reply) => {
 			try {
-				const results = await db.query.events.findMany({
-					where: and(
-						eq(schema.events.status, "published"),
-						gte(
-							schema.events.sessionAt,
-							new Date(Date.now() - 24 * 60 * 60_000),
-						),
-					),
-					orderBy: asc(schema.events.sessionAt),
-				});
+				const results = await listCheckinEvents({ date: request.query.date });
 				return { results };
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to list events");

@@ -3,16 +3,39 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockQueryChain } from "../test-helpers/mock-query-chain";
 import { signTicket } from "./ticket-code";
 
-const { transactionMock } = vi.hoisted(() => ({ transactionMock: vi.fn() }));
-
-vi.mock("@verzel/db", () => ({
-	db: { transaction: transactionMock },
+const { transactionMock, findManyMock } = vi.hoisted(() => ({
+	transactionMock: vi.fn(),
+	findManyMock: vi.fn(),
 }));
 
-const { validateTicket } = await import("./checkin");
+vi.mock("@verzel/db", () => ({
+	db: {
+		transaction: transactionMock,
+		query: { events: { findMany: findManyMock } },
+	},
+}));
+
+const { validateTicket, listCheckinEvents } = await import("./checkin");
 
 beforeEach(() => {
 	transactionMock.mockReset();
+	findManyMock.mockReset();
+});
+
+describe("listCheckinEvents", () => {
+	it("defaults to a 24h lookback window when no date is given", async () => {
+		findManyMock.mockResolvedValue([{ id: "event-1" }]);
+
+		await expect(listCheckinEvents()).resolves.toEqual([{ id: "event-1" }]);
+	});
+
+	it("filters by an explicit date", async () => {
+		findManyMock.mockResolvedValue([{ id: "event-1" }]);
+
+		await expect(listCheckinEvents({ date: "2026-01-01" })).resolves.toEqual([
+			{ id: "event-1" },
+		]);
+	});
 });
 
 describe("validateTicket", () => {

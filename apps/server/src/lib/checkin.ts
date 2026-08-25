@@ -1,8 +1,31 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lt } from "drizzle-orm";
 
 import { verifyTicketCode } from "./ticket-code";
+
+export interface ListCheckinEventsFilters {
+	date?: string;
+}
+
+export function listCheckinEvents(filters: ListCheckinEventsFilters = {}) {
+	const { date } = filters;
+	const from = date
+		? new Date(`${date}T00:00:00`)
+		: new Date(Date.now() - 24 * 60 * 60_000);
+	const to = date
+		? new Date(new Date(`${date}T00:00:00`).getTime() + 24 * 60 * 60_000)
+		: undefined;
+
+	return db.query.events.findMany({
+		where: and(
+			eq(schema.events.status, "published"),
+			gte(schema.events.sessionAt, from),
+			to ? lt(schema.events.sessionAt, to) : undefined,
+		),
+		orderBy: asc(schema.events.sessionAt),
+	});
+}
 
 export type CheckinResult =
 	| {

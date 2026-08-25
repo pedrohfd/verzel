@@ -1,19 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findManyMock, validateTicketMock, requireRoleMock } = vi.hoisted(
-	() => ({
-		findManyMock: vi.fn(),
+const { listCheckinEventsMock, validateTicketMock, requireRoleMock } =
+	vi.hoisted(() => ({
+		listCheckinEventsMock: vi.fn(),
 		validateTicketMock: vi.fn(),
 		requireRoleMock: vi.fn(),
-	}),
-);
+	}));
 
-vi.mock("@verzel/db", () => ({
-	db: { query: { events: { findMany: findManyMock } } },
-	createDb: vi.fn(() => ({})),
+vi.mock("../lib/checkin", () => ({
+	listCheckinEvents: listCheckinEventsMock,
+	validateTicket: validateTicketMock,
 }));
-
-vi.mock("../lib/checkin", () => ({ validateTicket: validateTicketMock }));
 vi.mock("../lib/require-role", () => ({ requireRole: requireRoleMock }));
 
 const { buildTestApp } = await import("../test-helpers/build-test-app");
@@ -27,7 +24,7 @@ function authAsStaff(userId = "staff-1") {
 }
 
 beforeEach(() => {
-	findManyMock.mockReset();
+	listCheckinEventsMock.mockReset();
 	validateTicketMock.mockReset();
 	requireRoleMock.mockReset();
 });
@@ -35,24 +32,28 @@ beforeEach(() => {
 describe("GET /events", () => {
 	it("returns published events happening soon", async () => {
 		authAsStaff();
-		findManyMock.mockResolvedValue([{ id: "event-1" }]);
+		listCheckinEventsMock.mockResolvedValue([{ id: "event-1" }]);
 		const app = buildTestApp();
 
 		const res = await app.inject({ method: "GET", url: "/api/checkin/events" });
 
 		expect(res.json()).toEqual({ results: [{ id: "event-1" }] });
+		expect(listCheckinEventsMock).toHaveBeenCalledWith({ date: undefined });
 	});
 
-	it("orders events by session time", async () => {
+	it("filters by an explicit date", async () => {
 		authAsStaff();
-		findManyMock.mockResolvedValue([]);
+		listCheckinEventsMock.mockResolvedValue([]);
 		const app = buildTestApp();
 
-		await app.inject({ method: "GET", url: "/api/checkin/events" });
+		await app.inject({
+			method: "GET",
+			url: "/api/checkin/events?date=2026-01-01",
+		});
 
-		expect(findManyMock).toHaveBeenCalledWith(
-			expect.objectContaining({ orderBy: expect.anything() }),
-		);
+		expect(listCheckinEventsMock).toHaveBeenCalledWith({
+			date: "2026-01-01",
+		});
 	});
 });
 
