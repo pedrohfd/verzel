@@ -238,12 +238,15 @@ export async function eventRoutes(fastify: FastifyInstance) {
 							? event.durationMinutes
 							: await getMovieRuntime(parsed.data.tmdbMovieId);
 
+					// The session copies the room grid when it moves to a room, so
+					// resizing the room later does not change existing sessions.
+					const keepsRoom = room.id === event.roomId;
 					return await updateEvent(request.params.id, {
 						...parsed.data,
 						sessionAt: new Date(parsed.data.sessionAt),
 						durationMinutes,
-						rows: room.rows,
-						columns: room.columns,
+						rows: keepsRoom ? event.rows : room.rows,
+						columns: keepsRoom ? event.columns : room.columns,
 					});
 				}
 

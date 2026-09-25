@@ -547,6 +547,35 @@ describe("PATCH /:id", () => {
 	});
 });
 
+describe("PATCH /:id grid", () => {
+	it("keeps the session grid when the room stays the same, even if the room was resized", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({
+			id: "event-1",
+			status: "published",
+			roomId: registeredRoom.id,
+			rows: 3,
+			columns: 4,
+			tmdbMovieId: validCreateBody.tmdbMovieId,
+			durationMinutes: 100,
+		});
+		getOwnedRoomMock.mockResolvedValue(registeredRoom);
+		updateEventMock.mockResolvedValue({ id: "event-1" });
+		const app = buildTestApp();
+
+		await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "update", data: validCreateBody },
+		});
+
+		expect(updateEventMock).toHaveBeenCalledWith(
+			"event-1",
+			expect.objectContaining({ rows: 3, columns: 4 }),
+		);
+	});
+});
+
 describe("GET /:id/lock", () => {
 	it("tells the owner whether the session is locked", async () => {
 		authAsOrganizer();
