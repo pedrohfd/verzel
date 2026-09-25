@@ -28,7 +28,11 @@ export const tickets = pgTable("ticket", {
 	signature: text("signature").notNull(),
 	issuedAt: timestamp("issued_at").notNull(),
 	checkedInAt: timestamp("checked_in_at"),
-	checkedInByUserId: text("checked_in_by_user_id").references(() => user.id),
+	// Who validated the ticket; the name survives the account being deleted.
+	checkedInByUserId: text("checked_in_by_user_id").references(() => user.id, {
+		onDelete: "set null",
+	}),
+	checkedInByName: text("checked_in_by_name"),
 	cancelledAt: timestamp("cancelled_at"),
 	cancellationReason: cancellationReasonEnum("cancellation_reason"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),

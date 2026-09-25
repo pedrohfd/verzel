@@ -28,6 +28,7 @@ function ticket(overrides: Partial<PurchaseTicket>): PurchaseTicket {
 		issuedAt: "2026-01-01T00:00:00.000Z",
 		checkedInAt: null,
 		checkedInByUserId: null,
+		checkedInByName: null,
 		cancelledAt: null,
 		cancellationReason: null,
 		createdAt: "2026-01-01T00:00:00.000Z",

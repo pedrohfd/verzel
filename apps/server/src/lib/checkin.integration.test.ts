@@ -16,6 +16,7 @@ import {
 	listCheckinEvents,
 	validateTicket,
 } from "./checkin";
+import { deleteGatekeeper } from "./gatekeepers";
 import { cancelTicket } from "./purchases";
 
 beforeEach(async () => {
@@ -156,7 +157,29 @@ describe("validateTicket", () => {
 
 		expect(result).toMatchObject({
 			result: "already_used",
-			checkedInBy: gatekeeper.id,
+			checkedInBy: gatekeeper.name,
+		});
+	});
+
+	it("keeps who validated the ticket after that gatekeeper is deleted", async () => {
+		const { organizer, gatekeeper, event } = await setupCinema();
+		const { ticket } = await issueTicket(event.id);
+		await validateTicket(event.id, ticket.code, asStaff(gatekeeper));
+
+		await deleteGatekeeper(gatekeeper.id, organizer.id);
+
+		const stored = await db.query.tickets.findFirst({
+			where: eq(schema.tickets.id, ticket.id),
+		});
+		expect(stored).toMatchObject({
+			checkedInByUserId: null,
+			checkedInByName: gatekeeper.name,
+		});
+		await expect(
+			validateTicket(event.id, ticket.code, asStaff(organizer)),
+		).resolves.toMatchObject({
+			result: "already_used",
+			checkedInBy: gatekeeper.name,
 		});
 	});
 

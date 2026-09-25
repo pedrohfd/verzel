@@ -195,6 +195,7 @@ function PortariaScanComponent() {
 						<p className="text-muted-foreground text-sm">
 							Utilizado em{" "}
 							{new Date(result.checkedInAt).toLocaleString("pt-BR")}
+							{result.checkedInBy && ` por ${result.checkedInBy}`}
 						</p>
 					)}
 

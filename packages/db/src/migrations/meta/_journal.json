@@ -106,6 +106,13 @@
 			"when": 1790362203488,
 			"tag": "0014_combo_snapshot",
 			"breakpoints": true
+		},
+		{
+			"idx": 15,
+			"version": "7",
+			"when": 1790362300329,
+			"tag": "0015_checked_in_by_name",
+			"breakpoints": true
 		}
 	]
 }

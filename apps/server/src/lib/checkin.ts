@@ -112,7 +112,7 @@ export async function validateTicket(
 			return {
 				result: "already_used",
 				checkedInAt: ticket.checkedInAt.toISOString(),
-				checkedInBy: ticket.checkedInByUserId,
+				checkedInBy: ticket.checkedInByName,
 			};
 		}
 
@@ -126,9 +126,17 @@ export async function validateTicket(
 			};
 		}
 
+		const validator = await tx.query.user.findFirst({
+			where: eq(schema.user.id, staff.id),
+			columns: { name: true },
+		});
 		const [updated] = await tx
 			.update(schema.tickets)
-			.set({ checkedInAt: new Date(), checkedInByUserId: staff.id })
+			.set({
+				checkedInAt: new Date(),
+				checkedInByUserId: staff.id,
+				checkedInByName: validator?.name ?? null,
+			})
 			.where(
 				and(
 					eq(schema.tickets.id, ticket.id),

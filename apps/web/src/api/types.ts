@@ -153,6 +153,7 @@ export interface Ticket {
 	issuedAt: string;
 	checkedInAt: string | null;
 	checkedInByUserId: string | null;
+	checkedInByName: string | null;
 	cancelledAt: string | null;
 	cancellationReason: CancellationReason | null;
 	createdAt: string;
