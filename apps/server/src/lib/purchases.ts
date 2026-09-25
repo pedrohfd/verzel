@@ -363,9 +363,7 @@ export async function cancelEvent(eventId: string, organizerId: string) {
 
 		for (const purchase of purchases) {
 			const purchaseTickets = await lockPurchaseTickets(tx, purchase.id);
-			const toCancel = purchaseTickets.filter(
-				(ticket) => !ticket.cancelledAt && !ticket.checkedInAt,
-			);
+			const toCancel = purchaseTickets.filter((ticket) => !ticket.cancelledAt);
 			if (toCancel.length === 0) continue;
 
 			await cancelAndRefund(

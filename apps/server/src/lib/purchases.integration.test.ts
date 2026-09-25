@@ -623,7 +623,7 @@ describe("cancelEvent", () => {
 		expect(await refundsOf(purchase.id)).toHaveLength(1);
 	});
 
-	it("leaves used tickets alone and keeps the combos of their purchase", async () => {
+	it("cancels and refunds used tickets together with the combos of their purchase", async () => {
 		const { organizer, event, purchase, tickets } = await purchaseWithCombos(2);
 		const used = ticketAt(tickets, 0);
 		await validateTicket(event.id, used.code, {
@@ -634,12 +634,36 @@ describe("cancelEvent", () => {
 		await cancelEvent(event.id, organizer.id);
 
 		const stored = await ticketsOf(purchase.id);
-		const storedUsed = stored.find((t) => t.id === used.id);
-		expect(storedUsed?.cancelledAt).toBeNull();
-		expect(storedUsed?.checkedInAt).not.toBeNull();
+		for (const ticket of stored) {
+			expect(ticket.cancelledAt).not.toBeNull();
+			expect(ticket.cancellationReason).toBe("event_cancelled");
+		}
 		expect(await refundsOf(purchase.id)).toMatchObject([
-			{ amountCents: 2000, reason: "event_cancelled" },
+			{ amountCents: 2 * 2000 + 2 * 1500, reason: "event_cancelled" },
 		]);
+	});
+
+	it("refunds the combos only once when a used ticket was the last one left", async () => {
+		const { organizer, event, customer, purchase, tickets } =
+			await purchaseWithCombos(2);
+		await validateTicket(event.id, ticketAt(tickets, 0).code, {
+			id: organizer.id,
+			role: "organizador",
+		});
+		await cancelTicket(ticketAt(tickets, 1).id, customer.id);
+
+		await cancelEvent(event.id, organizer.id);
+
+		const refunds = await refundsOf(purchase.id);
+		expect(refunds.map((r) => [r.reason, r.amountCents])).toEqual(
+			expect.arrayContaining([
+				["customer_cancelled", 2000],
+				["event_cancelled", 2000 + 2 * 1500],
+			]),
+		);
+		expect(refunds.reduce((sum, r) => sum + r.amountCents, 0)).toBe(
+			purchase.amountCents,
+		);
 	});
 
 	it("refunds each affected purchase separately and leaves other sessions alone", async () => {
