@@ -1,5 +1,5 @@
 import { apiClient } from "@/api/client";
-import type { Payment, TicketWithCode } from "@/api/types";
+import type { Purchase, TicketWithCode } from "@/api/types";
 
 export interface ComboItemInput {
 	comboId: string;
@@ -12,7 +12,7 @@ export async function processPayment(
 	comboItems: ComboItemInput[] = [],
 ) {
 	const { data } = await apiClient.post<{
-		payments: Payment[];
+		purchase: Purchase | null;
 		tickets: TicketWithCode[];
 	}>("/api/payments", { reservationIds, simulateOutcome, comboItems });
 	return data;

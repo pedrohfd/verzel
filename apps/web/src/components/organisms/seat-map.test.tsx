@@ -119,4 +119,18 @@ describe("SeatMap", () => {
 
 		expect(onSelect).not.toHaveBeenCalled();
 	});
+
+	it("blocks picking more seats once the limit is reached, but still allows unselecting", () => {
+		render(
+			<SeatMap
+				seats={seats}
+				selectedSeats={[{ row: 0, column: 0 }]}
+				maxSelected={1}
+				onSelect={vi.fn()}
+			/>,
+		);
+
+		expect(screen.getByLabelText("Assento A3")).toBeDisabled();
+		expect(screen.getByLabelText("Assento A1")).toBeEnabled();
+	});
 });

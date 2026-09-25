@@ -69,7 +69,7 @@ export async function cancelTicket(ticketId: string, customerId: string) {
 			.returning();
 
 		// Frees the seat: cancelled reservations fall outside the partial unique
-		// index's ('holding','paid') condition, same mechanism as processPayment's
+		// index's ('holding','paid') condition, same mechanism as checkout's
 		// decline branch.
 		await tx
 			.update(schema.reservations)

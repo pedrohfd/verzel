@@ -12,6 +12,7 @@ import { cancelReservations } from "@/api/requests/reservations/cancel-reservati
 import { getReservation } from "@/api/requests/reservations/get-reservation";
 import type { Combo, Reservation, VerzelEvent } from "@/api/types";
 import CheckoutStepper from "@/components/molecules/checkout-stepper";
+import PurchaseSummary from "@/components/molecules/purchase-summary";
 import Loader from "@/components/ui/loader";
 import { parseComboSelection } from "@/lib/combo-selection";
 import { formatPriceCents } from "@/lib/format-price";
@@ -109,10 +110,11 @@ function CheckoutComponent() {
 			return;
 		}
 
+		const paid = formatPriceCents(result.purchase?.amountCents ?? 0);
 		toast.success(
 			result.tickets.length > 1
-				? "Pagamento aprovado! Seus ingressos foram gerados."
-				: "Pagamento aprovado! Seu ingresso foi gerado.",
+				? `Compra aprovada (${paid})! Seus ${result.tickets.length} ingressos foram gerados.`
+				: `Compra aprovada (${paid})! Seu ingresso foi gerado.`,
 		);
 		navigate({ to: "/tickets" });
 	}
@@ -132,7 +134,6 @@ function CheckoutComponent() {
 
 	if (!reservations || !event) return <Loader />;
 
-	const ticketsTotalCents = event.priceCents * reservations.length;
 	const comboLines = comboSelection.map((entry) => {
 		const combo = combos.find((c) => c.id === entry.comboId);
 		return {
@@ -142,11 +143,6 @@ function CheckoutComponent() {
 			subtotalCents: (combo?.priceCents ?? 0) * entry.quantity,
 		};
 	});
-	const combosTotalCents = comboLines.reduce(
-		(sum, line) => sum + line.subtotalCents,
-		0,
-	);
-	const totalCents = ticketsTotalCents + combosTotalCents;
 
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">
@@ -161,14 +157,11 @@ function CheckoutComponent() {
 			</Button>
 			<h1 className="mb-2 font-bold text-2xl">Pagamento</h1>
 			<p className="text-muted-foreground text-sm">{event.movieTitle}</p>
-			{comboLines.map((line) => (
-				<p key={line.id} className="text-muted-foreground text-sm">
-					{line.quantity}x {line.name} — {formatPriceCents(line.subtotalCents)}
-				</p>
-			))}
-			<p className="mb-6 font-semibold text-sm">
-				Total: {formatPriceCents(totalCents)}
-			</p>
+			<PurchaseSummary
+				ticketCount={reservations.length}
+				ticketPriceCents={event.priceCents}
+				comboLines={comboLines}
+			/>
 
 			<div className="mb-6 flex flex-col gap-2">
 				<Label htmlFor="card-number">Número do cartão (simulado)</Label>

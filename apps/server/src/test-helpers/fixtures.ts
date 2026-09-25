@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
 
-import { processPayment } from "../lib/payments";
+import { checkout } from "../lib/purchases";
 import { createHolds } from "../lib/reservations";
 
 type Role = "cliente" | "organizador" | "portaria";
@@ -90,10 +90,10 @@ export async function buyTickets(
 	firstColumn = 0,
 ) {
 	const holds = await holdSeats(eventId, customerId, count, firstColumn);
-	return processPayment(
-		holds.map((hold) => hold?.id ?? ""),
+	return checkout({
+		reservationIds: holds.map((hold) => hold?.id ?? ""),
 		customerId,
-		"approve",
+		outcome: "approve",
 		comboItems,
-	);
+	});
 }

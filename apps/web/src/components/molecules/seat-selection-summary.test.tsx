@@ -119,4 +119,30 @@ describe("SeatSelectionSummary", () => {
 
 		expect(onReserve).toHaveBeenCalled();
 	});
+
+	it("tells the customer when the ticket limit per purchase is reached", () => {
+		const { rerender } = render(
+			<SeatSelectionSummary
+				selectedSeats={[seatA]}
+				priceCents={2500}
+				maxSeats={2}
+				isReserving={false}
+				onRemove={vi.fn()}
+				onReserve={vi.fn()}
+			/>,
+		);
+		expect(screen.queryByText(/Máximo de 2 ingressos/)).not.toBeInTheDocument();
+
+		rerender(
+			<SeatSelectionSummary
+				selectedSeats={[seatA, seatB]}
+				priceCents={2500}
+				maxSeats={2}
+				isReserving={false}
+				onRemove={vi.fn()}
+				onReserve={vi.fn()}
+			/>,
+		);
+		expect(screen.getByText(/Máximo de 2 ingressos/)).toBeInTheDocument();
+	});
 });

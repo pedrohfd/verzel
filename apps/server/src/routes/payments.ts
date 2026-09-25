@@ -2,11 +2,14 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { sendDomainError } from "../lib/errors";
-import { processPayment } from "../lib/payments";
+import { checkout, MAX_TICKETS_PER_PURCHASE } from "../lib/purchases";
 import { requireRole } from "../lib/require-role";
 
 const processPaymentSchema = z.object({
-	reservationIds: z.array(z.string().uuid()).min(1),
+	reservationIds: z
+		.array(z.string().uuid())
+		.min(1)
+		.max(MAX_TICKETS_PER_PURCHASE),
 	simulateOutcome: z.enum(["approve", "decline"]),
 	comboItems: z
 		.array(
@@ -32,13 +35,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 			}
 
 			try {
-				const result = await processPayment(
-					parsed.data.reservationIds,
-					request.user?.id ?? "",
-					parsed.data.simulateOutcome,
-					parsed.data.comboItems,
-				);
-				return result;
+				return await checkout({
+					reservationIds: parsed.data.reservationIds,
+					customerId: request.user?.id ?? "",
+					outcome: parsed.data.simulateOutcome,
+					comboItems: parsed.data.comboItems,
+				});
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to process payment");
 			}

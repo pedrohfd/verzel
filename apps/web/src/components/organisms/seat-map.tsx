@@ -23,6 +23,7 @@ type SeatMapProps = {
 	selectedSeats: SelectedSeat[];
 	onSelect: (seat: Seat) => void;
 	readOnly?: boolean;
+	maxSelected?: number;
 };
 
 function isSeatSelected(seat: Seat, selected: SelectedSeat[]): boolean {
@@ -109,12 +110,17 @@ function SeatBlock({
 	selectedSeats,
 	onSelect,
 	readOnly,
+	maxSelected,
 }: {
 	seats: Seat[];
 	selectedSeats: SelectedSeat[];
 	onSelect: (seat: Seat) => void;
 	readOnly?: boolean;
+	maxSelected?: number;
 }) {
+	const isLimitReached =
+		maxSelected !== undefined && selectedSeats.length >= maxSelected;
+
 	return (
 		<div
 			data-slot="seat-block"
@@ -126,12 +132,13 @@ function SeatBlock({
 			{seats.map((seat) => {
 				const isSelected = isSeatSelected(seat, selectedSeats);
 				const isTaken = seat.status === "taken";
+				const isBlocked = isLimitReached && !isSelected;
 
 				return (
 					<button
 						key={`${seat.row}-${seat.column}`}
 						type="button"
-						disabled={isTaken || readOnly}
+						disabled={isTaken || readOnly || isBlocked}
 						aria-label={`Assento ${seat.label}${isTaken ? " (ocupado)" : ""}`}
 						aria-pressed={isSelected}
 						onClick={() => onSelect(seat)}
@@ -139,9 +146,11 @@ function SeatBlock({
 							"relative flex h-(--seat-size) w-(--seat-size) flex-col items-center justify-center gap-0.5 rounded-md transition-colors",
 							isTaken && "cursor-not-allowed text-muted-foreground/40",
 							!isTaken && readOnly && "cursor-default text-foreground/70",
+							!isTaken && isBlocked && "cursor-not-allowed text-foreground/30",
 							!isTaken &&
 								!readOnly &&
 								!isSelected &&
+								!isBlocked &&
 								"cursor-pointer text-foreground/70 hover:bg-muted hover:text-foreground",
 							isSelected && "cursor-pointer bg-primary text-primary-foreground",
 						)}
@@ -247,6 +256,7 @@ export default function SeatMap({
 	selectedSeats,
 	onSelect,
 	readOnly,
+	maxSelected,
 }: SeatMapProps) {
 	const rows = buildRows(seats);
 	const { containerRef, screenRef, legendRef, seatSize } = useFitSeatSize();
@@ -282,6 +292,7 @@ export default function SeatMap({
 										selectedSeats={selectedSeats}
 										onSelect={onSelect}
 										readOnly={readOnly}
+										maxSelected={maxSelected}
 									/>
 									{right.length > 0 && (
 										<SeatBlock
@@ -289,6 +300,7 @@ export default function SeatMap({
 											selectedSeats={selectedSeats}
 											onSelect={onSelect}
 											readOnly={readOnly}
+											maxSelected={maxSelected}
 										/>
 									)}
 								</div>

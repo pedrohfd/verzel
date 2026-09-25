@@ -71,6 +71,27 @@
 			"when": 1787617434448,
 			"tag": "0009_spotty_ben_grimm",
 			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "7",
+			"when": 1790351501343,
+			"tag": "0010_purchase_tables",
+			"breakpoints": true
+		},
+		{
+			"idx": 11,
+			"version": "7",
+			"when": 1790351510723,
+			"tag": "0011_payments_to_purchases",
+			"breakpoints": true
+		},
+		{
+			"idx": 12,
+			"version": "7",
+			"when": 1790351525310,
+			"tag": "0012_drop_payments",
+			"breakpoints": true
 		}
 	]
 }

@@ -19,6 +19,7 @@ import Loader from "@/components/ui/loader";
 import { useEventSessions } from "@/hooks/use-event-sessions";
 import { useSeatMapPolling } from "@/hooks/use-seat-map-polling";
 import { authClient } from "@/lib/auth-client";
+import { MAX_TICKETS_PER_PURCHASE } from "@/lib/purchase-limits";
 import type { Role } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 
@@ -282,6 +283,7 @@ function EventDetailComponent() {
 						{!isOrganizer && (
 							<SeatSelectionSummary
 								selectedSeats={selectedSeats}
+								maxSeats={MAX_TICKETS_PER_PURCHASE}
 								priceCents={event.priceCents}
 								isReserving={isReserving}
 								onRemove={(seat) => {
@@ -301,17 +303,24 @@ function EventDetailComponent() {
 							seats={seats}
 							selectedSeats={selectedSeats}
 							readOnly={isOrganizer}
+							maxSelected={MAX_TICKETS_PER_PURCHASE}
 							onSelect={(seat) => {
 								if (isOrganizer || seat.status === "taken") return;
-								setSelectedSeats((current) =>
-									current.some(
-										(s) => s.row === seat.row && s.column === seat.column,
-									)
-										? current.filter(
-												(s) => s.row !== seat.row || s.column !== seat.column,
-											)
-										: [...current, seat],
-								);
+								setSelectedSeats((current) => {
+									if (
+										current.some(
+											(s) => s.row === seat.row && s.column === seat.column,
+										)
+									) {
+										return current.filter(
+											(s) => s.row !== seat.row || s.column !== seat.column,
+										);
+									}
+									if (current.length >= MAX_TICKETS_PER_PURCHASE) {
+										return current;
+									}
+									return [...current, seat];
+								});
 							}}
 						/>
 					</div>

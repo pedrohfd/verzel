@@ -158,7 +158,7 @@ Adicionado um passo de **"Monte seu combo"** entre a seleção de assentos e o p
 
 - **Organizador** (`/organizer/combos`): criar, listar, editar e excluir combos (nome, descrição, preço, ativo/inativo). Os combos pertencem ao organizador — como as salas de cinema —, então aparecem em todas as sessões dele, não em um evento específico.
 - **Cliente**: após reservar os assentos, a nova etapa `/checkout/$reservationIds/combo` lista os combos ativos do organizador daquela sessão, com um contador de quantidade por item. O total (ingressos + combos) é exibido no resumo do pedido e propagado para a tela de pagamento via query param.
-- **Pagamento**: o valor dos combos escolhidos é somado ao pagamento simulado (não é apenas visual) — a integração acontece em `apps/server/src/lib/payments.ts`, que valida se os combos pertencem ao organizador do evento, soma o subtotal ao primeiro pagamento do lote e grava um snapshot dos itens comprados (nome/preço no momento da compra) na tabela `payment_combo_item`, para o caso de o combo ser editado ou removido depois.
+- **Pagamento**: o checkout gera uma única **Compra** (1 a 10 Ingressos da mesma Sessão, mais os Combos escolhidos), com o total = preço da Sessão × Ingressos + Combos. A lógica fica em `apps/server/src/lib/purchases.ts`, que valida se os combos pertencem ao organizador da Sessão e grava na tabela `purchase_combo_item` um snapshot dos itens (nome/preço no momento da compra), para o caso de o combo ser editado ou removido depois. Cada Ingresso guarda o preço pago por ele. Pagamento recusado não gera Compra e libera os Assentos.
 
 ## Estrutura do projeto
 

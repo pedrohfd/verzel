@@ -35,7 +35,6 @@ export interface TmdbMovie {
 
 export type EventStatus = "draft" | "published" | "cancelled";
 export type ReservationStatus = "holding" | "paid" | "expired" | "cancelled";
-export type PaymentStatus = "pending" | "approved" | "declined";
 
 export interface VerzelEvent {
 	id: string;
@@ -128,13 +127,13 @@ export interface Reservation {
 	};
 }
 
-export interface Payment {
+export interface Purchase {
 	id: string;
-	reservationId: string;
+	customerId: string;
+	eventId: string;
 	amountCents: number;
 	method: string;
-	status: PaymentStatus;
-	processedAt: string | null;
+	processedAt: string;
 	createdAt: string;
 }
 
@@ -145,6 +144,8 @@ export interface Ticket {
 	reservationId: string;
 	eventId: string;
 	seatId: string;
+	purchaseId: string;
+	priceCents: number;
 	shareToken: string;
 	signature: string;
 	issuedAt: string;

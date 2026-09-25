@@ -8,6 +8,7 @@ import { formatPriceCents } from "@/lib/format-price";
 type SeatSelectionSummaryProps = {
 	selectedSeats: Seat[];
 	priceCents: number;
+	maxSeats?: number;
 	isReserving: boolean;
 	onRemove: (seat: Seat) => void;
 	onReserve: () => void;
@@ -16,10 +17,14 @@ type SeatSelectionSummaryProps = {
 export default function SeatSelectionSummary({
 	selectedSeats,
 	priceCents,
+	maxSeats,
 	isReserving,
 	onRemove,
 	onReserve,
 }: SeatSelectionSummaryProps) {
+	const isLimitReached =
+		maxSeats !== undefined && selectedSeats.length >= maxSeats;
+
 	return (
 		<div className="flex flex-col gap-3">
 			<h2 className="text-muted-foreground text-xs tracking-widest">
@@ -47,6 +52,12 @@ export default function SeatSelectionSummary({
 						</Badge>
 					))}
 				</div>
+			)}
+
+			{isLimitReached && (
+				<p className="text-muted-foreground text-xs">
+					Máximo de {maxSeats} ingressos por compra.
+				</p>
 			)}
 
 			<div className="flex items-center justify-between border-t pt-3">

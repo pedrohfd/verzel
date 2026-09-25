@@ -31,6 +31,26 @@ export class HoldExpiredError extends DomainError {
 	}
 }
 
+export class TicketLimitExceededError extends DomainError {
+	constructor(max: number) {
+		super(
+			`A purchase must have between 1 and ${max} tickets`,
+			400,
+			"TICKET_LIMIT_EXCEEDED",
+		);
+	}
+}
+
+export class MixedSessionsError extends DomainError {
+	constructor() {
+		super(
+			"All tickets of a purchase must be for the same session",
+			400,
+			"MIXED_SESSIONS",
+		);
+	}
+}
+
 export class NotFoundError extends DomainError {
 	constructor(what: string) {
 		super(`${what} not found`, 404, "NOT_FOUND");
