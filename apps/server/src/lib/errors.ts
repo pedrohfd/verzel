@@ -171,6 +171,16 @@ export class EventAlreadyStartedError extends DomainError {
 	}
 }
 
+export class CancellationWindowClosedError extends DomainError {
+	constructor(deadline: Date) {
+		super(
+			`Tickets can only be cancelled until ${deadline.toISOString()}`,
+			409,
+			"CANCELLATION_WINDOW_CLOSED",
+		);
+	}
+}
+
 export function sendDomainError(
 	reply: import("fastify").FastifyReply,
 	error: unknown,

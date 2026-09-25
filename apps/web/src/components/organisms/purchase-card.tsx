@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { customerCancellationDeadline } from "@verzel/shared/session-rules";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -33,7 +34,9 @@ export default function PurchaseCard({
 	onCancelTicket,
 }: PurchaseCardProps) {
 	const sessionDate = new Date(purchase.event.sessionAt);
-	const hasStarted = sessionDate <= new Date();
+	const now = new Date();
+	const hasStarted = sessionDate <= now;
+	const cancellationClosed = now > customerCancellationDeadline(sessionDate);
 
 	return (
 		<Card className="gap-3 p-4">
@@ -52,7 +55,10 @@ export default function PurchaseCard({
 				<ul className="flex flex-col gap-2">
 					{tickets.map((ticket) => {
 						const statusBadge = ticketStatusBadge(ticket.status);
-						const canCancel = ticket.status === "valid" && !hasStarted;
+						const isValid = ticket.status === "valid";
+						const canCancel = isValid && !cancellationClosed;
+						const showCutoffNotice =
+							isValid && cancellationClosed && !hasStarted;
 
 						return (
 							<li
@@ -72,6 +78,11 @@ export default function PurchaseCard({
 									{ticket.cancellationReason && (
 										<span className="text-muted-foreground text-xs">
 											{cancellationReasonLabel(ticket.cancellationReason)}
+										</span>
+									)}
+									{showCutoffNotice && (
+										<span className="text-muted-foreground text-xs">
+											Cancelamento só até 2h antes da sessão
 										</span>
 									)}
 								</Link>

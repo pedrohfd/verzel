@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TicketAlreadyCheckedInError } from "../lib/errors";
+import {
+	CancellationWindowClosedError,
+	TicketAlreadyCheckedInError,
+} from "../lib/errors";
 
 const {
 	getTicketByShareTokenMock,
@@ -108,5 +111,21 @@ describe("POST /:ticketId/cancel", () => {
 			error: "Checked-in tickets cannot be cancelled",
 			code: "TICKET_ALREADY_CHECKED_IN",
 		});
+	});
+
+	it("refuses with 409 once the cancellation window has closed", async () => {
+		authAsCustomer();
+		cancelTicketMock.mockRejectedValue(
+			new CancellationWindowClosedError(new Date("2026-01-01T18:00:00Z")),
+		);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/tickets/ticket-1/cancel",
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toMatchObject({ code: "CANCELLATION_WINDOW_CLOSED" });
 	});
 });

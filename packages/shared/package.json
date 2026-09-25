@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./session-rules": "./src/session-rules.ts",
 		"./validators": "./src/validators.ts"
 	},
 	"scripts": {

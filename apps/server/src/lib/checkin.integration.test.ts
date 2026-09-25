@@ -184,7 +184,10 @@ describe("validateTicket", () => {
 	});
 
 	it("returns cancelled for a cancelled ticket", async () => {
-		const { organizer, event } = await setupCinema();
+		const organizer = await createOrganizer();
+		const event = await createEvent(organizer.id, {
+			sessionAt: new Date(Date.now() + 3 * 60 * 60_000),
+		});
 		const { customer, ticket } = await issueTicket(event.id);
 		await cancelTicket(ticket.id, customer.id);
 

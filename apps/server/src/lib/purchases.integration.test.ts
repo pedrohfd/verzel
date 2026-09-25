@@ -1,7 +1,7 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
 import { eq, inArray } from "drizzle-orm";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetTestData } from "../test-helpers/db";
 import {
@@ -26,9 +26,14 @@ beforeEach(async () => {
 	await resetTestData();
 });
 
+afterEach(() => {
+	vi.useRealTimers();
+});
+
 async function setup() {
 	const organizer = await createOrganizer();
 	const event = await createEvent(organizer.id, {
+		sessionAt: new Date(Date.now() + 3 * 60 * 60_000),
 		priceCents: 2000,
 		rows: 5,
 		columns: 5,
@@ -423,6 +428,18 @@ async function refundsOf(purchaseId: string) {
 	});
 }
 
+async function freezeClockMinutesBeforeSession(
+	eventId: string,
+	minutes: number,
+) {
+	const now = new Date();
+	vi.useFakeTimers({ toFake: ["Date"], now });
+	await db
+		.update(schema.events)
+		.set({ sessionAt: new Date(now.getTime() + minutes * 60_000) })
+		.where(eq(schema.events.id, eventId));
+}
+
 function ticketAt<T>(tickets: T[], index: number): T {
 	const ticket = tickets[index];
 	if (!ticket) throw new Error(`No ticket at ${index}`);
@@ -568,8 +585,44 @@ describe("cancelTicket", () => {
 
 		await expect(
 			cancelTicket(ticketAt(tickets, 0).id, customer.id),
-		).rejects.toMatchObject({ code: "EVENT_ALREADY_STARTED" });
+		).rejects.toMatchObject({ code: "CANCELLATION_WINDOW_CLOSED" });
 		expect(await refundsOf(purchase.id)).toHaveLength(0);
+	});
+
+	it("still cancels 2h and 1 minute before the session", async () => {
+		const { event, customer, tickets } = await purchaseWithCombos(1, false);
+		await freezeClockMinutesBeforeSession(event.id, 121);
+
+		const refund = await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+
+		expect(refund.amountCents).toBe(2000);
+	});
+
+	it("still cancels exactly 2h before the session", async () => {
+		const { event, customer, tickets } = await purchaseWithCombos(1, false);
+		await freezeClockMinutesBeforeSession(event.id, 120);
+
+		const refund = await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+
+		expect(refund.amountCents).toBe(2000);
+	});
+
+	it("refuses to cancel less than 2h before the session, keeping the seat taken", async () => {
+		const { event, customer, purchase, tickets } = await purchaseWithCombos(1);
+		await freezeClockMinutesBeforeSession(event.id, 119);
+
+		await expect(
+			cancelTicket(ticketAt(tickets, 0).id, customer.id),
+		).rejects.toMatchObject({ code: "CANCELLATION_WINDOW_CLOSED" });
+		expect(await refundsOf(purchase.id)).toHaveLength(0);
+		const stored = await db.query.tickets.findFirst({
+			where: eq(schema.tickets.id, ticketAt(tickets, 0).id),
+		});
+		expect(stored?.cancelledAt).toBeNull();
+		const someoneElse = await createUser("cliente");
+		await expect(holdSeats(event.id, someoneElse.id, 1)).rejects.toMatchObject({
+			code: "SEAT_ALREADY_RESERVED",
+		});
 	});
 
 	it("refuses an unknown ticket", async () => {

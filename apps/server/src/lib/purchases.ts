@@ -1,8 +1,10 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
+import { customerCancellationDeadline } from "@verzel/shared/session-rules";
 import { desc, eq, inArray } from "drizzle-orm";
 
 import {
+	CancellationWindowClosedError,
 	ComboInactiveError,
 	EventAlreadyStartedError,
 	ForbiddenError,
@@ -318,7 +320,10 @@ export async function cancelTicket(ticketId: string, customerId: string) {
 			where: eq(schema.events.id, ticket.eventId),
 		});
 		if (!event) throw new NotFoundError("Event");
-		if (event.sessionAt <= new Date()) throw new EventAlreadyStartedError();
+		const deadline = customerCancellationDeadline(event.sessionAt);
+		if (new Date() > deadline) {
+			throw new CancellationWindowClosedError(deadline);
+		}
 
 		return cancelAndRefund(
 			tx,

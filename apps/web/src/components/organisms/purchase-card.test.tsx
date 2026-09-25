@@ -185,6 +185,47 @@ describe("PurchaseCard", () => {
 		expect(screen.getAllByRole("button", { name: "Cancelar" })).toHaveLength(1);
 	});
 
+	it("stops offering cancellation less than 2h before the session and says why", () => {
+		const base = purchase({ tickets: [ticket({ id: "ticket-1" })] });
+		render(
+			<PurchaseCard
+				purchase={{
+					...base,
+					event: {
+						...base.event,
+						sessionAt: new Date(Date.now() + 90 * 60_000).toISOString(),
+					},
+				}}
+				onCancelTicket={vi.fn()}
+			/>,
+		);
+
+		expect(screen.queryByRole("button", { name: "Cancelar" })).toBeNull();
+		expect(
+			screen.getByText("Cancelamento só até 2h antes da sessão"),
+		).toBeInTheDocument();
+	});
+
+	it("still offers cancellation a little over 2h before the session", () => {
+		const base = purchase({ tickets: [ticket({ id: "ticket-1" })] });
+		render(
+			<PurchaseCard
+				purchase={{
+					...base,
+					event: {
+						...base.event,
+						sessionAt: new Date(Date.now() + 125 * 60_000).toISOString(),
+					},
+				}}
+				onCancelTicket={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.getByRole("button", { name: "Cancelar" }),
+		).toBeInTheDocument();
+	});
+
 	it("asks for confirmation before cancelling a ticket", async () => {
 		const onCancelTicket = vi.fn();
 		render(
