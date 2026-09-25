@@ -291,16 +291,20 @@ export function listOrganizerEvents(
 		);
 }
 
-export async function getPublicEvent(eventId: string) {
+// Draft and cancelled sessions are only visible to the organizer who owns them.
+export async function getPublicEvent(eventId: string, viewerId: string | null) {
 	const event = await db.query.events.findFirst({
 		where: eq(schema.events.id, eventId),
 	});
 	if (!event) throw new NotFoundError("Event");
+	if (event.status !== "published" && event.organizerId !== viewerId) {
+		throw new NotFoundError("Event");
+	}
 	return event;
 }
 
-export async function getSeatMap(eventId: string) {
-	const event = await getPublicEvent(eventId);
+export async function getSeatMap(eventId: string, viewerId: string | null) {
+	const event = await getPublicEvent(eventId, viewerId);
 
 	if (event.status === "draft") return [];
 

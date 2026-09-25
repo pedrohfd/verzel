@@ -5,6 +5,7 @@ import {
 	EventLockedError,
 	ForbiddenError,
 	InvalidEventTransitionError,
+	NotFoundError,
 	RoomScheduleConflictError,
 } from "../lib/errors";
 
@@ -21,6 +22,7 @@ const {
 	updateEventMock,
 	isEventLockedMock,
 	requireRoleMock,
+	getSessionUserMock,
 	getCinemaByUserIdMock,
 	getOwnedRoomMock,
 	getMovieRuntimeMock,
@@ -37,6 +39,7 @@ const {
 	updateEventMock: vi.fn(),
 	isEventLockedMock: vi.fn(),
 	requireRoleMock: vi.fn(),
+	getSessionUserMock: vi.fn(),
 	getCinemaByUserIdMock: vi.fn(),
 	getOwnedRoomMock: vi.fn(),
 	getMovieRuntimeMock: vi.fn(),
@@ -61,6 +64,7 @@ vi.mock("../lib/events", () => ({
 
 vi.mock("../lib/require-role", () => ({
 	requireRole: requireRoleMock,
+	getSessionUser: getSessionUserMock,
 }));
 
 vi.mock("../lib/cinemas", () => ({
@@ -127,6 +131,7 @@ beforeEach(() => {
 		updateEventMock,
 		isEventLockedMock,
 		requireRoleMock,
+		getSessionUserMock,
 		getCinemaByUserIdMock,
 		getOwnedRoomMock,
 		getMovieRuntimeMock,
@@ -235,18 +240,47 @@ describe("GET /mine", () => {
 });
 
 describe("GET /:id", () => {
-	it("returns the public event", async () => {
+	it("returns the public event to a visitor", async () => {
+		getSessionUserMock.mockResolvedValue(null);
 		getPublicEventMock.mockResolvedValue({ id: "event-1" });
 		const app = buildTestApp();
 
 		const res = await app.inject({ method: "GET", url: "/api/events/event-1" });
 
 		expect(res.json()).toEqual({ id: "event-1" });
+		expect(getPublicEventMock).toHaveBeenCalledWith("event-1", null);
+	});
+
+	it("lets the signed-in organizer see their own unpublished session", async () => {
+		getSessionUserMock.mockResolvedValue({
+			id: "organizer-1",
+			role: "organizador",
+		});
+		getPublicEventMock.mockResolvedValue({ id: "event-1", status: "draft" });
+		const app = buildTestApp();
+
+		await app.inject({ method: "GET", url: "/api/events/event-1" });
+
+		expect(getPublicEventMock).toHaveBeenCalledWith("event-1", "organizer-1");
+	});
+
+	it("answers 404 for a session hidden from the viewer", async () => {
+		getSessionUserMock.mockResolvedValue(null);
+		getPublicEventMock.mockRejectedValue(new NotFoundError("Event"));
+		const app = buildTestApp();
+
+		const res = await app.inject({ method: "GET", url: "/api/events/event-1" });
+
+		expect(res.statusCode).toBe(404);
 	});
 });
 
 describe("GET /:id/seats", () => {
 	it("returns the seat map", async () => {
+		getSessionUserMock.mockResolvedValue({
+			id: "organizer-1",
+			role: "organizador",
+		});
 		getSeatMapMock.mockResolvedValue([{ id: "seat-1", status: "available" }]);
 		const app = buildTestApp();
 
@@ -258,6 +292,7 @@ describe("GET /:id/seats", () => {
 		expect(res.json()).toEqual({
 			results: [{ id: "seat-1", status: "available" }],
 		});
+		expect(getSeatMapMock).toHaveBeenCalledWith("event-1", "organizer-1");
 	});
 });
 

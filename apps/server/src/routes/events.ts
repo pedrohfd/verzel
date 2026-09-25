@@ -20,7 +20,7 @@ import {
 } from "../lib/events";
 import { formatAddress } from "../lib/format-address";
 import { cancelEvent } from "../lib/purchases";
-import { requireRole } from "../lib/require-role";
+import { getSessionUser, requireRole } from "../lib/require-role";
 import { getOwnedRoom } from "../lib/rooms";
 import { getMovieRuntime } from "../lib/tmdb";
 
@@ -108,7 +108,8 @@ export async function eventRoutes(fastify: FastifyInstance) {
 
 	fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
 		try {
-			return await getPublicEvent(request.params.id);
+			const viewer = await getSessionUser(request);
+			return await getPublicEvent(request.params.id, viewer?.id ?? null);
 		} catch (error) {
 			sendDomainError(reply, error, "Failed to fetch event");
 		}
@@ -118,7 +119,8 @@ export async function eventRoutes(fastify: FastifyInstance) {
 		"/:id/seats",
 		async (request, reply) => {
 			try {
-				const results = await getSeatMap(request.params.id);
+				const viewer = await getSessionUser(request);
+				const results = await getSeatMap(request.params.id, viewer?.id ?? null);
 				return { results };
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to fetch seat map");

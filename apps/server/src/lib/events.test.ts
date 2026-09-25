@@ -272,13 +272,15 @@ describe("getPublicEvent", () => {
 	it("returns the event when found", async () => {
 		queryMock.events.findFirst.mockResolvedValue(baseEvent);
 
-		await expect(getPublicEvent("event-1")).resolves.toEqual(baseEvent);
+		await expect(getPublicEvent("event-1", "organizer-1")).resolves.toEqual(
+			baseEvent,
+		);
 	});
 
 	it("throws NotFoundError when missing", async () => {
 		queryMock.events.findFirst.mockResolvedValue(undefined);
 
-		await expect(getPublicEvent("missing")).rejects.toBeInstanceOf(
+		await expect(getPublicEvent("missing", null)).rejects.toBeInstanceOf(
 			NotFoundError,
 		);
 	});
@@ -288,7 +290,7 @@ describe("getSeatMap", () => {
 	it("returns an empty grid for draft events", async () => {
 		queryMock.events.findFirst.mockResolvedValue(baseEvent);
 
-		await expect(getSeatMap("event-1")).resolves.toEqual([]);
+		await expect(getSeatMap("event-1", "organizer-1")).resolves.toEqual([]);
 	});
 
 	it("marks seats with a live reservation as taken and the rest as available", async () => {
@@ -302,7 +304,7 @@ describe("getSeatMap", () => {
 			{ seat: { row: 0, column: 0 } },
 		]);
 
-		const result = await getSeatMap("event-1");
+		const result = await getSeatMap("event-1", null);
 
 		expect(result).toEqual([
 			{ eventId: "event-1", row: 0, column: 0, label: "A1", status: "taken" },

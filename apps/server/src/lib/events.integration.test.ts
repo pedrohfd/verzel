@@ -12,7 +12,13 @@ import {
 	createUser,
 	holdSeats,
 } from "../test-helpers/fixtures";
-import { isEventLocked, publishEvent, updateEvent } from "./events";
+import {
+	getPublicEvent,
+	getSeatMap,
+	isEventLocked,
+	publishEvent,
+	updateEvent,
+} from "./events";
 import { cancelTicket } from "./purchases";
 import { cancelHolds } from "./reservations";
 
@@ -53,6 +59,56 @@ describe("publishEvent", () => {
 
 		await expect(publishEvent(event.id, organizer.id)).rejects.toMatchObject({
 			code: "INVALID_EVENT_TRANSITION",
+		});
+	});
+});
+
+describe("getPublicEvent", () => {
+	it("shows a published session to anyone", async () => {
+		const organizer = await createOrganizer();
+		const event = await createEvent(organizer.id, { status: "published" });
+
+		await expect(getPublicEvent(event.id, null)).resolves.toMatchObject({
+			id: event.id,
+		});
+	});
+
+	it.each(["draft", "cancelled"] as const)(
+		"hides a %s session from visitors and other users",
+		async (status) => {
+			const organizer = await createOrganizer();
+			const event = await createEvent(organizer.id, { status });
+			const otherOrganizer = await createOrganizer();
+			const customer = await createUser("cliente");
+
+			for (const viewerId of [null, otherOrganizer.id, customer.id]) {
+				await expect(getPublicEvent(event.id, viewerId)).rejects.toMatchObject({
+					code: "NOT_FOUND",
+				});
+			}
+		},
+	);
+
+	it.each(["draft", "cancelled"] as const)(
+		"shows a %s session to the organizer who owns it",
+		async (status) => {
+			const organizer = await createOrganizer();
+			const event = await createEvent(organizer.id, { status });
+
+			await expect(
+				getPublicEvent(event.id, organizer.id),
+			).resolves.toMatchObject({ id: event.id, status });
+		},
+	);
+});
+
+describe("getSeatMap", () => {
+	it("hides the seats of a cancelled session from visitors", async () => {
+		const organizer = await createOrganizer();
+		const event = await createEvent(organizer.id, { status: "cancelled" });
+
+		await expect(getSeatMap(event.id, null)).rejects.toMatchObject({
+			code: "NOT_FOUND",
 		});
 	});
 });
