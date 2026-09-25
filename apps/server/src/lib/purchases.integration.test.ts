@@ -354,6 +354,45 @@ describe("checkout", () => {
 		expect(await countRows()).toMatchObject({ purchases: 0, tickets: 0 });
 	});
 
+	it("refuses to pay once the session has started, creating no purchase", async () => {
+		const { event, customer } = await setup();
+		const holds = await holdSeats(event.id, customer.id, 2);
+		await db
+			.update(schema.events)
+			.set({ sessionAt: new Date() })
+			.where(eq(schema.events.id, event.id));
+
+		await expect(
+			checkout({
+				reservationIds: idsOf(holds),
+				customerId: customer.id,
+				outcome: "approve",
+			}),
+		).rejects.toMatchObject({ code: "EVENT_ALREADY_STARTED" });
+		expect(await countRows()).toEqual({
+			purchases: 0,
+			tickets: 0,
+			comboItems: 0,
+		});
+	});
+
+	it("still takes the payment 1 minute before the session starts", async () => {
+		const { event, customer } = await setup();
+		const holds = await holdSeats(event.id, customer.id, 1);
+		await db
+			.update(schema.events)
+			.set({ sessionAt: new Date(Date.now() + 60_000) })
+			.where(eq(schema.events.id, event.id));
+
+		const { purchase } = await checkout({
+			reservationIds: idsOf(holds),
+			customerId: customer.id,
+			outcome: "approve",
+		});
+
+		expect(purchase).not.toBeNull();
+	});
+
 	it("counts a repeated reservation id only once", async () => {
 		const { event, customer } = await setup();
 		const [hold] = await holdSeats(event.id, customer.id, 1);

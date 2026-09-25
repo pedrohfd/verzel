@@ -169,6 +169,7 @@ export async function checkout({
 			.where(eq(schema.events.id, eventId))
 			.for("update");
 		if (event?.status !== "published") throw new NotFoundError("Event");
+		if (event.sessionAt <= new Date()) throw new EventAlreadyStartedError();
 
 		const comboLines = await resolveComboLines(
 			tx,

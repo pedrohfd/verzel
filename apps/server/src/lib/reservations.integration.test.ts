@@ -115,6 +115,29 @@ describe("createHolds", () => {
 	});
 });
 
+describe("createHolds at the session start", () => {
+	it("still holds seats 1 minute before the session starts", async () => {
+		const organizer = await createOrganizer();
+		const event = await createEvent(organizer.id, {
+			sessionAt: new Date(Date.now() + 60_000),
+		});
+		const customer = await createUser("cliente");
+
+		await expect(holdSeats(event.id, customer.id, 2)).resolves.toHaveLength(2);
+	});
+
+	it("refuses to hold seats once the session has started, creating none", async () => {
+		const organizer = await createOrganizer();
+		const event = await createEvent(organizer.id, { sessionAt: new Date() });
+		const customer = await createUser("cliente");
+
+		await expect(holdSeats(event.id, customer.id, 2)).rejects.toMatchObject({
+			code: "EVENT_ALREADY_STARTED",
+		});
+		expect(await activeHoldsOf(customer.id, event.id)).toHaveLength(0);
+	});
+});
+
 describe("countActiveHolds", () => {
 	it("counts only the customer's live holds of the session", async () => {
 		const { event, customer } = await setup();

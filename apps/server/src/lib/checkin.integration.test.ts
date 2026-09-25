@@ -10,6 +10,7 @@ import {
 	createGatekeeper,
 	createOrganizer,
 	createUser,
+	moveSessionTo,
 } from "../test-helpers/fixtures";
 import {
 	type CheckinStaff,
@@ -255,11 +256,13 @@ describe("validateTicket", () => {
 
 	it("returns expired for an unused ticket once the session has ended", async () => {
 		const { organizer } = await setupCinema();
-		const endedEvent = await createEvent(organizer.id, {
+		const upcoming = await createEvent(organizer.id, { durationMinutes: 120 });
+		const { ticket } = await issueTicket(upcoming.id);
+		const endedEvent = {
+			...upcoming,
 			sessionAt: new Date(Date.now() - 3 * 60 * 60_000),
-			durationMinutes: 120,
-		});
-		const { ticket } = await issueTicket(endedEvent.id);
+		};
+		await moveSessionTo(endedEvent.id, endedEvent.sessionAt);
 
 		const result = await validateTicket(
 			endedEvent.id,

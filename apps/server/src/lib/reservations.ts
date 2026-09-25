@@ -3,6 +3,7 @@ import * as schema from "@verzel/db/schema";
 import { and, count, eq, gte, inArray, lt, sql } from "drizzle-orm";
 
 import {
+	EventAlreadyStartedError,
 	HoldExpiredError,
 	NotFoundError,
 	ReservationLimitExceededError,
@@ -59,6 +60,7 @@ export async function createHolds(
 		if (event?.status !== "published") {
 			throw new NotFoundError("Event");
 		}
+		if (event.sessionAt <= new Date()) throw new EventAlreadyStartedError();
 
 		// Serializes concurrent requests of the same customer for the same
 		// session, so both cannot pass the limit check before either inserts.

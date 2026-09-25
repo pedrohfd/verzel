@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
+import { eq } from "drizzle-orm";
 
 import { checkout } from "../lib/purchases";
 import { createHolds } from "../lib/reservations";
@@ -58,6 +59,15 @@ export async function createEvent(
 		.returning();
 	if (!event) throw new Error("Failed to create event");
 	return event;
+}
+
+// Sales close when the session starts, so tickets of past sessions are bought
+// while the session is upcoming and the session is then moved back in time.
+export async function moveSessionTo(eventId: string, sessionAt: Date) {
+	await db
+		.update(schema.events)
+		.set({ sessionAt })
+		.where(eq(schema.events.id, eventId));
 }
 
 export async function createRoom(organizerId: string, rows = 5, columns = 5) {

@@ -8,6 +8,7 @@ import {
 	createEvent,
 	createOrganizer,
 	createUser,
+	moveSessionTo,
 } from "../test-helpers/fixtures";
 import { ForbiddenError, NotFoundError } from "./errors";
 import { listMyPurchases } from "./purchases";
@@ -19,12 +20,10 @@ beforeEach(async () => {
 
 async function ticketOfEndedSession() {
 	const organizer = await createOrganizer();
-	const event = await createEvent(organizer.id, {
-		sessionAt: new Date(Date.now() - 3 * 60 * 60_000),
-		durationMinutes: 120,
-	});
+	const event = await createEvent(organizer.id, { durationMinutes: 120 });
 	const customer = await createUser("cliente");
 	const { tickets } = await buyTickets(event.id, customer.id);
+	await moveSessionTo(event.id, new Date(Date.now() - 3 * 60 * 60_000));
 	const ticket = tickets[0];
 	if (!ticket) throw new Error("No ticket issued");
 	return { customer, ticket };
