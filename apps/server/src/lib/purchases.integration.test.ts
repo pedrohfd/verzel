@@ -668,13 +668,24 @@ describe("cancelEvent", () => {
 		expect(await refundsOf(untouched?.id ?? "")).toHaveLength(0);
 	});
 
-	it("does not refund twice when the session is cancelled again", async () => {
+	it("refuses to cancel the session again and does not refund twice", async () => {
 		const { organizer, event, purchase } = await purchaseWithCombos(2);
 		await cancelEvent(event.id, organizer.id);
 
-		await cancelEvent(event.id, organizer.id);
+		await expect(cancelEvent(event.id, organizer.id)).rejects.toMatchObject({
+			code: "INVALID_EVENT_TRANSITION",
+		});
 
 		expect(await refundsOf(purchase.id)).toHaveLength(1);
+	});
+
+	it("cancels a draft session", async () => {
+		const organizer = await createOrganizer();
+		const event = await createEvent(organizer.id, { status: "draft" });
+
+		const cancelled = await cancelEvent(event.id, organizer.id);
+
+		expect(cancelled.status).toBe("cancelled");
 	});
 
 	it("changes nothing when another organizer tries to cancel the session", async () => {

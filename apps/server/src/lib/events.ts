@@ -16,6 +16,7 @@ import {
 
 import {
 	ForbiddenError,
+	InvalidEventTransitionError,
 	NotFoundError,
 	RoomScheduleConflictError,
 } from "./errors";
@@ -91,6 +92,9 @@ export async function publishEvent(eventId: string, organizerId: string) {
 
 		if (!event) throw new NotFoundError("Event");
 		if (event.organizerId !== organizerId) throw new ForbiddenError();
+		if (event.status !== "draft") {
+			throw new InvalidEventTransitionError(event.status, "published");
+		}
 
 		const [updated] = await tx
 			.update(schema.events)

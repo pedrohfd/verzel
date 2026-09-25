@@ -85,6 +85,16 @@ export class EventSeatsLockedError extends DomainError {
 	}
 }
 
+export class InvalidEventTransitionError extends DomainError {
+	constructor(from: string, to: string) {
+		super(
+			`A ${from} event cannot become ${to}`,
+			409,
+			"INVALID_EVENT_TRANSITION",
+		);
+	}
+}
+
 export class RoomInUseError extends DomainError {
 	constructor() {
 		super("Room is in use by an active event", 409, "ROOM_IN_USE");

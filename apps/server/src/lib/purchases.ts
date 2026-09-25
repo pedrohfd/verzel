@@ -6,6 +6,7 @@ import {
 	EventAlreadyStartedError,
 	ForbiddenError,
 	HoldExpiredError,
+	InvalidEventTransitionError,
 	MixedSessionsError,
 	NotFoundError,
 	ReservationNotHoldingError,
@@ -342,6 +343,9 @@ export async function cancelEvent(eventId: string, organizerId: string) {
 			.for("update");
 		if (!event) throw new NotFoundError("Event");
 		if (event.organizerId !== organizerId) throw new ForbiddenError();
+		if (event.status === "cancelled") {
+			throw new InvalidEventTransitionError(event.status, "cancelled");
+		}
 
 		const [cancelled] = await tx
 			.update(schema.events)

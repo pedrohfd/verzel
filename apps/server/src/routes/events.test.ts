@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ForbiddenError, RoomScheduleConflictError } from "../lib/errors";
+import {
+	ForbiddenError,
+	InvalidEventTransitionError,
+	RoomScheduleConflictError,
+} from "../lib/errors";
 
 const {
 	listPublishedEventsMock,
@@ -350,6 +354,24 @@ describe("PATCH /:id", () => {
 		});
 
 		expect(res.json()).toEqual({ id: "event-1", status: "cancelled" });
+	});
+
+	it("returns 409 when the session cannot make the transition", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({ id: "event-1", status: "cancelled" });
+		publishEventMock.mockRejectedValue(
+			new InvalidEventTransitionError("cancelled", "published"),
+		);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "publish" },
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toMatchObject({ code: "INVALID_EVENT_TRANSITION" });
 	});
 
 	it("returns 400 for an unknown action", async () => {
