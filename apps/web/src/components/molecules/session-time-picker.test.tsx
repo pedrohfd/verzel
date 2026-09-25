@@ -46,6 +46,24 @@ describe("SessionTimePicker", () => {
 		expect(screen.getByText("00").closest("button")).toBeDisabled();
 	});
 
+	it("disables the date, hour and minute when the field is locked", () => {
+		render(
+			<SessionTimePicker
+				value="2026-08-19T09:00"
+				onChange={vi.fn()}
+				occupiedSlots={[]}
+				durationMinutes={120}
+				disabled
+			/>,
+		);
+
+		expect(
+			screen.getByText(/19 de agosto de 2026/i).closest("button"),
+		).toBeDisabled();
+		expect(screen.getByText("09").closest("button")).toBeDisabled();
+		expect(screen.getByText("00").closest("button")).toBeDisabled();
+	});
+
 	it("disables hours that conflict with an occupied slot", async () => {
 		render(
 			<SessionTimePicker

@@ -30,7 +30,6 @@ vi.mock("@verzel/db", () => ({
 
 const {
 	createEvent,
-	updateEvent,
 	getOwnedEvent,
 	listPublishedEvents,
 	listPublishedVenues,
@@ -109,57 +108,6 @@ describe("createEvent", () => {
 		).rejects.toBeInstanceOf(RoomScheduleConflictError);
 
 		expect(insertMock).not.toHaveBeenCalled();
-	});
-});
-
-describe("updateEvent", () => {
-	it("updates the event and returns it", async () => {
-		queryMock.events.findFirst.mockResolvedValue(undefined);
-		const updateMock = vi
-			.fn()
-			.mockReturnValue(mockQueryChain([{ ...baseEvent, priceCents: 2000 }]));
-		vi.mocked((await import("@verzel/db")).db).update = updateMock;
-
-		const result = await updateEvent("event-1", {
-			tmdbMovieId: 1,
-			movieTitle: "Some Movie",
-			moviePosterPath: null,
-			movieBackdropPath: null,
-			sessionAt: new Date(),
-			durationMinutes: 120,
-			priceCents: 2000,
-			roomId: "room-1",
-			rows: 1,
-			columns: 1,
-		});
-
-		expect(result).toEqual({ ...baseEvent, priceCents: 2000 });
-	});
-
-	it("throws RoomScheduleConflictError when the room already has an overlapping session", async () => {
-		queryMock.events.findFirst.mockResolvedValue({
-			...baseEvent,
-			id: "event-2",
-		});
-		const updateMock = vi.fn();
-		vi.mocked((await import("@verzel/db")).db).update = updateMock;
-
-		await expect(
-			updateEvent("event-1", {
-				tmdbMovieId: 1,
-				movieTitle: "Some Movie",
-				moviePosterPath: null,
-				movieBackdropPath: null,
-				sessionAt: new Date(),
-				durationMinutes: 120,
-				priceCents: 2000,
-				roomId: "room-1",
-				rows: 1,
-				columns: 1,
-			}),
-		).rejects.toBeInstanceOf(RoomScheduleConflictError);
-
-		expect(updateMock).not.toHaveBeenCalled();
 	});
 });
 

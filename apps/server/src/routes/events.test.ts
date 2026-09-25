@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
 	EventAlreadyStartedError,
+	EventLockedError,
 	ForbiddenError,
 	InvalidEventTransitionError,
 	RoomScheduleConflictError,
@@ -18,6 +19,7 @@ const {
 	publishEventMock,
 	cancelEventMock,
 	updateEventMock,
+	isEventLockedMock,
 	requireRoleMock,
 	getCinemaByUserIdMock,
 	getOwnedRoomMock,
@@ -33,6 +35,7 @@ const {
 	publishEventMock: vi.fn(),
 	cancelEventMock: vi.fn(),
 	updateEventMock: vi.fn(),
+	isEventLockedMock: vi.fn(),
 	requireRoleMock: vi.fn(),
 	getCinemaByUserIdMock: vi.fn(),
 	getOwnedRoomMock: vi.fn(),
@@ -53,6 +56,7 @@ vi.mock("../lib/events", () => ({
 	getOwnedEvent: getOwnedEventMock,
 	publishEvent: publishEventMock,
 	updateEvent: updateEventMock,
+	isEventLocked: isEventLockedMock,
 }));
 
 vi.mock("../lib/require-role", () => ({
@@ -121,6 +125,7 @@ beforeEach(() => {
 		publishEventMock,
 		cancelEventMock,
 		updateEventMock,
+		isEventLockedMock,
 		requireRoleMock,
 		getCinemaByUserIdMock,
 		getOwnedRoomMock,
@@ -494,15 +499,16 @@ describe("PATCH /:id", () => {
 		);
 	});
 
-	it("returns 409 when changing rows or columns of a published event", async () => {
+	it("returns 409 when the session is locked by reserved or occupied seats", async () => {
 		authAsOrganizer();
 		getOwnedEventMock.mockResolvedValue({
 			id: "event-1",
 			status: "published",
-			rows: registeredRoom.rows + 1,
-			columns: registeredRoom.columns,
+			tmdbMovieId: 1,
+			durationMinutes: 100,
 		});
 		getOwnedRoomMock.mockResolvedValue(registeredRoom);
+		updateEventMock.mockRejectedValue(new EventLockedError());
 		const app = buildTestApp();
 
 		const res = await app.inject({
@@ -512,6 +518,63 @@ describe("PATCH /:id", () => {
 		});
 
 		expect(res.statusCode).toBe(409);
-		expect(res.json()).toMatchObject({ code: "EVENT_SEATS_LOCKED" });
+		expect(res.json()).toMatchObject({ code: "EVENT_LOCKED" });
+	});
+
+	it("keeps the stored duration when the movie does not change", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({
+			id: "event-1",
+			status: "published",
+			tmdbMovieId: validCreateBody.tmdbMovieId,
+			durationMinutes: 100,
+		});
+		getOwnedRoomMock.mockResolvedValue(registeredRoom);
+		updateEventMock.mockResolvedValue({ id: "event-1" });
+		const app = buildTestApp();
+
+		await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "update", data: validCreateBody },
+		});
+
+		expect(getMovieRuntimeMock).not.toHaveBeenCalled();
+		expect(updateEventMock).toHaveBeenCalledWith(
+			"event-1",
+			expect.objectContaining({ durationMinutes: 100 }),
+		);
+	});
+});
+
+describe("GET /:id/lock", () => {
+	it("tells the owner whether the session is locked", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({ id: "event-1" });
+		isEventLockedMock.mockResolvedValue(true);
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "GET",
+			url: "/api/events/event-1/lock",
+		});
+
+		expect(res.statusCode).toBe(200);
+		expect(res.json()).toEqual({ locked: true });
+		expect(getOwnedEventMock).toHaveBeenCalledWith("event-1", "organizer-1");
+	});
+
+	it("refuses another organizer's session", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockRejectedValue(new ForbiddenError());
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "GET",
+			url: "/api/events/event-1/lock",
+		});
+
+		expect(res.statusCode).toBe(403);
+		expect(isEventLockedMock).not.toHaveBeenCalled();
 	});
 });

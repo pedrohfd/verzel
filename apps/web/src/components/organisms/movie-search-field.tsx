@@ -11,11 +11,13 @@ import { tryCatch } from "@/lib/try-catch";
 interface MovieSearchFieldProps {
 	value: TmdbMovie | null;
 	onChange: (movie: TmdbMovie | null) => void;
+	disabled?: boolean;
 }
 
 export default function MovieSearchField({
 	value,
 	onChange,
+	disabled,
 }: MovieSearchFieldProps) {
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<TmdbMovie[]>([]);
@@ -54,6 +56,7 @@ export default function MovieSearchField({
 					type="button"
 					variant="outline"
 					size="sm"
+					disabled={disabled}
 					onClick={() => onChange(null)}
 				>
 					Trocar

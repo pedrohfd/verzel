@@ -92,6 +92,7 @@ export default function SessionTimePicker({
 	occupiedSlots,
 	durationMinutes,
 	loading,
+	disabled,
 }: {
 	id?: string;
 	value: string;
@@ -100,6 +101,7 @@ export default function SessionTimePicker({
 	occupiedSlots: RoomScheduleSlot[];
 	durationMinutes: number;
 	loading?: boolean;
+	disabled?: boolean;
 }) {
 	const [calendarOpen, setCalendarOpen] = useState(false);
 	const { date, time } = splitDatetimeLocal(value);
@@ -136,6 +138,7 @@ export default function SessionTimePicker({
 			>
 				<PopoverTrigger
 					id={id}
+					disabled={disabled}
 					render={
 						<Button
 							variant="outline"
@@ -160,7 +163,7 @@ export default function SessionTimePicker({
 			<Select
 				value={hour}
 				onValueChange={(nextHour) => changeTime(nextHour ?? "", minute || "00")}
-				disabled={!date || loading}
+				disabled={disabled || !date || loading}
 				items={hourOptions.map((h) => ({ value: h, label: h }))}
 			>
 				<SelectTrigger className="w-20">
@@ -191,7 +194,7 @@ export default function SessionTimePicker({
 			<Select
 				value={minute}
 				onValueChange={(nextMinute) => changeTime(hour, nextMinute ?? "")}
-				disabled={!date || !hour || loading}
+				disabled={disabled || !date || !hour || loading}
 				items={minuteOptions.map((m) => ({ value: m, label: m }))}
 			>
 				<SelectTrigger className="w-20">

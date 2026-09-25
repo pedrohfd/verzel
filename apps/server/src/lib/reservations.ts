@@ -54,7 +54,8 @@ export async function createHolds(
 		const [event] = await tx
 			.select()
 			.from(schema.events)
-			.where(eq(schema.events.id, eventId));
+			.where(eq(schema.events.id, eventId))
+			.for("share");
 		if (event?.status !== "published") {
 			throw new NotFoundError("Event");
 		}

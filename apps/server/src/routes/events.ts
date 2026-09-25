@@ -4,7 +4,6 @@ import { getCinemaByUserId } from "../lib/cinemas";
 import {
 	CinemaNotRegisteredError,
 	EventNotEditableError,
-	EventSeatsLockedError,
 	sendDomainError,
 } from "../lib/errors";
 import {
@@ -12,6 +11,7 @@ import {
 	getOwnedEvent,
 	getPublicEvent,
 	getSeatMap,
+	isEventLocked,
 	listOrganizerEvents,
 	listPublishedEvents,
 	listPublishedVenues,
@@ -126,6 +126,19 @@ export async function eventRoutes(fastify: FastifyInstance) {
 		},
 	);
 
+	fastify.get<{ Params: { id: string } }>(
+		"/:id/lock",
+		{ preHandler: requireRole("organizador") },
+		async (request, reply) => {
+			try {
+				await getOwnedEvent(request.params.id, request.user?.id ?? "");
+				return { locked: await isEventLocked(request.params.id) };
+			} catch (error) {
+				sendDomainError(reply, error, "Failed to fetch event lock");
+			}
+		},
+	);
+
 	fastify.post(
 		"/",
 		{ preHandler: requireRole("organizador") },
@@ -220,16 +233,10 @@ export async function eventRoutes(fastify: FastifyInstance) {
 						request.user?.id ?? "",
 					);
 
-					if (
-						event.status === "published" &&
-						(room.rows !== event.rows || room.columns !== event.columns)
-					) {
-						throw new EventSeatsLockedError();
-					}
-
-					const durationMinutes = await getMovieRuntime(
-						parsed.data.tmdbMovieId,
-					);
+					const durationMinutes =
+						parsed.data.tmdbMovieId === event.tmdbMovieId
+							? event.durationMinutes
+							: await getMovieRuntime(parsed.data.tmdbMovieId);
 
 					return await updateEvent(request.params.id, {
 						...parsed.data,

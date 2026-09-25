@@ -32,6 +32,12 @@ describe("MovieSearchField", () => {
 		expect(screen.getByRole("button", { name: "Trocar" })).toBeInTheDocument();
 	});
 
+	it("does not let the movie be changed when the field is locked", () => {
+		render(<MovieSearchField value={movie} onChange={vi.fn()} disabled />);
+
+		expect(screen.getByRole("button", { name: "Trocar" })).toBeDisabled();
+	});
+
 	it("calls onChange with null when the change button is clicked", async () => {
 		const onChange = vi.fn();
 		const user = userEvent.setup();

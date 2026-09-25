@@ -85,12 +85,12 @@ export class EventNotEditableError extends DomainError {
 	}
 }
 
-export class EventSeatsLockedError extends DomainError {
+export class EventLockedError extends DomainError {
 	constructor() {
 		super(
-			"Seat layout cannot be changed after publishing",
+			"Time, movie, duration, room and seat layout cannot change while seats are reserved or occupied",
 			409,
-			"EVENT_SEATS_LOCKED",
+			"EVENT_LOCKED",
 		);
 	}
 }

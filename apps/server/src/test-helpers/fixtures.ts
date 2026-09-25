@@ -60,6 +60,15 @@ export async function createEvent(
 	return event;
 }
 
+export async function createRoom(organizerId: string, rows = 5, columns = 5) {
+	const [room] = await db
+		.insert(schema.cinemaRooms)
+		.values({ organizerId, name: `Sala ${randomUUID()}`, rows, columns })
+		.returning();
+	if (!room) throw new Error("Failed to create room");
+	return room;
+}
+
 export async function createCombo(organizerId: string, priceCents = 1500) {
 	const [combo] = await db
 		.insert(schema.combos)

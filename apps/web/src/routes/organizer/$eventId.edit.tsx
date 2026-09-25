@@ -10,11 +10,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@verzel/ui/components/select";
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { getEvent } from "@/api/requests/events/get-event";
+import { getEventLock } from "@/api/requests/events/get-event-lock";
 import { updateEvent } from "@/api/requests/events/update-event";
 import { getMovieDetails } from "@/api/requests/movies/get-movie-details";
 import { getMyRooms } from "@/api/requests/rooms/get-my-rooms";
@@ -80,19 +82,24 @@ function EditEventComponent() {
 	const { eventId } = Route.useParams();
 
 	const [event, setEvent] = useState<VerzelEvent | null>(null);
+	const [locked, setLocked] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
 		const controller = new AbortController();
 		(async () => {
 			const [response, fetchError] = await tryCatch(
-				getEvent(eventId, controller.signal),
+				Promise.all([
+					getEvent(eventId, controller.signal),
+					getEventLock(eventId, controller.signal),
+				]),
 			);
 			if (fetchError) {
 				setError("Não foi possível carregar a sessão.");
 				return;
 			}
-			setEvent(response);
+			setEvent(response[0]);
+			setLocked(response[1].locked);
 		})();
 		return () => controller.abort();
 	}, [eventId]);
@@ -120,15 +127,17 @@ function EditEventComponent() {
 		);
 	}
 
-	return <EditEventForm eventId={eventId} event={event} />;
+	return <EditEventForm eventId={eventId} event={event} locked={locked} />;
 }
 
 function EditEventForm({
 	eventId,
 	event,
+	locked,
 }: {
 	eventId: string;
 	event: VerzelEvent;
+	locked: boolean;
 }) {
 	const navigate = useNavigate();
 	const { roomId: returnedRoomId } = Route.useSearch();
@@ -216,14 +225,23 @@ function EditEventForm({
 					movieTitle: selectedMovie.title,
 					moviePosterPath: selectedMovie.poster_path,
 					movieBackdropPath: selectedMovie.backdrop_path,
-					sessionAt: new Date(value.sessionAt).toISOString(),
+					sessionAt: locked
+						? event.sessionAt
+						: new Date(value.sessionAt).toISOString(),
 					priceCents: Math.round(Number(value.price.replace(",", ".")) * 100),
 					roomId: value.roomId,
 				}),
 			);
 
 			if (submitError) {
-				toast.error("Não foi possível salvar as alterações.");
+				const isLocked =
+					axios.isAxiosError(submitError) &&
+					submitError.response?.data?.code === "EVENT_LOCKED";
+				toast.error(
+					isLocked
+						? "Esta sessão já tem assentos reservados ou vendidos: só o preço pode ser alterado."
+						: "Não foi possível salvar as alterações.",
+				);
 				return;
 			}
 
@@ -305,6 +323,7 @@ function EditEventForm({
 						<MovieSearchField
 							value={selectedMovie}
 							onChange={setSelectedMovie}
+							disabled={locked}
 						/>
 					</div>
 
@@ -338,7 +357,7 @@ function EditEventForm({
 								<div className="flex flex-col gap-2">
 									<div className="flex items-center justify-between">
 										<Label htmlFor={field.name}>Sala</Label>
-										{event.status !== "published" && (
+										{!locked && (
 											<Button
 												type="button"
 												variant="link"
@@ -356,7 +375,7 @@ function EditEventForm({
 											field.handleChange(value ?? "");
 											setSelectedRoomId(value ?? "");
 										}}
-										disabled={event.status === "published"}
+										disabled={locked}
 										items={rooms.map((room) => ({
 											value: room.id,
 											label: `${room.name} (${room.rows}x${room.columns})`,
@@ -429,6 +448,7 @@ function EditEventForm({
 										occupiedSlots={occupiedSlots}
 										durationMinutes={movieDuration ?? DEFAULT_DURATION_MINUTES}
 										loading={occupiedSlotsLoading}
+										disabled={locked}
 									/>
 									{field.state.meta.errors.map((err) => {
 										const message =
@@ -442,9 +462,11 @@ function EditEventForm({
 								</div>
 							)}
 						</form.Field>
-						{event.status === "published" && (
+						{locked && (
 							<p className="text-muted-foreground text-xs">
-								A sala não pode mais ser alterada após a publicação da sessão.
+								Esta sessão já tem assentos reservados ou vendidos. Filme,
+								horário e sala ficam travados enquanto isso; o preço continua
+								editável e vale só para novas compras.
 							</p>
 						)}
 

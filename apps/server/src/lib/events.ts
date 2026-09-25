@@ -7,6 +7,7 @@ import {
 	eq,
 	gte,
 	inArray,
+	isNull,
 	lt,
 	lte,
 	ne,
@@ -15,6 +16,7 @@ import {
 } from "drizzle-orm";
 
 import {
+	EventLockedError,
 	ForbiddenError,
 	InvalidEventTransitionError,
 	NotFoundError,
@@ -119,19 +121,76 @@ export interface UpdateEventInput {
 	columns: number;
 }
 
-export async function updateEvent(eventId: string, patch: UpdateEventInput) {
-	await assertNoRoomConflict(
-		patch.roomId,
-		patch.sessionAt,
-		patch.durationMinutes,
-		eventId,
+type Executor = Pick<typeof db, "query">;
+
+// A session is locked while any seat is reserved (live hold) or occupied
+// (ticket that is not cancelled).
+export async function isEventLocked(eventId: string, executor: Executor = db) {
+	const liveHold = await executor.query.reservations.findFirst({
+		where: and(
+			eq(schema.reservations.eventId, eventId),
+			eq(schema.reservations.status, "holding"),
+			gte(schema.reservations.holdExpiresAt, new Date()),
+		),
+		columns: { id: true },
+	});
+	if (liveHold) return true;
+
+	const activeTicket = await executor.query.tickets.findFirst({
+		where: and(
+			eq(schema.tickets.eventId, eventId),
+			isNull(schema.tickets.cancelledAt),
+		),
+		columns: { id: true },
+	});
+	return Boolean(activeTicket);
+}
+
+function changesLockedFields(
+	event: typeof schema.events.$inferSelect,
+	patch: UpdateEventInput,
+) {
+	return (
+		patch.tmdbMovieId !== event.tmdbMovieId ||
+		patch.sessionAt.getTime() !== event.sessionAt.getTime() ||
+		patch.durationMinutes !== event.durationMinutes ||
+		patch.roomId !== event.roomId ||
+		patch.rows !== event.rows ||
+		patch.columns !== event.columns
 	);
-	const [updated] = await db
-		.update(schema.events)
-		.set(patch)
-		.where(eq(schema.events.id, eventId))
-		.returning();
-	return updated;
+}
+
+export async function updateEvent(eventId: string, patch: UpdateEventInput) {
+	return db.transaction(async (tx) => {
+		// Locked so a concurrent hold (which takes a share lock on the session)
+		// cannot slip in between the lock check and the update.
+		const [event] = await tx
+			.select()
+			.from(schema.events)
+			.where(eq(schema.events.id, eventId))
+			.for("update");
+		if (!event) throw new NotFoundError("Event");
+
+		if (
+			changesLockedFields(event, patch) &&
+			(await isEventLocked(eventId, tx))
+		) {
+			throw new EventLockedError();
+		}
+
+		await assertNoRoomConflict(
+			patch.roomId,
+			patch.sessionAt,
+			patch.durationMinutes,
+			eventId,
+		);
+		const [updated] = await tx
+			.update(schema.events)
+			.set(patch)
+			.where(eq(schema.events.id, eventId))
+			.returning();
+		return updated;
+	});
 }
 
 function dayRange(date: string): { start: Date; end: Date } {
