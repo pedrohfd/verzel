@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Badge } from "@verzel/ui/components/badge";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
 import { Skeleton } from "@verzel/ui/components/skeleton";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Ban, CheckCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { validateTicketCode } from "@/api/requests/checkin/validate-ticket-code";
 import type { CheckinResult } from "@/api/types";
 import BackLink from "@/components/molecules/back-link";
+import CheckinResultPanel from "@/components/organisms/checkin-result-panel";
 import { requireRole } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 
@@ -20,20 +19,6 @@ export const Route = createFileRoute("/portaria/$eventId")({
 });
 
 const SCANNER_ELEMENT_ID = "qr-scanner";
-
-const resultLabel: Record<CheckinResult["result"], string> = {
-	valid: "Ingresso válido",
-	invalid: "Código inválido",
-	already_used: "Ingresso já utilizado",
-	wrong_event: "Ingresso de outra sessão",
-	cancelled: "Ingresso cancelado",
-	expired: "Ingresso expirado",
-};
-
-function resultBadgeVariant(result: CheckinResult["result"]) {
-	if (result === "valid") return "default" as const;
-	return "destructive" as const;
-}
 
 function PortariaScanComponent() {
 	const { eventId } = Route.useParams();
@@ -163,67 +148,8 @@ function PortariaScanComponent() {
 			</div>
 
 			{result && (
-				<div
-					ref={resultRef}
-					className="flex flex-col items-center gap-2 border border-border p-4"
-				>
-					{result.result === "valid" && (
-						<CheckCircle2 className="zoom-in-50 fade-in size-12 animate-in text-green-600 duration-300 dark:text-green-500" />
-					)}
-
-					{result.result === "already_used" && (
-						<Ban className="size-12 animate-shake text-amber-600 dark:text-amber-500" />
-					)}
-
-					{(result.result === "cancelled" || result.result === "expired") && (
-						<Ban className="size-12 text-destructive" />
-					)}
-
-					<Badge variant={resultBadgeVariant(result.result)} className="w-fit">
-						{resultLabel[result.result]}
-					</Badge>
-
-					{result.result === "valid" && (
-						<div className="text-sm">
-							<p>{result.movieTitle}</p>
-							<p>Assento {result.seatLabel}</p>
-							<p>{result.customerName}</p>
-						</div>
-					)}
-
-					{result.result === "already_used" && (
-						<p className="text-muted-foreground text-sm">
-							Utilizado em{" "}
-							{new Date(result.checkedInAt).toLocaleString("pt-BR")}
-							{result.checkedInBy && ` por ${result.checkedInBy}`}
-						</p>
-					)}
-
-					{result.result === "wrong_event" && (
-						<p className="text-muted-foreground text-sm">
-							Este ingresso pertence a outra sessão.
-						</p>
-					)}
-
-					{result.result === "cancelled" && (
-						<p className="text-muted-foreground text-sm">
-							{result.reason === "event_cancelled"
-								? "Sessão cancelada pelo cinema em "
-								: "Cancelado pelo cliente em "}
-							{new Date(result.cancelledAt).toLocaleString("pt-BR")}
-						</p>
-					)}
-
-					{result.result === "expired" && (
-						<p className="text-muted-foreground text-sm">
-							A sessão terminou em{" "}
-							{new Date(result.sessionEndedAt).toLocaleString("pt-BR")}
-						</p>
-					)}
-
-					<Button onClick={handleScanNext} className="w-fit">
-						Escanear próximo
-					</Button>
+				<div ref={resultRef}>
+					<CheckinResultPanel result={result} onScanNext={handleScanNext} />
 				</div>
 			)}
 		</div>

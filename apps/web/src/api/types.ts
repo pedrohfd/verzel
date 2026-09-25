@@ -229,4 +229,5 @@ export type CheckinResult =
 			cancelledAt: string;
 			reason: CancellationReason | null;
 	  }
-	| { result: "expired"; sessionEndedAt: string };
+	| { result: "expired"; sessionEndedAt: string }
+	| { result: "too_early"; opensAt: string };

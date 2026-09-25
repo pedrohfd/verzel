@@ -1,5 +1,6 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
+import { validationOpensAt } from "@verzel/shared/session-rules";
 import { and, asc, eq, gte, isNull, lt } from "drizzle-orm";
 
 import { ForbiddenError, NotFoundError } from "./errors";
@@ -76,7 +77,8 @@ export type CheckinResult =
 			cancelledAt: string;
 			reason: "customer_cancelled" | "event_cancelled" | null;
 	  }
-	| { result: "expired"; sessionEndedAt: string };
+	| { result: "expired"; sessionEndedAt: string }
+	| { result: "too_early"; opensAt: string };
 
 export async function validateTicket(
 	eventId: string,
@@ -124,6 +126,12 @@ export async function validateTicket(
 				result: "expired",
 				sessionEndedAt: sessionEndsAt(event).toISOString(),
 			};
+		}
+		if (event) {
+			const opensAt = validationOpensAt(event.sessionAt);
+			if (new Date() < opensAt) {
+				return { result: "too_early", opensAt: opensAt.toISOString() };
+			}
 		}
 
 		const validator = await tx.query.user.findFirst({

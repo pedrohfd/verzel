@@ -1,7 +1,7 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
 import { eq } from "drizzle-orm";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetTestData } from "../test-helpers/db";
 import {
@@ -22,6 +22,24 @@ import { cancelTicket } from "./purchases";
 beforeEach(async () => {
 	await resetTestData();
 });
+
+afterEach(() => {
+	vi.useRealTimers();
+});
+
+async function freezeClockMinutesBeforeSession(
+	eventId: string,
+	minutes: number,
+) {
+	const now = new Date();
+	vi.useFakeTimers({ toFake: ["Date"], now });
+	const sessionAt = new Date(now.getTime() + minutes * 60_000);
+	await db
+		.update(schema.events)
+		.set({ sessionAt })
+		.where(eq(schema.events.id, eventId));
+	return sessionAt;
+}
 
 async function setupCinema() {
 	const organizer = await createOrganizer();
@@ -181,6 +199,41 @@ describe("validateTicket", () => {
 			result: "already_used",
 			checkedInBy: gatekeeper.name,
 		});
+	});
+
+	it("validates exactly 1h before the session starts", async () => {
+		const { organizer, event } = await setupCinema();
+		const { ticket } = await issueTicket(event.id);
+		await freezeClockMinutesBeforeSession(event.id, 60);
+
+		const result = await validateTicket(
+			event.id,
+			ticket.code,
+			asStaff(organizer),
+		);
+
+		expect(result.result).toBe("valid");
+	});
+
+	it("returns too_early more than 1h before the session and keeps the ticket valid", async () => {
+		const { organizer, event } = await setupCinema();
+		const { ticket } = await issueTicket(event.id);
+		const sessionAt = await freezeClockMinutesBeforeSession(event.id, 61);
+
+		const result = await validateTicket(
+			event.id,
+			ticket.code,
+			asStaff(organizer),
+		);
+
+		expect(result).toEqual({
+			result: "too_early",
+			opensAt: new Date(sessionAt.getTime() - 60 * 60_000).toISOString(),
+		});
+		const stored = await db.query.tickets.findFirst({
+			where: eq(schema.tickets.id, ticket.id),
+		});
+		expect(stored?.checkedInAt).toBeNull();
 	});
 
 	it("returns cancelled for a cancelled ticket", async () => {

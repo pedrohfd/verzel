@@ -45,7 +45,7 @@ export async function createEvent(
 			organizerId,
 			tmdbMovieId: 1,
 			movieTitle: "Filme Teste",
-			sessionAt: new Date(Date.now() + 60 * 60_000),
+			sessionAt: new Date(Date.now() + 30 * 60_000),
 			durationMinutes: 120,
 			venueName: "Cine Teste",
 			venueAddress: "Rua A, 10",

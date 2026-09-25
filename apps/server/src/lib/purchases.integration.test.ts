@@ -13,7 +13,7 @@ import {
 	createUser,
 	holdSeats,
 } from "../test-helpers/fixtures";
-import { validateTicket } from "./checkin";
+import { type CheckinStaff, validateTicket } from "./checkin";
 import {
 	cancelEvent,
 	cancelTicket,
@@ -428,6 +428,26 @@ async function refundsOf(purchaseId: string) {
 	});
 }
 
+// Validation only opens 1h before the session, while customers can only
+// cancel until 2h before it: brings the session into the validation window
+// just long enough to use the ticket.
+async function useTicket(eventId: string, code: string, staff: CheckinStaff) {
+	const event = await db.query.events.findFirst({
+		where: eq(schema.events.id, eventId),
+	});
+	if (!event) throw new Error("No event");
+	await db
+		.update(schema.events)
+		.set({ sessionAt: new Date(Date.now() + 30 * 60_000) })
+		.where(eq(schema.events.id, eventId));
+	const checkin = await validateTicket(eventId, code, staff);
+	expect(checkin.result).toBe("valid");
+	await db
+		.update(schema.events)
+		.set({ sessionAt: event.sessionAt })
+		.where(eq(schema.events.id, eventId));
+}
+
 async function freezeClockMinutesBeforeSession(
 	eventId: string,
 	minutes: number,
@@ -495,7 +515,7 @@ describe("cancelTicket", () => {
 		const { organizer, event, customer, purchase, tickets } =
 			await purchaseWithCombos(2);
 		const gatekeeper = await createGatekeeper(organizer.id);
-		await validateTicket(event.id, ticketAt(tickets, 0).code, {
+		await useTicket(event.id, ticketAt(tickets, 0).code, {
 			id: gatekeeper.id,
 			role: "portaria",
 		});
@@ -565,7 +585,7 @@ describe("cancelTicket", () => {
 	it("refuses a ticket that was already used", async () => {
 		const { organizer, event, customer, purchase, tickets } =
 			await purchaseWithCombos(1);
-		await validateTicket(event.id, ticketAt(tickets, 0).code, {
+		await useTicket(event.id, ticketAt(tickets, 0).code, {
 			id: organizer.id,
 			role: "organizador",
 		});
@@ -752,7 +772,7 @@ describe("cancelEvent", () => {
 	it("cancels and refunds used tickets together with the combos of their purchase", async () => {
 		const { organizer, event, purchase, tickets } = await purchaseWithCombos(2);
 		const used = ticketAt(tickets, 0);
-		await validateTicket(event.id, used.code, {
+		await useTicket(event.id, used.code, {
 			id: organizer.id,
 			role: "organizador",
 		});
@@ -772,7 +792,7 @@ describe("cancelEvent", () => {
 	it("refunds the combos only once when a used ticket was the last one left", async () => {
 		const { organizer, event, customer, purchase, tickets } =
 			await purchaseWithCombos(2);
-		await validateTicket(event.id, ticketAt(tickets, 0).code, {
+		await useTicket(event.id, ticketAt(tickets, 0).code, {
 			id: organizer.id,
 			role: "organizador",
 		});
