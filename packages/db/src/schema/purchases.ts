@@ -41,10 +41,13 @@ export const purchaseComboItems = pgTable("purchase_combo_item", {
 	purchaseId: uuid("purchase_id")
 		.notNull()
 		.references(() => purchases.id, { onDelete: "cascade" }),
-	comboId: uuid("combo_id")
-		.notNull()
-		.references(() => combos.id, { onDelete: "restrict" }),
+	// The combo as it was when sold lives in the columns below; the link is
+	// cleared when the organizer deletes the combo.
+	comboId: uuid("combo_id").references(() => combos.id, {
+		onDelete: "set null",
+	}),
 	comboName: text("combo_name").notNull(),
+	comboDescription: text("combo_description"),
 	unitPriceCents: integer("unit_price_cents").notNull(),
 	quantity: integer("quantity").notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),

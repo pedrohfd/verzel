@@ -93,6 +93,7 @@ async function resolveComboLines(
 		return {
 			comboId: combo.id,
 			comboName: combo.name,
+			comboDescription: combo.description,
 			unitPriceCents: combo.priceCents,
 			quantity: item.quantity,
 		};

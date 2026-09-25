@@ -117,8 +117,14 @@ export default function PurchaseCard({
 				{purchase.comboItems.length > 0 && (
 					<ul className="flex flex-col gap-0.5 text-muted-foreground text-xs">
 						{purchase.comboItems.map((item) => (
-							<li key={item.id}>
-								{item.quantity}x {item.comboName}
+							<li key={item.id} className="flex flex-col">
+								<span className="flex justify-between gap-2">
+									<span>
+										{item.quantity}x {item.comboName}
+									</span>
+									<span>{formatPriceCents(item.unitPriceCents)} cada</span>
+								</span>
+								{item.comboDescription && <span>{item.comboDescription}</span>}
 							</li>
 						))}
 					</ul>

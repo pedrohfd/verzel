@@ -70,6 +70,7 @@ function purchase(overrides: Partial<MyPurchase> = {}): MyPurchase {
 				purchaseId: "purchase-1",
 				comboId: "combo-1",
 				comboName: "Pipoca",
+				comboDescription: "Pipoca salgada 500g",
 				unitPriceCents: 1500,
 				quantity: 2,
 			},
@@ -94,6 +95,33 @@ describe("PurchaseCard", () => {
 			"Pago: R$ 70,00",
 		);
 		expect(screen.queryByText(/Reembolsado/)).not.toBeInTheDocument();
+	});
+
+	it("shows each combo as it was sold, even if it no longer exists", () => {
+		render(
+			<PurchaseCard
+				purchase={purchase({
+					comboItems: [
+						{
+							id: "item-1",
+							purchaseId: "purchase-1",
+							comboId: null,
+							comboName: "Pipoca",
+							comboDescription: "Pipoca salgada 500g",
+							unitPriceCents: 1500,
+							quantity: 2,
+						},
+					],
+				})}
+				onCancelTicket={vi.fn()}
+			/>,
+		);
+
+		expect(screen.getByText("2x Pipoca")).toBeInTheDocument();
+		expect(screen.getByText(/Pipoca salgada 500g/)).toBeInTheDocument();
+		expect(normalize(screen.getByText(/cada/).textContent)).toContain(
+			"R$ 15,00 cada",
+		);
 	});
 
 	it("shows the refunded total and why each cancelled ticket was cancelled", () => {

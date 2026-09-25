@@ -166,8 +166,9 @@ export interface TicketWithCode extends Ticket {
 export interface PurchaseComboItem {
 	id: string;
 	purchaseId: string;
-	comboId: string;
+	comboId: string | null;
 	comboName: string;
+	comboDescription: string | null;
 	unitPriceCents: number;
 	quantity: number;
 }
