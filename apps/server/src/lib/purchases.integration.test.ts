@@ -282,6 +282,36 @@ describe("checkout", () => {
 		expect(await countRows()).toMatchObject({ purchases: 1, tickets: 1 });
 	});
 
+	it("refuses to pay for holds of a session cancelled in the meantime", async () => {
+		const { organizer, event, customer } = await setup();
+		const holds = await holdSeats(event.id, customer.id, 1);
+		await cancelEvent(event.id, organizer.id);
+
+		await expect(
+			checkout({
+				reservationIds: idsOf(holds),
+				customerId: customer.id,
+				outcome: "approve",
+			}),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+		expect(await countRows()).toMatchObject({ purchases: 0, tickets: 0 });
+	});
+
+	it("counts a repeated reservation id only once", async () => {
+		const { event, customer } = await setup();
+		const [hold] = await holdSeats(event.id, customer.id, 1);
+
+		const { purchase, tickets } = await checkout({
+			reservationIds: [hold?.id ?? "", hold?.id ?? ""],
+			customerId: customer.id,
+			outcome: "approve",
+		});
+
+		expect(tickets).toHaveLength(1);
+		expect(purchase?.amountCents).toBe(2000);
+	});
+
 	it("refuses a combo from another cinema", async () => {
 		const { event, customer } = await setup();
 		const otherOrganizer = await createOrganizer();

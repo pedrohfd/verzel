@@ -135,11 +135,12 @@ async function issueTicket(
 }
 
 export async function checkout({
-	reservationIds,
+	reservationIds: requestedIds,
 	customerId,
 	outcome,
 	comboItems = [],
 }: CheckoutInput) {
+	const reservationIds = [...new Set(requestedIds)];
 	if (
 		reservationIds.length === 0 ||
 		reservationIds.length > MAX_TICKETS_PER_PURCHASE
@@ -154,10 +155,14 @@ export async function checkout({
 			customerId,
 		);
 		const eventId = reservations[0]?.eventId ?? "";
-		const event = await tx.query.events.findFirst({
-			where: eq(schema.events.id, eventId),
-		});
-		if (!event) throw new NotFoundError("Event");
+		// Locked so a concurrent session cancellation cannot leave valid tickets
+		// behind on a cancelled session.
+		const [event] = await tx
+			.select()
+			.from(schema.events)
+			.where(eq(schema.events.id, eventId))
+			.for("update");
+		if (event?.status !== "published") throw new NotFoundError("Event");
 
 		const comboLines = await resolveComboLines(
 			tx,
