@@ -12,7 +12,9 @@ vi.mock("../lib/purchases", () => ({
 vi.mock("../lib/require-role", () => ({ requireRole: requireRoleMock }));
 
 const { buildTestApp } = await import("../test-helpers/build-test-app");
-const { MixedSessionsError } = await import("../lib/errors");
+const { ComboInactiveError, MixedSessionsError } = await import(
+	"../lib/errors"
+);
 
 function authAsCustomer(userId = "customer-1") {
 	requireRoleMock.mockReturnValue(
@@ -134,5 +136,24 @@ describe("POST /", () => {
 
 		expect(res.statusCode).toBe(400);
 		expect(res.json()).toMatchObject({ code: "MIXED_SESSIONS" });
+	});
+
+	it("returns 409 when a combo is not on sale", async () => {
+		authAsCustomer();
+		checkoutMock.mockRejectedValue(new ComboInactiveError());
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/payments",
+			payload: {
+				reservationIds: reservationIds(1),
+				simulateOutcome: "approve",
+				comboItems: [{ comboId: crypto.randomUUID(), quantity: 1 }],
+			},
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toMatchObject({ code: "COMBO_INACTIVE" });
 	});
 });

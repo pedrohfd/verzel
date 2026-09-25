@@ -61,6 +61,12 @@ export class MixedSessionsError extends DomainError {
 	}
 }
 
+export class ComboInactiveError extends DomainError {
+	constructor() {
+		super("This combo is not on sale right now", 409, "COMBO_INACTIVE");
+	}
+}
+
 export class NotFoundError extends DomainError {
 	constructor(what: string) {
 		super(`${what} not found`, 404, "NOT_FOUND");

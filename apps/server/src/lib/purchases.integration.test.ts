@@ -363,6 +363,28 @@ describe("checkout", () => {
 		expect(purchase?.amountCents).toBe(2000);
 	});
 
+	it("refuses an inactive combo without touching the holds", async () => {
+		const { organizer, event, customer } = await setup();
+		const paused = await createCombo(organizer.id);
+		await db
+			.update(schema.combos)
+			.set({ active: false })
+			.where(eq(schema.combos.id, paused.id));
+		const holds = await holdSeats(event.id, customer.id, 1);
+
+		await expect(
+			checkout({
+				reservationIds: idsOf(holds),
+				customerId: customer.id,
+				outcome: "approve",
+				comboItems: [{ comboId: paused.id, quantity: 1 }],
+			}),
+		).rejects.toMatchObject({ code: "COMBO_INACTIVE" });
+
+		expect(await countRows()).toMatchObject({ purchases: 0, tickets: 0 });
+		expect(await reservationStatuses(idsOf(holds))).toEqual(["holding"]);
+	});
+
 	it("refuses a combo from another cinema", async () => {
 		const { event, customer } = await setup();
 		const otherOrganizer = await createOrganizer();

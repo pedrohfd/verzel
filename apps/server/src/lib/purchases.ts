@@ -3,6 +3,7 @@ import * as schema from "@verzel/db/schema";
 import { desc, eq, inArray } from "drizzle-orm";
 
 import {
+	ComboInactiveError,
 	EventAlreadyStartedError,
 	ForbiddenError,
 	HoldExpiredError,
@@ -88,6 +89,7 @@ async function resolveComboLines(
 		if (!combo || combo.organizerId !== organizerId) {
 			throw new NotFoundError("Combo");
 		}
+		if (!combo.active) throw new ComboInactiveError();
 		return {
 			comboId: combo.id,
 			comboName: combo.name,

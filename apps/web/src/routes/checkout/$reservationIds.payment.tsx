@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@verzel/ui/components/button";
 import { Input } from "@verzel/ui/components/input";
 import { Label } from "@verzel/ui/components/label";
+import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -97,7 +98,14 @@ function CheckoutComponent() {
 		setIsProcessing(false);
 
 		if (payError) {
-			toast.error("Não foi possível processar o pagamento.");
+			const comboInactive =
+				axios.isAxiosError(payError) &&
+				payError.response?.data?.code === "COMBO_INACTIVE";
+			toast.error(
+				comboInactive
+					? "Um dos combos escolhidos saiu de venda. Volte e revise seus combos."
+					: "Não foi possível processar o pagamento.",
+			);
 			return;
 		}
 
