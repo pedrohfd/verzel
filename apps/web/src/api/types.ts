@@ -139,6 +139,8 @@ export interface Purchase {
 
 export type TicketStatus = "valid" | "used" | "cancelled" | "expired";
 
+export type CancellationReason = "customer_cancelled" | "event_cancelled";
+
 export interface Ticket {
 	id: string;
 	reservationId: string;
@@ -152,6 +154,7 @@ export interface Ticket {
 	checkedInAt: string | null;
 	checkedInByUserId: string | null;
 	cancelledAt: string | null;
+	cancellationReason: CancellationReason | null;
 	createdAt: string;
 	status: TicketStatus;
 }
@@ -160,12 +163,34 @@ export interface TicketWithCode extends Ticket {
 	code: string;
 }
 
-export interface MyTicket {
+export interface PurchaseComboItem {
 	id: string;
-	status: ReservationStatus;
-	ticket: Ticket | null;
+	purchaseId: string;
+	comboId: string;
+	comboName: string;
+	unitPriceCents: number;
+	quantity: number;
+}
+
+export interface Refund {
+	id: string;
+	purchaseId: string;
+	ticketId: string | null;
+	amountCents: number;
+	reason: CancellationReason;
+	createdAt: string;
+}
+
+export interface PurchaseTicket extends Ticket {
+	seat: Pick<Seat, "row" | "column" | "label">;
+}
+
+export interface MyPurchase extends Purchase {
 	event: VerzelEvent;
-	seat: Seat;
+	comboItems: PurchaseComboItem[];
+	refunds: Refund[];
+	refundedCents: number;
+	tickets: PurchaseTicket[];
 }
 
 export interface TicketDetail extends TicketWithCode {

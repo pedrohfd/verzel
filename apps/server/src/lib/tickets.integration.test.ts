@@ -8,14 +8,10 @@ import {
 	createEvent,
 	createOrganizer,
 	createUser,
-	holdSeats,
 } from "../test-helpers/fixtures";
 import { ForbiddenError, NotFoundError } from "./errors";
-import {
-	getOwnedTicket,
-	getTicketByShareToken,
-	listMyTickets,
-} from "./tickets";
+import { listMyPurchases } from "./purchases";
+import { getOwnedTicket, getTicketByShareToken } from "./tickets";
 
 beforeEach(async () => {
 	await resetTestData();
@@ -73,17 +69,6 @@ describe("getOwnedTicket", () => {
 	});
 });
 
-describe("listMyTickets", () => {
-	it("lists only issued tickets, leaving out seats still on hold", async () => {
-		const { event, customer, ticket } = await ownedTicket();
-		await holdSeats(event.id, customer.id, 1, 3);
-
-		const results = await listMyTickets(customer.id);
-
-		expect(results.map((entry) => entry.ticket.id)).toEqual([ticket.id]);
-	});
-});
-
 describe("getTicketByShareToken", () => {
 	it("returns the public details of the shared ticket", async () => {
 		const { event, ticket } = await ownedTicket();
@@ -112,11 +97,11 @@ describe("ticket status", () => {
 
 		const owned = await getOwnedTicket(ticket.id, customer.id);
 		const shared = await getTicketByShareToken(ticket.shareToken);
-		const [listed] = await listMyTickets(customer.id);
+		const [purchase] = await listMyPurchases(customer.id);
 
 		expect(owned.status).toBe("expired");
 		expect(shared.status).toBe("expired");
-		expect(listed?.ticket?.status).toBe("expired");
+		expect(purchase?.tickets[0]?.status).toBe("expired");
 	});
 
 	it("shows a ticket of an upcoming session as valid", async () => {

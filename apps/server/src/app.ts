@@ -9,6 +9,7 @@ import { eventRoutes } from "./routes/events";
 import { gatekeeperRoutes } from "./routes/gatekeepers";
 import { movieRoutes } from "./routes/movies";
 import { paymentRoutes } from "./routes/payments";
+import { purchaseRoutes } from "./routes/purchases";
 import { reservationRoutes } from "./routes/reservations";
 import { roomRoutes } from "./routes/rooms";
 import { ticketRoutes } from "./routes/tickets";
@@ -28,6 +29,7 @@ export function buildApp(corsConfig: CorsConfig, { logger = true } = {}) {
 	fastify.register(eventRoutes, { prefix: "/api/events" });
 	fastify.register(reservationRoutes, { prefix: "/api/reservations" });
 	fastify.register(paymentRoutes, { prefix: "/api/payments" });
+	fastify.register(purchaseRoutes, { prefix: "/api/purchases" });
 	fastify.register(ticketRoutes, { prefix: "/api/tickets" });
 	fastify.register(checkinRoutes, { prefix: "/api/checkin" });
 	fastify.register(cinemaRoutes, { prefix: "/api/cinemas" });

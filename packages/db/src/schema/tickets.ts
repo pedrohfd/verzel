@@ -1,23 +1,12 @@
 import { relations } from "drizzle-orm";
-import {
-	integer,
-	pgEnum,
-	pgTable,
-	text,
-	timestamp,
-	uuid,
-} from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth";
+import { cancellationReasonEnum } from "./cancellation-reason";
 import { events } from "./events";
 import { purchases } from "./purchases";
 import { reservations } from "./reservations";
 import { seats } from "./seats";
-
-export const cancellationReasonEnum = pgEnum("cancellation_reason", [
-	"customer_cancelled",
-	"event_cancelled",
-]);
 
 export const tickets = pgTable("ticket", {
 	id: uuid("id").primaryKey().defaultRandom(),

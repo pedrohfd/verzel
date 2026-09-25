@@ -5,13 +5,16 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetTestData } from "../test-helpers/db";
 import {
+	buyTickets,
 	createCombo,
 	createEvent,
+	createGatekeeper,
 	createOrganizer,
 	createUser,
 	holdSeats,
 } from "../test-helpers/fixtures";
-import { checkout } from "./purchases";
+import { validateTicket } from "./checkin";
+import { cancelTicket, checkout, listMyPurchases } from "./purchases";
 
 beforeEach(async () => {
 	await resetTestData();
@@ -289,5 +292,227 @@ describe("checkout", () => {
 		).rejects.toMatchObject({ code: "NOT_FOUND" });
 
 		expect(await countRows()).toMatchObject({ purchases: 0 });
+	});
+});
+
+async function purchaseWithCombos(ticketCount: number, withCombos = true) {
+	const { organizer, event, customer } = await setup();
+	const combo = await createCombo(organizer.id, 1500);
+	const { purchase, tickets } = await buyTickets(
+		event.id,
+		customer.id,
+		ticketCount,
+		withCombos ? [{ comboId: combo.id, quantity: 2 }] : [],
+	);
+	if (!purchase) throw new Error("Purchase was not approved");
+	return { organizer, event, customer, purchase, tickets };
+}
+
+async function refundsOf(purchaseId: string) {
+	return db.query.refunds.findMany({
+		where: eq(schema.refunds.purchaseId, purchaseId),
+	});
+}
+
+function ticketAt<T>(tickets: T[], index: number): T {
+	const ticket = tickets[index];
+	if (!ticket) throw new Error(`No ticket at ${index}`);
+	return ticket;
+}
+
+describe("cancelTicket", () => {
+	it("refunds only the ticket price when other tickets of the purchase remain", async () => {
+		const { customer, purchase, tickets } = await purchaseWithCombos(3);
+		const ticket = ticketAt(tickets, 0);
+
+		const refund = await cancelTicket(ticket.id, customer.id);
+
+		expect(refund).toMatchObject({
+			purchaseId: purchase.id,
+			ticketId: ticket.id,
+			amountCents: 2000,
+			reason: "customer_cancelled",
+		});
+		const stored = await db.query.tickets.findFirst({
+			where: eq(schema.tickets.id, ticket.id),
+		});
+		expect(stored?.cancelledAt).not.toBeNull();
+		expect(stored?.cancellationReason).toBe("customer_cancelled");
+		const storedPurchase = await db.query.purchases.findFirst({
+			where: eq(schema.purchases.id, purchase.id),
+		});
+		expect(storedPurchase?.amountCents).toBe(purchase.amountCents);
+	});
+
+	it("adds the combos to the refund of the last active ticket", async () => {
+		const { customer, purchase, tickets } = await purchaseWithCombos(2);
+
+		await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+		const last = await cancelTicket(ticketAt(tickets, 1).id, customer.id);
+
+		expect(last.amountCents).toBe(2000 + 2 * 1500);
+		const refunds = await refundsOf(purchase.id);
+		expect(refunds.reduce((sum, r) => sum + r.amountCents, 0)).toBe(
+			purchase.amountCents,
+		);
+	});
+
+	it("refunds just the ticket price for the last ticket of a purchase without combos", async () => {
+		const { customer, tickets } = await purchaseWithCombos(1, false);
+
+		const refund = await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+
+		expect(refund.amountCents).toBe(2000);
+	});
+
+	it("keeps the combos when the only other ticket was already used", async () => {
+		const { organizer, event, customer, purchase, tickets } =
+			await purchaseWithCombos(2);
+		const gatekeeper = await createGatekeeper(organizer.id);
+		await validateTicket(event.id, ticketAt(tickets, 0).code, {
+			id: gatekeeper.id,
+			role: "portaria",
+		});
+
+		const refund = await cancelTicket(ticketAt(tickets, 1).id, customer.id);
+
+		expect(refund.amountCents).toBe(2000);
+		expect(await refundsOf(purchase.id)).toHaveLength(1);
+	});
+
+	it("refunds the price paid even if the session price changed afterwards", async () => {
+		const { event, customer, tickets } = await purchaseWithCombos(2);
+		await db
+			.update(schema.events)
+			.set({ priceCents: 5000 })
+			.where(eq(schema.events.id, event.id));
+
+		const refund = await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+
+		expect(refund.amountCents).toBe(2000);
+	});
+
+	it("frees the seat so it can be held again", async () => {
+		const { event, customer, tickets } = await purchaseWithCombos(1);
+		await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+		const someoneElse = await createUser("cliente");
+
+		await expect(holdSeats(event.id, someoneElse.id, 1)).resolves.toHaveLength(
+			1,
+		);
+	});
+
+	it("never refunds more than was paid, whatever the order of cancellations", async () => {
+		const { customer, purchase, tickets } = await purchaseWithCombos(3);
+
+		for (const ticket of [...tickets].reverse()) {
+			await cancelTicket(ticket.id, customer.id);
+		}
+
+		const refunds = await refundsOf(purchase.id);
+		expect(refunds).toHaveLength(3);
+		expect(refunds.reduce((sum, r) => sum + r.amountCents, 0)).toBe(
+			purchase.amountCents,
+		);
+	});
+
+	it("refuses a ticket of another customer", async () => {
+		const { purchase, tickets } = await purchaseWithCombos(1);
+		const stranger = await createUser("cliente");
+
+		await expect(
+			cancelTicket(ticketAt(tickets, 0).id, stranger.id),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		expect(await refundsOf(purchase.id)).toHaveLength(0);
+	});
+
+	it("refuses a ticket that was already cancelled", async () => {
+		const { customer, purchase, tickets } = await purchaseWithCombos(2);
+		await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+
+		await expect(
+			cancelTicket(ticketAt(tickets, 0).id, customer.id),
+		).rejects.toMatchObject({ code: "TICKET_ALREADY_CANCELLED" });
+		expect(await refundsOf(purchase.id)).toHaveLength(1);
+	});
+
+	it("refuses a ticket that was already used", async () => {
+		const { organizer, event, customer, purchase, tickets } =
+			await purchaseWithCombos(1);
+		await validateTicket(event.id, ticketAt(tickets, 0).code, {
+			id: organizer.id,
+			role: "organizador",
+		});
+
+		await expect(
+			cancelTicket(ticketAt(tickets, 0).id, customer.id),
+		).rejects.toMatchObject({ code: "TICKET_ALREADY_CHECKED_IN" });
+		expect(await refundsOf(purchase.id)).toHaveLength(0);
+	});
+
+	it("refuses a ticket once the session has started", async () => {
+		const { event, customer, purchase, tickets } = await purchaseWithCombos(1);
+		await db
+			.update(schema.events)
+			.set({ sessionAt: new Date(Date.now() - 60_000) })
+			.where(eq(schema.events.id, event.id));
+
+		await expect(
+			cancelTicket(ticketAt(tickets, 0).id, customer.id),
+		).rejects.toMatchObject({ code: "EVENT_ALREADY_STARTED" });
+		expect(await refundsOf(purchase.id)).toHaveLength(0);
+	});
+
+	it("refuses an unknown ticket", async () => {
+		const customer = await createUser("cliente");
+
+		await expect(
+			cancelTicket(crypto.randomUUID(), customer.id),
+		).rejects.toMatchObject({ code: "NOT_FOUND" });
+	});
+});
+
+describe("listMyPurchases", () => {
+	it("groups tickets and combos per purchase with the paid and refunded totals", async () => {
+		const { customer, purchase, tickets } = await purchaseWithCombos(2);
+		await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+		const stranger = await createUser("cliente");
+		await buyTickets(purchase.eventId, stranger.id, 1, [], 10);
+
+		const [listed, ...others] = await listMyPurchases(customer.id);
+
+		expect(others).toHaveLength(0);
+		expect(listed).toMatchObject({
+			id: purchase.id,
+			amountCents: purchase.amountCents,
+			refundedCents: 2000,
+			event: { id: purchase.eventId },
+			comboItems: [{ quantity: 2, unitPriceCents: 1500 }],
+		});
+		const byId = new Map(listed?.tickets.map((t) => [t.id, t]));
+		expect(byId.get(ticketAt(tickets, 0).id)).toMatchObject({
+			status: "cancelled",
+			cancellationReason: "customer_cancelled",
+			seat: { label: "A1" },
+		});
+		expect(byId.get(ticketAt(tickets, 1).id)).toMatchObject({
+			status: "valid",
+			cancellationReason: null,
+		});
+	});
+
+	it("lists the most recent purchase first", async () => {
+		const { event, customer, purchase } = await purchaseWithCombos(1, false);
+		const { purchase: later } = await buyTickets(
+			event.id,
+			customer.id,
+			1,
+			[],
+			5,
+		);
+
+		const listed = await listMyPurchases(customer.id);
+
+		expect(listed.map((p) => p.id)).toEqual([later?.id, purchase.id]);
 	});
 });

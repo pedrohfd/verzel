@@ -1,20 +1,28 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 
 import {
+	EventAlreadyStartedError,
+	ForbiddenError,
 	HoldExpiredError,
 	MixedSessionsError,
 	NotFoundError,
 	ReservationNotHoldingError,
+	TicketAlreadyCancelledError,
+	TicketAlreadyCheckedInError,
 	TicketLimitExceededError,
 } from "./errors";
 import { generateShareToken, signTicket } from "./ticket-code";
+import { ticketStatus } from "./ticket-status";
 
 export const MAX_TICKETS_PER_PURCHASE = 10;
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Reservation = typeof schema.reservations.$inferSelect;
+type Ticket = typeof schema.tickets.$inferSelect;
+type CancellationReason =
+	(typeof schema.cancellationReasonEnum.enumValues)[number];
 
 export interface ComboItemInput {
 	comboId: string;
@@ -205,4 +213,144 @@ export async function checkout({
 
 		return { purchase, tickets };
 	});
+}
+
+async function combosTotalCents(tx: Transaction, purchaseId: string) {
+	const items = await tx.query.purchaseComboItems.findMany({
+		where: eq(schema.purchaseComboItems.purchaseId, purchaseId),
+	});
+	return items.reduce(
+		(sum, item) => sum + item.unitPriceCents * item.quantity,
+		0,
+	);
+}
+
+async function lockPurchaseTickets(tx: Transaction, purchaseId: string) {
+	return tx
+		.select()
+		.from(schema.tickets)
+		.where(eq(schema.tickets.purchaseId, purchaseId))
+		.for("update");
+}
+
+// Cancels the given tickets of one purchase, frees their seats and records a
+// single refund for them. Combos are refunded together with the last ticket
+// that is still active; a used ticket counts as active because its combos may
+// already have been consumed, so they are refunded at most once per purchase.
+async function cancelAndRefund(
+	tx: Transaction,
+	purchaseId: string,
+	purchaseTickets: Ticket[],
+	toCancel: Ticket[],
+	reason: CancellationReason,
+	refundTicketId: string | null,
+) {
+	const cancelledIds = new Set(toCancel.map((ticket) => ticket.id));
+
+	await tx
+		.update(schema.tickets)
+		.set({ cancelledAt: new Date(), cancellationReason: reason })
+		.where(inArray(schema.tickets.id, [...cancelledIds]));
+
+	// Frees the seats: cancelled reservations fall outside the partial unique
+	// index's ('holding','paid') condition.
+	await tx
+		.update(schema.reservations)
+		.set({ status: "cancelled" })
+		.where(
+			inArray(
+				schema.reservations.id,
+				toCancel.map((ticket) => ticket.reservationId),
+			),
+		);
+
+	const remainsActive = purchaseTickets.some(
+		(ticket) => !ticket.cancelledAt && !cancelledIds.has(ticket.id),
+	);
+	const ticketsCents = toCancel.reduce(
+		(sum, ticket) => sum + ticket.priceCents,
+		0,
+	);
+	const combosCents = remainsActive
+		? 0
+		: await combosTotalCents(tx, purchaseId);
+
+	const [refund] = await tx
+		.insert(schema.refunds)
+		.values({
+			purchaseId,
+			ticketId: refundTicketId,
+			amountCents: ticketsCents + combosCents,
+			reason,
+		})
+		.returning();
+	if (!refund) throw new NotFoundError("Refund");
+	return refund;
+}
+
+export async function cancelTicket(ticketId: string, customerId: string) {
+	return db.transaction(async (tx) => {
+		const target = await tx.query.tickets.findFirst({
+			where: eq(schema.tickets.id, ticketId),
+			columns: { purchaseId: true },
+		});
+		if (!target) throw new NotFoundError("Ticket");
+
+		const [purchase] = await tx
+			.select()
+			.from(schema.purchases)
+			.where(eq(schema.purchases.id, target.purchaseId))
+			.for("update");
+		if (!purchase || purchase.customerId !== customerId) {
+			throw new ForbiddenError();
+		}
+
+		const purchaseTickets = await lockPurchaseTickets(tx, purchase.id);
+		const ticket = purchaseTickets.find((t) => t.id === ticketId);
+		if (!ticket) throw new NotFoundError("Ticket");
+		if (ticket.cancelledAt) throw new TicketAlreadyCancelledError();
+		if (ticket.checkedInAt) throw new TicketAlreadyCheckedInError();
+
+		const event = await tx.query.events.findFirst({
+			where: eq(schema.events.id, ticket.eventId),
+		});
+		if (!event) throw new NotFoundError("Event");
+		if (event.sessionAt <= new Date()) throw new EventAlreadyStartedError();
+
+		return cancelAndRefund(
+			tx,
+			purchase.id,
+			purchaseTickets,
+			[ticket],
+			"customer_cancelled",
+			ticket.id,
+		);
+	});
+}
+
+export async function listMyPurchases(customerId: string) {
+	const purchases = await db.query.purchases.findMany({
+		where: eq(schema.purchases.customerId, customerId),
+		with: {
+			event: true,
+			comboItems: true,
+			refunds: true,
+			tickets: { with: { seat: true } },
+		},
+		orderBy: desc(schema.purchases.createdAt),
+	});
+
+	return purchases.map(({ tickets, ...purchase }) => ({
+		...purchase,
+		refundedCents: purchase.refunds.reduce(
+			(sum, refund) => sum + refund.amountCents,
+			0,
+		),
+		tickets: tickets
+			.sort((a, b) => a.seat.row - b.seat.row || a.seat.column - b.seat.column)
+			.map((ticket) => ({
+				...ticket,
+				status: ticketStatus(ticket, purchase.event),
+			})),
+	}));
 }

@@ -1,28 +1,11 @@
 import type { FastifyInstance } from "fastify";
 
 import { sendDomainError } from "../lib/errors";
+import { cancelTicket } from "../lib/purchases";
 import { requireRole } from "../lib/require-role";
-import {
-	cancelTicket,
-	getOwnedTicket,
-	getTicketByShareToken,
-	listMyTickets,
-} from "../lib/tickets";
+import { getOwnedTicket, getTicketByShareToken } from "../lib/tickets";
 
 export async function ticketRoutes(fastify: FastifyInstance) {
-	fastify.get(
-		"/mine",
-		{ preHandler: requireRole("cliente") },
-		async (request, reply) => {
-			try {
-				const results = await listMyTickets(request.user?.id ?? "");
-				return { results };
-			} catch (error) {
-				sendDomainError(reply, error, "Failed to list your tickets");
-			}
-		},
-	);
-
 	fastify.get<{ Params: { shareToken: string } }>(
 		"/share/:shareToken",
 		async (request, reply) => {
@@ -54,8 +37,10 @@ export async function ticketRoutes(fastify: FastifyInstance) {
 		{ preHandler: requireRole("cliente") },
 		async (request, reply) => {
 			try {
-				await cancelTicket(request.params.ticketId, request.user?.id ?? "");
-				return reply.status(204).send();
+				return await cancelTicket(
+					request.params.ticketId,
+					request.user?.id ?? "",
+				);
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to cancel ticket");
 			}

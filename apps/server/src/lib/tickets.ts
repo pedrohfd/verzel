@@ -1,14 +1,8 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
-import {
-	EventAlreadyStartedError,
-	ForbiddenError,
-	NotFoundError,
-	TicketAlreadyCancelledError,
-	TicketAlreadyCheckedInError,
-} from "./errors";
+import { ForbiddenError, NotFoundError } from "./errors";
 import { signTicket } from "./ticket-code";
 import { ticketStatus } from "./ticket-status";
 
@@ -36,69 +30,6 @@ export async function getOwnedTicket(ticketId: string, customerId: string) {
 	});
 
 	return { ...ticket, code, status: ticketStatus(ticket, ticket.event) };
-}
-
-export async function cancelTicket(ticketId: string, customerId: string) {
-	return db.transaction(async (tx) => {
-		const [ticket] = await tx
-			.select()
-			.from(schema.tickets)
-			.where(eq(schema.tickets.id, ticketId))
-			.for("update");
-		if (!ticket) throw new NotFoundError("Ticket");
-
-		const reservation = await tx.query.reservations.findFirst({
-			where: eq(schema.reservations.id, ticket.reservationId),
-		});
-		if (!reservation || reservation.customerId !== customerId) {
-			throw new ForbiddenError();
-		}
-		if (ticket.cancelledAt) throw new TicketAlreadyCancelledError();
-		if (ticket.checkedInAt) throw new TicketAlreadyCheckedInError();
-
-		const event = await tx.query.events.findFirst({
-			where: eq(schema.events.id, ticket.eventId),
-		});
-		if (!event) throw new NotFoundError("Event");
-		if (event.sessionAt <= new Date()) throw new EventAlreadyStartedError();
-
-		const [updatedTicket] = await tx
-			.update(schema.tickets)
-			.set({ cancelledAt: new Date() })
-			.where(eq(schema.tickets.id, ticketId))
-			.returning();
-
-		// Frees the seat: cancelled reservations fall outside the partial unique
-		// index's ('holding','paid') condition, same mechanism as checkout's
-		// decline branch.
-		await tx
-			.update(schema.reservations)
-			.set({ status: "cancelled" })
-			.where(eq(schema.reservations.id, ticket.reservationId));
-
-		return updatedTicket;
-	});
-}
-
-export async function listMyTickets(customerId: string) {
-	const reservations = await db.query.reservations.findMany({
-		where: eq(schema.reservations.customerId, customerId),
-		with: { ticket: true, event: true, seat: true },
-		orderBy: desc(schema.reservations.createdAt),
-	});
-	return reservations.flatMap(({ ticket, ...reservation }) =>
-		ticket
-			? [
-					{
-						...reservation,
-						ticket: {
-							...ticket,
-							status: ticketStatus(ticket, reservation.event),
-						},
-					},
-				]
-			: [],
-	);
 }
 
 export async function getTicketByShareToken(shareToken: string) {

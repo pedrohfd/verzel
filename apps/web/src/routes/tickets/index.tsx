@@ -1,18 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@verzel/ui/components/alert-dialog";
-import { Badge } from "@verzel/ui/components/badge";
-import { Button } from "@verzel/ui/components/button";
-import { Card, CardContent } from "@verzel/ui/components/card";
+import { createFileRoute } from "@tanstack/react-router";
 import {
 	Select,
 	SelectContent,
@@ -23,13 +9,14 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { getMyPurchases } from "@/api/requests/purchases/get-my-purchases";
 import { cancelTicket } from "@/api/requests/tickets/cancel-ticket";
-import { getMyTickets } from "@/api/requests/tickets/get-my-tickets";
-import type { MyTicket, TicketStatus } from "@/api/types";
+import type { MyPurchase, Refund, TicketStatus } from "@/api/types";
+import PurchaseCard from "@/components/organisms/purchase-card";
 import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
-import { ticketStatusBadge, ticketStatusOptions } from "@/lib/ticket-status";
+import { ticketStatusOptions } from "@/lib/ticket-status";
 import { tryCatch } from "@/lib/try-catch";
 
 export const Route = createFileRoute("/tickets/")({
@@ -37,8 +24,26 @@ export const Route = createFileRoute("/tickets/")({
 	beforeLoad: () => requireRole("cliente"),
 });
 
+function applyRefund(purchase: MyPurchase, refund: Refund): MyPurchase {
+	return {
+		...purchase,
+		refunds: [...purchase.refunds, refund],
+		refundedCents: purchase.refundedCents + refund.amountCents,
+		tickets: purchase.tickets.map((ticket) =>
+			ticket.id === refund.ticketId
+				? {
+						...ticket,
+						status: "cancelled",
+						cancelledAt: refund.createdAt,
+						cancellationReason: refund.reason,
+					}
+				: ticket,
+		),
+	};
+}
+
 function MyTicketsComponent() {
-	const [tickets, setTickets] = useState<MyTicket[] | null>(null);
+	const [purchases, setPurchases] = useState<MyPurchase[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
 
@@ -47,13 +52,13 @@ function MyTicketsComponent() {
 
 		(async () => {
 			const [response, fetchError] = await tryCatch(
-				getMyTickets(controller.signal),
+				getMyPurchases(controller.signal),
 			);
 			if (fetchError) {
 				setError("Não foi possível carregar seus ingressos.");
 				return;
 			}
-			setTickets(response);
+			setPurchases(response);
 		})();
 
 		return () => controller.abort();
@@ -67,43 +72,42 @@ function MyTicketsComponent() {
 		);
 	}
 
-	if (!tickets) return <Loader />;
+	if (!purchases) return <Loader />;
 
 	const handleCancelTicket = async (ticketId: string) => {
-		const [, cancelError] = await tryCatch(cancelTicket(ticketId));
+		const [refund, cancelError] = await tryCatch(cancelTicket(ticketId));
 		if (cancelError) {
 			toast.error("Não foi possível cancelar o ingresso.");
 			return;
 		}
-		setTickets(
+		setPurchases(
 			(current) =>
-				current?.map((entry) =>
-					entry.ticket?.id === ticketId
-						? {
-								...entry,
-								ticket: {
-									...entry.ticket,
-									cancelledAt: new Date().toISOString(),
-									status: "cancelled",
-								},
-							}
-						: entry,
+				current?.map((purchase) =>
+					purchase.id === refund.purchaseId
+						? applyRefund(purchase, refund)
+						: purchase,
 				) ?? null,
 		);
-		toast.success("Ingresso cancelado.");
+		toast.success(
+			`Ingresso cancelado. ${formatPriceCents(refund.amountCents)} serão devolvidos.`,
+		);
 	};
 
-	const withTicket = tickets.filter((t) => t.ticket !== null);
-	const filteredTickets =
-		statusFilter === "all"
-			? withTicket
-			: withTicket.filter((entry) => entry.ticket?.status === statusFilter);
+	const filteredPurchases = purchases
+		.map((purchase) => ({
+			purchase,
+			tickets:
+				statusFilter === "all"
+					? purchase.tickets
+					: purchase.tickets.filter((ticket) => ticket.status === statusFilter),
+		}))
+		.filter(({ tickets }) => tickets.length > 0);
 
 	return (
 		<div className="container mx-auto max-w-3xl px-4 py-6">
 			<h1 className="mb-6 font-bold text-2xl">Meus Ingressos</h1>
 
-			{withTicket.length > 0 && (
+			{purchases.length > 0 && (
 				<div className="mb-4">
 					<Select
 						value={statusFilter}
@@ -131,88 +135,27 @@ function MyTicketsComponent() {
 				</div>
 			)}
 
-			{withTicket.length === 0 && (
+			{purchases.length === 0 && (
 				<p className="text-muted-foreground text-sm">
 					Você ainda não tem ingressos.
 				</p>
 			)}
 
-			{withTicket.length > 0 && filteredTickets.length === 0 && (
+			{purchases.length > 0 && filteredPurchases.length === 0 && (
 				<p className="text-muted-foreground text-sm">
 					Nenhum ingresso encontrado para o filtro selecionado.
 				</p>
 			)}
 
 			<div className="flex flex-col gap-3">
-				{filteredTickets.map((entry) => {
-					const sessionDate = new Date(entry.event.sessionAt);
-					const statusBadge = ticketStatusBadge(
-						entry.ticket?.status ?? "valid",
-					);
-					const canCancel =
-						!entry.ticket?.cancelledAt &&
-						!entry.ticket?.checkedInAt &&
-						sessionDate > new Date();
-
-					return (
-						<Card
-							key={entry.ticket?.id}
-							className="flex-row items-center justify-between gap-4 p-4"
-						>
-							<Link
-								to="/tickets/$ticketId"
-								params={{ ticketId: entry.ticket?.id ?? "" }}
-								className="flex flex-1 flex-col gap-1"
-							>
-								<CardContent className="flex flex-1 flex-col gap-1 p-0">
-									<h3 className="font-semibold text-sm">
-										{entry.event.movieTitle}
-									</h3>
-									<p className="text-muted-foreground text-xs">
-										{sessionDate.toLocaleDateString("pt-BR")} · Assento{" "}
-										{entry.seat.label} · {entry.event.venueName}
-									</p>
-									<p className="text-muted-foreground text-xs">
-										{formatPriceCents(entry.event.priceCents)}
-									</p>
-								</CardContent>
-							</Link>
-							<div className="flex flex-row items-center gap-2">
-								<Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
-								{canCancel && (
-									<AlertDialog>
-										<AlertDialogTrigger
-											render={<Button variant="destructive" size="sm" />}
-										>
-											Cancelar
-										</AlertDialogTrigger>
-										<AlertDialogContent>
-											<AlertDialogHeader>
-												<AlertDialogTitle>Cancelar ingresso</AlertDialogTitle>
-												<AlertDialogDescription>
-													Tem certeza que deseja cancelar este ingresso? O
-													assento voltará a ficar disponível e essa ação não
-													pode ser desfeita.
-												</AlertDialogDescription>
-											</AlertDialogHeader>
-											<AlertDialogFooter>
-												<AlertDialogCancel>Voltar</AlertDialogCancel>
-												<AlertDialogAction
-													variant="destructive"
-													onClick={() =>
-														handleCancelTicket(entry.ticket?.id ?? "")
-													}
-												>
-													Cancelar ingresso
-												</AlertDialogAction>
-											</AlertDialogFooter>
-										</AlertDialogContent>
-									</AlertDialog>
-								)}
-							</div>
-						</Card>
-					);
-				})}
+				{filteredPurchases.map(({ purchase, tickets }) => (
+					<PurchaseCard
+						key={purchase.id}
+						purchase={purchase}
+						tickets={tickets}
+						onCancelTicket={handleCancelTicket}
+					/>
+				))}
 			</div>
 		</div>
 	);

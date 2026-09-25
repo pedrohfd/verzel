@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { ticketStatusBadge, ticketStatusOptions } from "./ticket-status";
+import {
+	cancellationReasonLabel,
+	ticketStatusBadge,
+	ticketStatusOptions,
+} from "./ticket-status";
 
 describe("ticketStatusBadge", () => {
 	it("labels every status in Portuguese", () => {
@@ -19,5 +23,14 @@ describe("ticketStatusOptions", () => {
 			"cancelled",
 			"expired",
 		]);
+	});
+});
+
+describe("cancellationReasonLabel", () => {
+	it("explains who cancelled the ticket", () => {
+		expect(cancellationReasonLabel("customer_cancelled")).toBe(
+			"Cancelado por você",
+		);
+		expect(cancellationReasonLabel("event_cancelled")).toBe("Sessão cancelada");
 	});
 });

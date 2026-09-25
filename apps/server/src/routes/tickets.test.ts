@@ -3,13 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TicketAlreadyCheckedInError } from "../lib/errors";
 
 const {
-	listMyTicketsMock,
 	getTicketByShareTokenMock,
 	getOwnedTicketMock,
 	cancelTicketMock,
 	requireRoleMock,
 } = vi.hoisted(() => ({
-	listMyTicketsMock: vi.fn(),
 	getTicketByShareTokenMock: vi.fn(),
 	getOwnedTicketMock: vi.fn(),
 	cancelTicketMock: vi.fn(),
@@ -17,10 +15,12 @@ const {
 }));
 
 vi.mock("../lib/tickets", () => ({
-	listMyTickets: listMyTicketsMock,
 	getTicketByShareToken: getTicketByShareTokenMock,
 	getOwnedTicket: getOwnedTicketMock,
+}));
+vi.mock("../lib/purchases", () => ({
 	cancelTicket: cancelTicketMock,
+	MAX_TICKETS_PER_PURCHASE: 10,
 }));
 
 vi.mock("../lib/require-role", () => ({ requireRole: requireRoleMock }));
@@ -36,23 +36,10 @@ function authAsCustomer(userId = "customer-1") {
 }
 
 beforeEach(() => {
-	listMyTicketsMock.mockReset();
 	getTicketByShareTokenMock.mockReset();
 	getOwnedTicketMock.mockReset();
 	cancelTicketMock.mockReset();
 	requireRoleMock.mockReset();
-});
-
-describe("GET /mine", () => {
-	it("returns the caller's tickets", async () => {
-		authAsCustomer();
-		listMyTicketsMock.mockResolvedValue([{ id: "ticket-1" }]);
-		const app = buildTestApp();
-
-		const res = await app.inject({ method: "GET", url: "/api/tickets/mine" });
-
-		expect(res.json()).toEqual({ results: [{ id: "ticket-1" }] });
-	});
 });
 
 describe("GET /share/:shareToken", () => {
@@ -85,9 +72,15 @@ describe("GET /:ticketId", () => {
 });
 
 describe("POST /:ticketId/cancel", () => {
-	it("cancels the ticket and returns 204", async () => {
+	it("cancels the ticket and returns the refund", async () => {
 		authAsCustomer();
-		cancelTicketMock.mockResolvedValue({ id: "ticket-1" });
+		const refund = {
+			id: "refund-1",
+			ticketId: "ticket-1",
+			amountCents: 2000,
+			reason: "customer_cancelled",
+		};
+		cancelTicketMock.mockResolvedValue(refund);
 		const app = buildTestApp();
 
 		const res = await app.inject({
@@ -95,7 +88,8 @@ describe("POST /:ticketId/cancel", () => {
 			url: "/api/tickets/ticket-1/cancel",
 		});
 
-		expect(res.statusCode).toBe(204);
+		expect(res.statusCode).toBe(200);
+		expect(res.json()).toEqual(refund);
 		expect(cancelTicketMock).toHaveBeenCalledWith("ticket-1", "customer-1");
 	});
 

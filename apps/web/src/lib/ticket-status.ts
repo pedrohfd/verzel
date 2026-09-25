@@ -1,4 +1,4 @@
-import type { TicketStatus } from "@/api/types";
+import type { CancellationReason, TicketStatus } from "@/api/types";
 
 const badges: Record<
 	TicketStatus,
@@ -20,3 +20,12 @@ export function ticketStatusBadge(status: TicketStatus) {
 export const ticketStatusOptions = (Object.keys(badges) as TicketStatus[]).map(
 	(value) => ({ value, label: badges[value].label }),
 );
+
+const cancellationReasons: Record<CancellationReason, string> = {
+	customer_cancelled: "Cancelado por você",
+	event_cancelled: "Sessão cancelada",
+};
+
+export function cancellationReasonLabel(reason: CancellationReason) {
+	return cancellationReasons[reason];
+}

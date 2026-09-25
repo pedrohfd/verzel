@@ -16,7 +16,7 @@ import {
 	listCheckinEvents,
 	validateTicket,
 } from "./checkin";
-import { cancelTicket } from "./tickets";
+import { cancelTicket } from "./purchases";
 
 beforeEach(async () => {
 	await resetTestData();

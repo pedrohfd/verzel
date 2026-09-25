@@ -2,6 +2,7 @@ import { db } from "@verzel/db";
 import { sql } from "drizzle-orm";
 
 const TABLES = [
+	"refund",
 	"purchase_combo_item",
 	"purchase",
 	"ticket",
