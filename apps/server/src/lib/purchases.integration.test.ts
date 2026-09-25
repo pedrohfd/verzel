@@ -11,7 +11,9 @@ import {
 	createGatekeeper,
 	createOrganizer,
 	createUser,
+	freezeClockMinutesBeforeSession,
 	holdSeats,
+	moveSessionTo,
 } from "../test-helpers/fixtures";
 import { type CheckinStaff, validateTicket } from "./checkin";
 import {
@@ -357,10 +359,7 @@ describe("checkout", () => {
 	it("refuses to pay once the session has started, creating no purchase", async () => {
 		const { event, customer } = await setup();
 		const holds = await holdSeats(event.id, customer.id, 2);
-		await db
-			.update(schema.events)
-			.set({ sessionAt: new Date() })
-			.where(eq(schema.events.id, event.id));
+		await moveSessionTo(event.id, new Date());
 
 		await expect(
 			checkout({
@@ -379,10 +378,7 @@ describe("checkout", () => {
 	it("still takes the payment 1 minute before the session starts", async () => {
 		const { event, customer } = await setup();
 		const holds = await holdSeats(event.id, customer.id, 1);
-		await db
-			.update(schema.events)
-			.set({ sessionAt: new Date(Date.now() + 60_000) })
-			.where(eq(schema.events.id, event.id));
+		await moveSessionTo(event.id, new Date(Date.now() + 60_000));
 
 		const { purchase } = await checkout({
 			reservationIds: idsOf(holds),
@@ -475,28 +471,10 @@ async function useTicket(eventId: string, code: string, staff: CheckinStaff) {
 		where: eq(schema.events.id, eventId),
 	});
 	if (!event) throw new Error("No event");
-	await db
-		.update(schema.events)
-		.set({ sessionAt: new Date(Date.now() + 30 * 60_000) })
-		.where(eq(schema.events.id, eventId));
+	await moveSessionTo(eventId, new Date(Date.now() + 30 * 60_000));
 	const checkin = await validateTicket(eventId, code, staff);
 	expect(checkin.result).toBe("valid");
-	await db
-		.update(schema.events)
-		.set({ sessionAt: event.sessionAt })
-		.where(eq(schema.events.id, eventId));
-}
-
-async function freezeClockMinutesBeforeSession(
-	eventId: string,
-	minutes: number,
-) {
-	const now = new Date();
-	vi.useFakeTimers({ toFake: ["Date"], now });
-	await db
-		.update(schema.events)
-		.set({ sessionAt: new Date(now.getTime() + minutes * 60_000) })
-		.where(eq(schema.events.id, eventId));
+	await moveSessionTo(eventId, event.sessionAt);
 }
 
 function ticketAt<T>(tickets: T[], index: number): T {
@@ -637,10 +615,7 @@ describe("cancelTicket", () => {
 
 	it("refuses a ticket once the session has started", async () => {
 		const { event, customer, purchase, tickets } = await purchaseWithCombos(1);
-		await db
-			.update(schema.events)
-			.set({ sessionAt: new Date(Date.now() - 60_000) })
-			.where(eq(schema.events.id, event.id));
+		await moveSessionTo(event.id, new Date(Date.now() - 60_000));
 
 		await expect(
 			cancelTicket(ticketAt(tickets, 0).id, customer.id),

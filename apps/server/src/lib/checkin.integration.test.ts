@@ -10,6 +10,7 @@ import {
 	createGatekeeper,
 	createOrganizer,
 	createUser,
+	freezeClockMinutesBeforeSession,
 	moveSessionTo,
 } from "../test-helpers/fixtures";
 import {
@@ -27,20 +28,6 @@ beforeEach(async () => {
 afterEach(() => {
 	vi.useRealTimers();
 });
-
-async function freezeClockMinutesBeforeSession(
-	eventId: string,
-	minutes: number,
-) {
-	const now = new Date();
-	vi.useFakeTimers({ toFake: ["Date"], now });
-	const sessionAt = new Date(now.getTime() + minutes * 60_000);
-	await db
-		.update(schema.events)
-		.set({ sessionAt })
-		.where(eq(schema.events.id, eventId));
-	return sessionAt;
-}
 
 async function setupCinema() {
 	const organizer = await createOrganizer();

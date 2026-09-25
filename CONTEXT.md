@@ -56,7 +56,7 @@ Devolução de parte ou de todo o valor de uma Compra, com motivo: cancelado pel
 _Evitar_: estorno
 
 **Titular**:
-O Cliente que fez a Compra. Só ele cancela Ingressos e recebe Reembolsos, mesmo depois de compartilhá-los.
+O Cliente que fez a Compra. Só ele cancela Ingressos (até 2h antes do início da Sessão) e recebe Reembolsos, mesmo depois de compartilhá-los.
 _Evitar_: dono
 
 **Portador**:

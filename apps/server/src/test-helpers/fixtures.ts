@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
 import { eq } from "drizzle-orm";
+import { vi } from "vitest";
 
 import { checkout } from "../lib/purchases";
 import { createHolds } from "../lib/reservations";
@@ -68,6 +69,19 @@ export async function moveSessionTo(eventId: string, sessionAt: Date) {
 		.update(schema.events)
 		.set({ sessionAt })
 		.where(eq(schema.events.id, eventId));
+}
+
+// Freezes the clock (Date only) so rules that compare "now" with the session
+// start can be tested exactly on their boundaries.
+export async function freezeClockMinutesBeforeSession(
+	eventId: string,
+	minutes: number,
+) {
+	const now = new Date();
+	vi.useFakeTimers({ toFake: ["Date"], now });
+	const sessionAt = new Date(now.getTime() + minutes * 60_000);
+	await moveSessionTo(eventId, sessionAt);
+	return sessionAt;
 }
 
 export async function createRoom(organizerId: string, rows = 5, columns = 5) {
