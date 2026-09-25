@@ -45,6 +45,24 @@ describe("POST /register", () => {
 		expect(res.statusCode).toBe(401);
 	});
 
+	it.each(["organizador", "portaria"])(
+		"returns 403 without touching the account when a %s registers a cinema",
+		async (role) => {
+			getSessionUserMock.mockResolvedValue({ id: "user-1", role });
+			const app = createApp();
+
+			const res = await app.inject({
+				method: "POST",
+				url: "/api/cinemas/register",
+				payload: validBody,
+			});
+
+			expect(res.statusCode).toBe(403);
+			expect(res.json()).toMatchObject({ code: "FORBIDDEN" });
+			expect(registerCinemaMock).not.toHaveBeenCalled();
+		},
+	);
+
 	it("returns 400 when the payload is invalid", async () => {
 		getSessionUserMock.mockResolvedValue({ id: "user-1", role: "cliente" });
 		const app = createApp();

@@ -1,6 +1,7 @@
+import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
 
-config({ path: new URL("../.env.test", import.meta.url).pathname });
+config({ path: fileURLToPath(new URL("../.env.test", import.meta.url)) });
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
@@ -28,9 +29,8 @@ try {
 const testPool = new Pool({ connectionString: testDatabaseUrl });
 const db = drizzle(testPool);
 await migrate(db, {
-	migrationsFolder: new URL(
-		"../../../packages/db/src/migrations",
-		import.meta.url,
-	).pathname,
+	migrationsFolder: fileURLToPath(
+		new URL("../../../packages/db/src/migrations", import.meta.url),
+	),
 });
 await testPool.end();

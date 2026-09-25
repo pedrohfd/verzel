@@ -111,6 +111,31 @@ describe("UserMenu", () => {
 		expect(screen.getByText("Minha Conta")).toBeInTheDocument();
 	});
 
+	it("offers cinema registration only to the cliente role", () => {
+		useSessionMock.mockReturnValue({
+			isPending: false,
+			data: {
+				user: { name: "Alice", email: "alice@example.com", role: "cliente" },
+			},
+		});
+
+		const { rerender } = render(<UserMenu />);
+		expect(screen.getByText("Cadastrar meu cinema")).toBeInTheDocument();
+
+		useSessionMock.mockReturnValue({
+			isPending: false,
+			data: {
+				user: {
+					name: "Alice",
+					email: "alice@example.com",
+					role: "organizador",
+				},
+			},
+		});
+		rerender(<UserMenu />);
+		expect(screen.queryByText("Cadastrar meu cinema")).not.toBeInTheDocument();
+	});
+
 	it("shows the account link for the organizador role", () => {
 		useSessionMock.mockReturnValue({
 			isPending: false,

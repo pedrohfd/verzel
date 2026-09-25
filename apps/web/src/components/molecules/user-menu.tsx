@@ -66,6 +66,9 @@ export default function UserMenu() {
 						<DropdownMenuItem render={<Link to="/tickets" />}>
 							Meus Ingressos
 						</DropdownMenuItem>
+						<DropdownMenuItem render={<Link to="/cinema-register" />}>
+							Cadastrar meu cinema
+						</DropdownMenuItem>
 					</DropdownMenuGroup>
 				</RoleGate>
 				{/* biome-ignore lint/a11y/useValidAriaRole: RoleGate's role prop is not an ARIA role */}

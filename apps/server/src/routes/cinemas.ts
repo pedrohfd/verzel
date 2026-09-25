@@ -32,6 +32,12 @@ export async function cinemaRoutes(fastify: FastifyInstance) {
 				.status(401)
 				.send({ error: "Authentication required", code: "UNAUTHENTICATED" });
 		}
+		if (user.role !== "cliente") {
+			return reply.status(403).send({
+				error: "Only customers can register a cinema",
+				code: "FORBIDDEN",
+			});
+		}
 
 		const parsed = registerCinemaSchema.safeParse(request.body);
 		if (!parsed.success) {

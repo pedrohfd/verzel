@@ -19,7 +19,8 @@ export default function CinemaRegisterForm() {
 	const navigate = useNavigate({
 		from: "/",
 	});
-	const { isPending } = authClient.useSession();
+	const { data: session, isPending } = authClient.useSession();
+	const isSignedIn = Boolean(session);
 	const [isFetchingAddress, setIsFetchingAddress] = useState(false);
 	const lastLookedUpCepRef = useRef<string | null>(null);
 
@@ -39,6 +40,35 @@ export default function CinemaRegisterForm() {
 			state: "",
 		},
 		onSubmit: async ({ value }) => {
+			const submitCinema = async () => {
+				const [, error] = await tryCatch(
+					registerCinema({
+						cinemaName: value.cinemaName,
+						cnpj: value.cnpj,
+						zipCode: value.zipCode,
+						street: value.street,
+						number: value.number,
+						complement: value.complement,
+						neighborhood: value.neighborhood,
+						city: value.city,
+						state: value.state,
+					}),
+				);
+
+				if (error) {
+					toast.error("Não foi possível concluir o cadastro do cinema.");
+					return;
+				}
+
+				navigate({ to: "/organizer" });
+				toast.success("Cadastro do cinema realizado com sucesso");
+			};
+
+			if (isSignedIn) {
+				await submitCinema();
+				return;
+			}
+
 			await authClient.signUp.email(
 				{
 					email: value.email,
@@ -46,29 +76,7 @@ export default function CinemaRegisterForm() {
 					name: value.name,
 				},
 				{
-					onSuccess: async () => {
-						const [, error] = await tryCatch(
-							registerCinema({
-								cinemaName: value.cinemaName,
-								cnpj: value.cnpj,
-								zipCode: value.zipCode,
-								street: value.street,
-								number: value.number,
-								complement: value.complement,
-								neighborhood: value.neighborhood,
-								city: value.city,
-								state: value.state,
-							}),
-						);
-
-						if (error) {
-							toast.error("Não foi possível concluir o cadastro do cinema.");
-							return;
-						}
-
-						navigate({ to: "/organizer" });
-						toast.success("Cadastro do cinema realizado com sucesso");
-					},
+					onSuccess: submitCinema,
 					onError: (error) => {
 						toast.error(error.error.message || error.error.statusText);
 					},
@@ -77,9 +85,13 @@ export default function CinemaRegisterForm() {
 		},
 		validators: {
 			onSubmit: z.object({
-				name: z.string().min(2, "O nome deve ter no mínimo 2 caracteres"),
-				email: z.email("Endereço de e-mail inválido"),
-				password: z.string().min(8, "A senha deve ter no mínimo 8 caracteres"),
+				name: isSignedIn
+					? z.string()
+					: z.string().min(2, "O nome deve ter no mínimo 2 caracteres"),
+				email: isSignedIn ? z.string() : z.email("Endereço de e-mail inválido"),
+				password: isSignedIn
+					? z.string()
+					: z.string().min(8, "A senha deve ter no mínimo 8 caracteres"),
 				cinemaName: z
 					.string()
 					.min(2, "O nome do cinema deve ter no mínimo 2 caracteres"),
@@ -113,73 +125,77 @@ export default function CinemaRegisterForm() {
 				}}
 				className="space-y-4"
 			>
-				<div>
-					<form.Field name="name">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Nome do responsável</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
+				{!isSignedIn && (
+					<>
+						<div>
+							<form.Field name="name">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>Nome do responsável</Label>
+										<Input
+											id={field.name}
+											name={field.name}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+										/>
+										{field.state.meta.errors.map((error) => (
+											<p key={error?.message} className="text-red-500">
+												{error?.message}
+											</p>
+										))}
+									</div>
+								)}
+							</form.Field>
+						</div>
 
-				<div>
-					<form.Field name="email">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>E-mail</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="email"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
+						<div>
+							<form.Field name="email">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>E-mail</Label>
+										<Input
+											id={field.name}
+											name={field.name}
+											type="email"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+										/>
+										{field.state.meta.errors.map((error) => (
+											<p key={error?.message} className="text-red-500">
+												{error?.message}
+											</p>
+										))}
+									</div>
+								)}
+							</form.Field>
+						</div>
 
-				<div>
-					<form.Field name="password">
-						{(field) => (
-							<div className="space-y-2">
-								<Label htmlFor={field.name}>Senha</Label>
-								<Input
-									id={field.name}
-									name={field.name}
-									type="password"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-								/>
-								{field.state.meta.errors.map((error) => (
-									<p key={error?.message} className="text-red-500">
-										{error?.message}
-									</p>
-								))}
-							</div>
-						)}
-					</form.Field>
-				</div>
+						<div>
+							<form.Field name="password">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>Senha</Label>
+										<Input
+											id={field.name}
+											name={field.name}
+											type="password"
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+										/>
+										{field.state.meta.errors.map((error) => (
+											<p key={error?.message} className="text-red-500">
+												{error?.message}
+											</p>
+										))}
+									</div>
+								)}
+							</form.Field>
+						</div>
+					</>
+				)}
 
 				<div>
 					<form.Field name="cinemaName">

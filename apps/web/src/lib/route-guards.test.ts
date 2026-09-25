@@ -12,8 +12,12 @@ vi.mock("@tanstack/react-router", () => ({
 	},
 }));
 
-const { requireRole, redirectIfAuthenticated, restrictPortariaAccess } =
-	await import("./route-guards");
+const {
+	requireRole,
+	redirectIfAuthenticated,
+	restrictPortariaAccess,
+	restrictCinemaRegistration,
+} = await import("./route-guards");
 
 beforeEach(() => {
 	getSessionMock.mockReset();
@@ -123,4 +127,32 @@ describe("restrictPortariaAccess", () => {
 			options: { to: "/portaria" },
 		});
 	});
+});
+
+describe("restrictCinemaRegistration", () => {
+	it("lets anonymous visitors through", async () => {
+		getSessionMock.mockResolvedValue({ data: null });
+
+		await expect(restrictCinemaRegistration()).resolves.toBeUndefined();
+	});
+
+	it("lets clientes through", async () => {
+		getSessionMock.mockResolvedValue({
+			data: { user: { role: "cliente" } },
+		});
+
+		await expect(restrictCinemaRegistration()).resolves.toBeUndefined();
+	});
+
+	it.each(["organizador", "portaria"])(
+		"redirects %s accounts to /",
+		async (role) => {
+			getSessionMock.mockResolvedValue({ data: { user: { role } } });
+
+			await expect(restrictCinemaRegistration()).rejects.toMatchObject({
+				isRedirect: true,
+				options: { to: "/" },
+			});
+		},
+	);
 });

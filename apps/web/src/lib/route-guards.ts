@@ -23,6 +23,15 @@ export async function redirectIfAuthenticated() {
 	}
 }
 
+export async function restrictCinemaRegistration() {
+	const { data: session } = await authClient.getSession();
+	const role = (session?.user as { role?: Role } | undefined)?.role;
+
+	if (session && role !== "cliente") {
+		throw redirect({ to: "/" });
+	}
+}
+
 export async function restrictPortariaAccess(pathname: string) {
 	const { data: session } = await authClient.getSession();
 	const role = (session?.user as { role?: Role } | undefined)?.role;

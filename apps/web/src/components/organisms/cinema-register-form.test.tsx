@@ -64,6 +64,10 @@ function fillValidForm() {
 	fireEvent.change(screen.getByLabelText("Senha"), {
 		target: { value: "password123" },
 	});
+	fillCinemaFields();
+}
+
+function fillCinemaFields() {
 	fireEvent.change(screen.getByLabelText("Nome do cinema/rede"), {
 		target: { value: "Cine Verzel" },
 	});
@@ -158,6 +162,28 @@ describe("CinemaRegisterForm", () => {
 		await waitFor(() => {
 			expect(toastErrorMock).toHaveBeenCalledWith("email in use");
 		});
+	});
+
+	it("registers the cinema for a signed-in cliente without creating a new account", async () => {
+		useSessionMock.mockReturnValue({
+			isPending: false,
+			data: { user: { name: "Alice", role: "cliente" } },
+		});
+		registerCinemaMock.mockResolvedValue({ id: "user-1" });
+
+		render(<CinemaRegisterForm />);
+		expect(screen.queryByLabelText("E-mail")).not.toBeInTheDocument();
+		expect(screen.queryByLabelText("Senha")).not.toBeInTheDocument();
+		fillCinemaFields();
+		fireEvent.click(screen.getByRole("button", { name: "Cadastrar cinema" }));
+
+		await waitFor(() => {
+			expect(navigateMock).toHaveBeenCalledWith({ to: "/organizer" });
+		});
+		expect(signUpEmailMock).not.toHaveBeenCalled();
+		expect(registerCinemaMock).toHaveBeenCalledWith(
+			expect.objectContaining({ cinemaName: "Cine Verzel" }),
+		);
 	});
 
 	it("autofills address fields when the CEP lookup succeeds", async () => {
