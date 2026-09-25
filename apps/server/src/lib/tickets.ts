@@ -10,6 +10,7 @@ import {
 	TicketAlreadyCheckedInError,
 } from "./errors";
 import { signTicket } from "./ticket-code";
+import { ticketStatus } from "./ticket-status";
 
 async function loadTicketDetail(ticketId: string) {
 	const ticket = await db.query.tickets.findFirst({
@@ -34,7 +35,7 @@ export async function getOwnedTicket(ticketId: string, customerId: string) {
 		issuedAt: ticket.issuedAt.getTime(),
 	});
 
-	return { ...ticket, code };
+	return { ...ticket, code, status: ticketStatus(ticket, ticket.event) };
 }
 
 export async function cancelTicket(ticketId: string, customerId: string) {
@@ -85,7 +86,19 @@ export async function listMyTickets(customerId: string) {
 		with: { ticket: true, event: true, seat: true },
 		orderBy: desc(schema.reservations.createdAt),
 	});
-	return reservations.filter((r) => r.ticket !== null);
+	return reservations.flatMap(({ ticket, ...reservation }) =>
+		ticket
+			? [
+					{
+						...reservation,
+						ticket: {
+							...ticket,
+							status: ticketStatus(ticket, reservation.event),
+						},
+					},
+				]
+			: [],
+	);
 }
 
 export async function getTicketByShareToken(shareToken: string) {
@@ -110,6 +123,7 @@ export async function getTicketByShareToken(shareToken: string) {
 		seatLabel: ticket.seat.label,
 		checkedInAt: ticket.checkedInAt,
 		cancelledAt: ticket.cancelledAt,
+		status: ticketStatus(ticket, ticket.event),
 		code,
 	};
 }

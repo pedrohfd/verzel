@@ -6,25 +6,13 @@ import { useEffect, useState } from "react";
 import { getSharedTicket } from "@/api/requests/tickets/get-shared-ticket";
 import type { SharedTicket } from "@/api/types";
 import Loader from "@/components/ui/loader";
+import { ticketStatusBadge } from "@/lib/ticket-status";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
 export const Route = createFileRoute("/share/$shareToken")({
 	component: SharedTicketComponent,
 });
-
-function ticketStatusBadge(ticket: {
-	checkedInAt: string | null;
-	cancelledAt: string | null;
-}) {
-	if (ticket.cancelledAt) {
-		return { variant: "destructive" as const, label: "Cancelado" };
-	}
-	if (ticket.checkedInAt) {
-		return { variant: "secondary" as const, label: "Utilizado" };
-	}
-	return { variant: "default" as const, label: "Válido" };
-}
 
 function SharedTicketComponent() {
 	const { shareToken } = Route.useParams();
@@ -59,7 +47,7 @@ function SharedTicketComponent() {
 	if (!ticket) return <Loader />;
 
 	const sessionDate = new Date(ticket.sessionAt);
-	const statusBadge = ticketStatusBadge(ticket);
+	const statusBadge = ticketStatusBadge(ticket.status);
 
 	return (
 		<div className="container mx-auto max-w-md px-4 py-6">

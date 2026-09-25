@@ -173,4 +173,30 @@ describe("validateTicket", () => {
 
 		expect(result.result).toBe("cancelled");
 	});
+
+	it("returns expired for an unused ticket once the session has ended", async () => {
+		const { organizer } = await setupCinema();
+		const endedEvent = await createEvent(organizer.id, {
+			sessionAt: new Date(Date.now() - 3 * 60 * 60_000),
+			durationMinutes: 120,
+		});
+		const { ticket } = await issueTicket(endedEvent.id);
+
+		const result = await validateTicket(
+			endedEvent.id,
+			ticket.code,
+			asStaff(organizer),
+		);
+
+		expect(result).toEqual({
+			result: "expired",
+			sessionEndedAt: new Date(
+				endedEvent.sessionAt.getTime() + 120 * 60_000,
+			).toISOString(),
+		});
+		const stored = await db.query.tickets.findFirst({
+			where: eq(schema.tickets.id, ticket.id),
+		});
+		expect(stored?.checkedInAt).toBeNull();
+	});
 });

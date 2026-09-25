@@ -25,10 +25,11 @@ import { toast } from "sonner";
 
 import { cancelTicket } from "@/api/requests/tickets/cancel-ticket";
 import { getMyTickets } from "@/api/requests/tickets/get-my-tickets";
-import type { MyTicket } from "@/api/types";
+import type { MyTicket, TicketStatus } from "@/api/types";
 import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
+import { ticketStatusBadge, ticketStatusOptions } from "@/lib/ticket-status";
 import { tryCatch } from "@/lib/try-catch";
 
 export const Route = createFileRoute("/tickets/")({
@@ -36,39 +37,10 @@ export const Route = createFileRoute("/tickets/")({
 	beforeLoad: () => requireRole("cliente"),
 });
 
-type TicketStatusKey = "valid" | "used" | "cancelled";
-
-function ticketStatusKey(ticket: {
-	checkedInAt: string | null;
-	cancelledAt: string | null;
-}): TicketStatusKey {
-	if (ticket.cancelledAt) return "cancelled";
-	if (ticket.checkedInAt) return "used";
-	return "valid";
-}
-
-const ticketStatusBadgeConfig: Record<
-	TicketStatusKey,
-	{ variant: "destructive" | "secondary" | "default"; label: string }
-> = {
-	cancelled: { variant: "destructive", label: "Cancelado" },
-	used: { variant: "secondary", label: "Utilizado" },
-	valid: { variant: "default", label: "Válido" },
-};
-
-function ticketStatusBadge(ticket: {
-	checkedInAt: string | null;
-	cancelledAt: string | null;
-}) {
-	return ticketStatusBadgeConfig[ticketStatusKey(ticket)];
-}
-
 function MyTicketsComponent() {
 	const [tickets, setTickets] = useState<MyTicket[] | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [statusFilter, setStatusFilter] = useState<TicketStatusKey | "all">(
-		"all",
-	);
+	const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
 
 	useEffect(() => {
 		const controller = new AbortController();
@@ -112,6 +84,7 @@ function MyTicketsComponent() {
 								ticket: {
 									...entry.ticket,
 									cancelledAt: new Date().toISOString(),
+									status: "cancelled",
 								},
 							}
 						: entry,
@@ -124,13 +97,7 @@ function MyTicketsComponent() {
 	const filteredTickets =
 		statusFilter === "all"
 			? withTicket
-			: withTicket.filter(
-					(entry) =>
-						ticketStatusKey({
-							checkedInAt: entry.ticket?.checkedInAt ?? null,
-							cancelledAt: entry.ticket?.cancelledAt ?? null,
-						}) === statusFilter,
-				);
+			: withTicket.filter((entry) => entry.ticket?.status === statusFilter);
 
 	return (
 		<div className="container mx-auto max-w-3xl px-4 py-6">
@@ -142,13 +109,11 @@ function MyTicketsComponent() {
 						value={statusFilter}
 						onValueChange={(value) => {
 							if (!value) return;
-							setStatusFilter(value as TicketStatusKey | "all");
+							setStatusFilter(value as TicketStatus | "all");
 						}}
 						items={[
 							{ value: "all", label: "Todos os status" },
-							{ value: "valid", label: "Válido" },
-							{ value: "used", label: "Utilizado" },
-							{ value: "cancelled", label: "Cancelado" },
+							...ticketStatusOptions,
 						]}
 					>
 						<SelectTrigger className="w-44">
@@ -156,9 +121,11 @@ function MyTicketsComponent() {
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="all">Todos os status</SelectItem>
-							<SelectItem value="valid">Válido</SelectItem>
-							<SelectItem value="used">Utilizado</SelectItem>
-							<SelectItem value="cancelled">Cancelado</SelectItem>
+							{ticketStatusOptions.map((option) => (
+								<SelectItem key={option.value} value={option.value}>
+									{option.label}
+								</SelectItem>
+							))}
 						</SelectContent>
 					</Select>
 				</div>
@@ -179,10 +146,9 @@ function MyTicketsComponent() {
 			<div className="flex flex-col gap-3">
 				{filteredTickets.map((entry) => {
 					const sessionDate = new Date(entry.event.sessionAt);
-					const statusBadge = ticketStatusBadge({
-						checkedInAt: entry.ticket?.checkedInAt ?? null,
-						cancelledAt: entry.ticket?.cancelledAt ?? null,
-					});
+					const statusBadge = ticketStatusBadge(
+						entry.ticket?.status ?? "valid",
+					);
 					const canCancel =
 						!entry.ticket?.cancelledAt &&
 						!entry.ticket?.checkedInAt &&

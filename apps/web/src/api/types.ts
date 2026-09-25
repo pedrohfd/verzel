@@ -138,6 +138,8 @@ export interface Payment {
 	createdAt: string;
 }
 
+export type TicketStatus = "valid" | "used" | "cancelled" | "expired";
+
 export interface Ticket {
 	id: string;
 	reservationId: string;
@@ -150,6 +152,7 @@ export interface Ticket {
 	checkedInByUserId: string | null;
 	cancelledAt: string | null;
 	createdAt: string;
+	status: TicketStatus;
 }
 
 export interface TicketWithCode extends Ticket {
@@ -178,6 +181,7 @@ export interface SharedTicket {
 	seatLabel: string;
 	checkedInAt: string | null;
 	cancelledAt: string | null;
+	status: TicketStatus;
 	code: string;
 }
 
@@ -191,4 +195,5 @@ export type CheckinResult =
 	| { result: "invalid" }
 	| { result: "already_used"; checkedInAt: string; checkedInBy: string | null }
 	| { result: "wrong_event"; ticketEventId: string }
-	| { result: "cancelled"; cancelledAt: string };
+	| { result: "cancelled"; cancelledAt: string }
+	| { result: "expired"; sessionEndedAt: string };

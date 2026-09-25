@@ -27,6 +27,7 @@ const resultLabel: Record<CheckinResult["result"], string> = {
 	already_used: "Ingresso já utilizado",
 	wrong_event: "Ingresso de outra sessão",
 	cancelled: "Ingresso cancelado",
+	expired: "Ingresso expirado",
 };
 
 function resultBadgeVariant(result: CheckinResult["result"]) {
@@ -174,7 +175,7 @@ function PortariaScanComponent() {
 						<Ban className="size-12 animate-shake text-amber-600 dark:text-amber-500" />
 					)}
 
-					{result.result === "cancelled" && (
+					{(result.result === "cancelled" || result.result === "expired") && (
 						<Ban className="size-12 text-destructive" />
 					)}
 
@@ -207,6 +208,13 @@ function PortariaScanComponent() {
 						<p className="text-muted-foreground text-sm">
 							Cancelado em{" "}
 							{new Date(result.cancelledAt).toLocaleString("pt-BR")}
+						</p>
+					)}
+
+					{result.result === "expired" && (
+						<p className="text-muted-foreground text-sm">
+							A sessão terminou em{" "}
+							{new Date(result.sessionEndedAt).toLocaleString("pt-BR")}
 						</p>
 					)}
 

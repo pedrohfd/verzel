@@ -4,6 +4,7 @@ import { and, asc, eq, gte, isNull, lt } from "drizzle-orm";
 
 import { ForbiddenError, NotFoundError } from "./errors";
 import { verifyTicketCode } from "./ticket-code";
+import { sessionEndsAt, ticketStatus } from "./ticket-status";
 
 export interface CheckinStaff {
 	id: string;
@@ -70,7 +71,8 @@ export type CheckinResult =
 	| { result: "invalid" }
 	| { result: "already_used"; checkedInAt: string; checkedInBy: string | null }
 	| { result: "wrong_event"; ticketEventId: string }
-	| { result: "cancelled"; cancelledAt: string };
+	| { result: "cancelled"; cancelledAt: string }
+	| { result: "expired"; sessionEndedAt: string };
 
 export async function validateTicket(
 	eventId: string,
@@ -109,6 +111,16 @@ export async function validateTicket(
 			};
 		}
 
+		const event = await tx.query.events.findFirst({
+			where: eq(schema.events.id, ticket.eventId),
+		});
+		if (event && ticketStatus(ticket, event) === "expired") {
+			return {
+				result: "expired",
+				sessionEndedAt: sessionEndsAt(event).toISOString(),
+			};
+		}
+
 		const [updated] = await tx
 			.update(schema.tickets)
 			.set({ checkedInAt: new Date(), checkedInByUserId: staff.id })
@@ -131,9 +143,6 @@ export async function validateTicket(
 
 		const seat = await tx.query.seats.findFirst({
 			where: eq(schema.seats.id, ticket.seatId),
-		});
-		const event = await tx.query.events.findFirst({
-			where: eq(schema.events.id, ticket.eventId),
 		});
 		const reservation = await tx.query.reservations.findFirst({
 			where: eq(schema.reservations.id, ticket.reservationId),

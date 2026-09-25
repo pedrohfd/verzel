@@ -12,21 +12,9 @@ import BackLink from "@/components/molecules/back-link";
 import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
+import { ticketStatusBadge } from "@/lib/ticket-status";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
-
-function ticketStatusBadge(ticket: {
-	checkedInAt: string | null;
-	cancelledAt: string | null;
-}) {
-	if (ticket.cancelledAt) {
-		return { variant: "destructive" as const, label: "Cancelado" };
-	}
-	if (ticket.checkedInAt) {
-		return { variant: "secondary" as const, label: "Utilizado" };
-	}
-	return { variant: "default" as const, label: "Válido" };
-}
 
 export const Route = createFileRoute("/tickets/$ticketId")({
 	component: TicketDetailComponent,
@@ -67,7 +55,7 @@ function TicketDetailComponent() {
 
 	const sessionDate = new Date(ticket.event.sessionAt);
 	const shareUrl = `${window.location.origin}/share/${ticket.shareToken}`;
-	const statusBadge = ticketStatusBadge(ticket);
+	const statusBadge = ticketStatusBadge(ticket.status);
 
 	const handleCopyShareLink = async () => {
 		const [, copyError] = await tryCatch(
