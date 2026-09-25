@@ -2,9 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { sendDomainError } from "../lib/errors";
+import { MAX_TICKETS_PER_PURCHASE } from "../lib/purchases";
 import { requireRole } from "../lib/require-role";
 import {
 	cancelHolds,
+	countActiveHolds,
 	createHolds,
 	getOwnedReservation,
 } from "../lib/reservations";
@@ -19,6 +21,10 @@ const createReservationSchema = z.object({
 			}),
 		)
 		.min(1),
+});
+
+const activeCountQuerySchema = z.object({
+	eventId: z.string().uuid(),
 });
 
 const cancelReservationsSchema = z.object({
@@ -46,6 +52,29 @@ export async function reservationRoutes(fastify: FastifyInstance) {
 				return reply.status(201).send(reservations);
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to create reservation");
+			}
+		},
+	);
+
+	fastify.get(
+		"/active-count",
+		{ preHandler: requireRole("cliente") },
+		async (request, reply) => {
+			const parsed = activeCountQuerySchema.safeParse(request.query);
+			if (!parsed.success) {
+				return reply
+					.status(400)
+					.send({ error: "Invalid event id", code: "INVALID_INPUT" });
+			}
+
+			try {
+				const count = await countActiveHolds(
+					parsed.data.eventId,
+					request.user?.id ?? "",
+				);
+				return { count, limit: MAX_TICKETS_PER_PURCHASE };
+			} catch (error) {
+				sendDomainError(reply, error, "Failed to count reservations");
 			}
 		},
 	);

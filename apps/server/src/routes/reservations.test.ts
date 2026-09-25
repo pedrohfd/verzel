@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ReservationLimitExceededError } from "../lib/errors";
+
 const {
 	cancelHoldsMock,
+	countActiveHoldsMock,
 	createHoldsMock,
 	getOwnedReservationMock,
 	requireRoleMock,
 } = vi.hoisted(() => ({
 	cancelHoldsMock: vi.fn(),
+	countActiveHoldsMock: vi.fn(),
 	createHoldsMock: vi.fn(),
 	getOwnedReservationMock: vi.fn(),
 	requireRoleMock: vi.fn(),
@@ -14,6 +18,7 @@ const {
 
 vi.mock("../lib/reservations", () => ({
 	cancelHolds: cancelHoldsMock,
+	countActiveHolds: countActiveHoldsMock,
 	createHolds: createHoldsMock,
 	getOwnedReservation: getOwnedReservationMock,
 }));
@@ -32,6 +37,7 @@ function authAsCustomer(userId = "customer-1") {
 
 beforeEach(() => {
 	cancelHoldsMock.mockReset();
+	countActiveHoldsMock.mockReset();
 	createHoldsMock.mockReset();
 	getOwnedReservationMock.mockReset();
 	requireRoleMock.mockReset();
@@ -69,6 +75,51 @@ describe("POST /", () => {
 
 		expect(res.statusCode).toBe(201);
 		expect(res.json()).toEqual([{ id: "res-1", status: "holding" }]);
+	});
+
+	it("returns 409 when the customer would hold more than 10 seats", async () => {
+		authAsCustomer();
+		createHoldsMock.mockRejectedValue(new ReservationLimitExceededError(10));
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/reservations",
+			payload: validBody,
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toMatchObject({ code: "RESERVATION_LIMIT_EXCEEDED" });
+	});
+});
+
+describe("GET /active-count", () => {
+	it("returns 400 without a valid eventId", async () => {
+		authAsCustomer();
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "GET",
+			url: "/api/reservations/active-count?eventId=nope",
+		});
+
+		expect(res.statusCode).toBe(400);
+	});
+
+	it("returns how many seats the caller holds in the session and the limit", async () => {
+		authAsCustomer("customer-7");
+		countActiveHoldsMock.mockResolvedValue(4);
+		const app = buildTestApp();
+		const eventId = crypto.randomUUID();
+
+		const res = await app.inject({
+			method: "GET",
+			url: `/api/reservations/active-count?eventId=${eventId}`,
+		});
+
+		expect(res.statusCode).toBe(200);
+		expect(res.json()).toEqual({ count: 4, limit: 10 });
+		expect(countActiveHoldsMock).toHaveBeenCalledWith(eventId, "customer-7");
 	});
 });
 

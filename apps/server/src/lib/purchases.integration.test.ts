@@ -223,11 +223,11 @@ describe("checkout", () => {
 
 	it("rejects more than 10 seats without writing anything", async () => {
 		const { event, customer } = await setup();
-		const holds = await holdSeats(event.id, customer.id, 11);
+		const holds = await holdSeats(event.id, customer.id, 10);
 
 		await expect(
 			checkout({
-				reservationIds: idsOf(holds),
+				reservationIds: [...idsOf(holds), crypto.randomUUID()],
 				customerId: customer.id,
 				outcome: "approve",
 			}),

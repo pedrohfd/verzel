@@ -56,7 +56,7 @@ export default function SeatSelectionSummary({
 
 			{isLimitReached && (
 				<p className="text-muted-foreground text-xs">
-					Máximo de {maxSeats} ingressos por compra.
+					Você pode reservar no máximo {maxSeats} assentos nesta sessão.
 				</p>
 			)}
 

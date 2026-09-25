@@ -30,6 +30,14 @@ const publishedEvent = {
 	columns: 2,
 };
 
+function publishedEventWithoutActiveHolds() {
+	const select = vi
+		.fn()
+		.mockReturnValueOnce(mockQueryChain([publishedEvent]))
+		.mockReturnValue(mockQueryChain([{ total: 0 }]));
+	return { select, execute: vi.fn() };
+}
+
 beforeEach(() => {
 	queryMock.reservations.findFirst.mockReset();
 	transactionMock.mockReset();
@@ -52,7 +60,7 @@ describe("createHolds", () => {
 	it("throws NotFoundError when row/column are out of bounds", async () => {
 		transactionMock.mockImplementation(async (cb) =>
 			cb({
-				select: () => mockQueryChain([publishedEvent]),
+				...publishedEventWithoutActiveHolds(),
 			}),
 		);
 
@@ -75,7 +83,7 @@ describe("createHolds", () => {
 
 		transactionMock.mockImplementation(async (cb) =>
 			cb({
-				select: () => mockQueryChain([publishedEvent]),
+				...publishedEventWithoutActiveHolds(),
 				insert,
 				update: () => mockQueryChain(undefined),
 			}),
@@ -103,7 +111,7 @@ describe("createHolds", () => {
 
 		transactionMock.mockImplementation(async (cb) =>
 			cb({
-				select: () => mockQueryChain([publishedEvent]),
+				...publishedEventWithoutActiveHolds(),
 				insert,
 				update: () => mockQueryChain(undefined),
 				query: {
@@ -131,7 +139,7 @@ describe("createHolds", () => {
 
 		transactionMock.mockImplementation(async (cb) =>
 			cb({
-				select: () => mockQueryChain([publishedEvent]),
+				...publishedEventWithoutActiveHolds(),
 				insert,
 				update: () => mockQueryChain(undefined),
 			}),
@@ -153,7 +161,7 @@ describe("createHolds", () => {
 
 		transactionMock.mockImplementation(async (cb) =>
 			cb({
-				select: () => mockQueryChain([publishedEvent]),
+				...publishedEventWithoutActiveHolds(),
 				insert,
 				update: () => mockQueryChain(undefined),
 			}),

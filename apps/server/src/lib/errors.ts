@@ -41,6 +41,16 @@ export class TicketLimitExceededError extends DomainError {
 	}
 }
 
+export class ReservationLimitExceededError extends DomainError {
+	constructor(max: number) {
+		super(
+			`A customer can hold at most ${max} seats of a session`,
+			409,
+			"RESERVATION_LIMIT_EXCEEDED",
+		);
+	}
+}
+
 export class MixedSessionsError extends DomainError {
 	constructor() {
 		super(

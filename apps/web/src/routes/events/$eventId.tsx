@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -6,6 +7,7 @@ import { getEvent } from "@/api/requests/events/get-event";
 import { getEventSeats } from "@/api/requests/events/get-event-seats";
 import { cancelReservations } from "@/api/requests/reservations/cancel-reservations";
 import { createReservation } from "@/api/requests/reservations/create-reservation";
+import { getActiveHoldCount } from "@/api/requests/reservations/get-active-hold-count";
 import { getReservation } from "@/api/requests/reservations/get-reservation";
 import type { Seat, VerzelEvent } from "@/api/types";
 import BackLink from "@/components/molecules/back-link";
@@ -19,7 +21,10 @@ import Loader from "@/components/ui/loader";
 import { useEventSessions } from "@/hooks/use-event-sessions";
 import { useSeatMapPolling } from "@/hooks/use-seat-map-polling";
 import { authClient } from "@/lib/auth-client";
-import { MAX_TICKETS_PER_PURCHASE } from "@/lib/purchase-limits";
+import {
+	MAX_TICKETS_PER_PURCHASE,
+	selectableSeatLimit,
+} from "@/lib/purchase-limits";
 import type { Role } from "@/lib/route-guards";
 import { tryCatch } from "@/lib/try-catch";
 
@@ -50,6 +55,7 @@ function EventDetailComponent() {
 	const [error, setError] = useState<string | null>(null);
 	const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
 	const [isReserving, setIsReserving] = useState(false);
+	const [seatLimit, setSeatLimit] = useState(MAX_TICKETS_PER_PURCHASE);
 	const eventSessions = useEventSessions(event);
 	const heldReservationsRef = useRef<Map<string, string>>(new Map());
 	const proceedingToCheckoutRef = useRef(false);
@@ -109,6 +115,18 @@ function EventDetailComponent() {
 				}
 				heldReservationsRef.current = map;
 				setSelectedSeats(rehydrated);
+			}
+
+			const [holds, holdsError] = await tryCatch(
+				getActiveHoldCount(eventId, controller.signal),
+			);
+			if (!holdsError) {
+				setSeatLimit(
+					selectableSeatLimit({
+						activeHolds: holds.count,
+						heldInSelection: heldReservationsRef.current.size,
+					}),
+				);
 			}
 		})();
 
@@ -210,7 +228,15 @@ function EventDetailComponent() {
 			setIsReserving(false);
 
 			if (reservationError) {
-				toast.error("Não foi possível reservar os assentos. Tente outros.");
+				const limitExceeded =
+					axios.isAxiosError(reservationError) &&
+					reservationError.response?.data?.code ===
+						"RESERVATION_LIMIT_EXCEEDED";
+				toast.error(
+					limitExceeded
+						? `Você pode ter no máximo ${MAX_TICKETS_PER_PURCHASE} assentos reservados nesta sessão. Finalize ou cancele suas reservas antes de reservar outros.`
+						: "Não foi possível reservar os assentos. Tente outros.",
+				);
 				return;
 			}
 			newIds = reservations.map((r) => r.id);
@@ -283,7 +309,7 @@ function EventDetailComponent() {
 						{!isOrganizer && (
 							<SeatSelectionSummary
 								selectedSeats={selectedSeats}
-								maxSeats={MAX_TICKETS_PER_PURCHASE}
+								maxSeats={seatLimit}
 								priceCents={event.priceCents}
 								isReserving={isReserving}
 								onRemove={(seat) => {
@@ -303,7 +329,7 @@ function EventDetailComponent() {
 							seats={seats}
 							selectedSeats={selectedSeats}
 							readOnly={isOrganizer}
-							maxSelected={MAX_TICKETS_PER_PURCHASE}
+							maxSelected={seatLimit}
 							onSelect={(seat) => {
 								if (isOrganizer || seat.status === "taken") return;
 								setSelectedSeats((current) => {
@@ -316,7 +342,7 @@ function EventDetailComponent() {
 											(s) => s.row !== seat.row || s.column !== seat.column,
 										);
 									}
-									if (current.length >= MAX_TICKETS_PER_PURCHASE) {
+									if (current.length >= seatLimit) {
 										return current;
 									}
 									return [...current, seat];

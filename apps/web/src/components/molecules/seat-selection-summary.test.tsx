@@ -120,7 +120,7 @@ describe("SeatSelectionSummary", () => {
 		expect(onReserve).toHaveBeenCalled();
 	});
 
-	it("tells the customer when the ticket limit per purchase is reached", () => {
+	it("tells the customer when the seat limit of the session is reached", () => {
 		const { rerender } = render(
 			<SeatSelectionSummary
 				selectedSeats={[seatA]}
@@ -131,7 +131,9 @@ describe("SeatSelectionSummary", () => {
 				onReserve={vi.fn()}
 			/>,
 		);
-		expect(screen.queryByText(/Máximo de 2 ingressos/)).not.toBeInTheDocument();
+		expect(
+			screen.queryByText(/no máximo 2 assentos nesta sessão/),
+		).not.toBeInTheDocument();
 
 		rerender(
 			<SeatSelectionSummary
@@ -143,6 +145,8 @@ describe("SeatSelectionSummary", () => {
 				onReserve={vi.fn()}
 			/>,
 		);
-		expect(screen.getByText(/Máximo de 2 ingressos/)).toBeInTheDocument();
+		expect(
+			screen.getByText(/no máximo 2 assentos nesta sessão/),
+		).toBeInTheDocument();
 	});
 });

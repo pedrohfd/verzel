@@ -1,12 +1,14 @@
 import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
-import { and, eq, inArray, lt } from "drizzle-orm";
+import { and, count, eq, gte, inArray, lt, sql } from "drizzle-orm";
 
 import {
 	HoldExpiredError,
 	NotFoundError,
+	ReservationLimitExceededError,
 	SeatAlreadyReservedError,
 } from "./errors";
+import { MAX_TICKETS_PER_PURCHASE } from "./purchases";
 import { seatLabel } from "./seat-label";
 
 const HOLD_TTL_MINUTES = 10;
@@ -22,6 +24,27 @@ function isUniqueViolation(error: unknown): boolean {
 	return pgErrorCode(error) === "23505";
 }
 
+type Executor = Pick<typeof db, "select">;
+
+export async function countActiveHolds(
+	eventId: string,
+	customerId: string,
+	executor: Executor = db,
+) {
+	const [active] = await executor
+		.select({ total: count() })
+		.from(schema.reservations)
+		.where(
+			and(
+				eq(schema.reservations.customerId, customerId),
+				eq(schema.reservations.eventId, eventId),
+				eq(schema.reservations.status, "holding"),
+				gte(schema.reservations.holdExpiresAt, new Date()),
+			),
+		);
+	return active?.total ?? 0;
+}
+
 export async function createHolds(
 	eventId: string,
 	seats: { row: number; column: number }[],
@@ -34,6 +57,16 @@ export async function createHolds(
 			.where(eq(schema.events.id, eventId));
 		if (event?.status !== "published") {
 			throw new NotFoundError("Event");
+		}
+
+		// Serializes concurrent requests of the same customer for the same
+		// session, so both cannot pass the limit check before either inserts.
+		await tx.execute(
+			sql`select pg_advisory_xact_lock(hashtextextended(${`${customerId}:${eventId}`}, 0))`,
+		);
+		const active = await countActiveHolds(eventId, customerId, tx);
+		if (active + seats.length > MAX_TICKETS_PER_PURCHASE) {
+			throw new ReservationLimitExceededError(MAX_TICKETS_PER_PURCHASE);
 		}
 
 		const reservations = [];
