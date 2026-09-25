@@ -171,15 +171,9 @@ export async function checkout({
 			event.organizerId,
 		);
 
-		if (outcome === "decline") {
-			// Seats are freed: "cancelled" falls outside the partial unique index's
-			// ('holding','paid') condition on reservations.seat_id.
-			await tx
-				.update(schema.reservations)
-				.set({ status: "cancelled" })
-				.where(inArray(schema.reservations.id, reservationIds));
-			return { purchase: null, tickets: [] };
-		}
+		// A declined payment leaves the holds untouched: the customer may retry
+		// until they expire, and the deadline is not renewed.
+		if (outcome === "decline") return { purchase: null, tickets: [] };
 
 		const combosCents = comboLines.reduce(
 			(sum, line) => sum + line.unitPriceCents * line.quantity,

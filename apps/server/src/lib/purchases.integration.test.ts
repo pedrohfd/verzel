@@ -131,7 +131,7 @@ describe("checkout", () => {
 		expect(tickets.map((ticket) => ticket.priceCents)).toEqual([2000]);
 	});
 
-	it("creates no purchase on a declined payment and frees the seats", async () => {
+	it("creates no purchase on a declined payment and keeps the holds until they expire", async () => {
 		const { event, customer } = await setup();
 		const holds = await holdSeats(event.id, customer.id, 2);
 
@@ -147,13 +147,64 @@ describe("checkout", () => {
 			tickets: 0,
 			comboItems: 0,
 		});
-		expect(await reservationStatuses(idsOf(holds))).toEqual([
-			"cancelled",
-			"cancelled",
-		]);
+		const stored = await db.query.reservations.findMany({
+			where: inArray(schema.reservations.id, idsOf(holds)),
+		});
+		for (const reservation of stored) {
+			const original = holds.find((hold) => hold?.id === reservation.id);
+			expect(reservation.status).toBe("holding");
+			expect(reservation.holdExpiresAt).toEqual(original?.holdExpiresAt);
+		}
 		const someoneElse = await createUser("cliente");
-		await expect(holdSeats(event.id, someoneElse.id, 2)).resolves.toHaveLength(
-			2,
+		await expect(holdSeats(event.id, someoneElse.id, 2)).rejects.toMatchObject({
+			code: "SEAT_ALREADY_RESERVED",
+		});
+	});
+
+	it("lets the customer pay again with the same holds after a decline", async () => {
+		const { event, customer } = await setup();
+		const holds = await holdSeats(event.id, customer.id, 2);
+		await checkout({
+			reservationIds: idsOf(holds),
+			customerId: customer.id,
+			outcome: "decline",
+		});
+
+		const { purchase, tickets } = await checkout({
+			reservationIds: idsOf(holds),
+			customerId: customer.id,
+			outcome: "approve",
+		});
+
+		expect(purchase?.amountCents).toBe(2 * 2000);
+		expect(tickets).toHaveLength(2);
+	});
+
+	it("refuses to pay after a decline once the holds have expired", async () => {
+		const { event, customer } = await setup();
+		const holds = await holdSeats(event.id, customer.id, 1);
+		await checkout({
+			reservationIds: idsOf(holds),
+			customerId: customer.id,
+			outcome: "decline",
+		});
+		await db
+			.update(schema.reservations)
+			.set({ holdExpiresAt: new Date(Date.now() - 1000) })
+			.where(inArray(schema.reservations.id, idsOf(holds)));
+
+		await expect(
+			checkout({
+				reservationIds: idsOf(holds),
+				customerId: customer.id,
+				outcome: "approve",
+			}),
+		).rejects.toMatchObject({ code: "HOLD_EXPIRED" });
+
+		expect(await countRows()).toMatchObject({ purchases: 0, tickets: 0 });
+		const someoneElse = await createUser("cliente");
+		await expect(holdSeats(event.id, someoneElse.id, 1)).resolves.toHaveLength(
+			1,
 		);
 	});
 

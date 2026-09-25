@@ -12,6 +12,7 @@ import { cancelReservations } from "@/api/requests/reservations/cancel-reservati
 import { getReservation } from "@/api/requests/reservations/get-reservation";
 import type { Combo, Reservation, VerzelEvent } from "@/api/types";
 import CheckoutStepper from "@/components/molecules/checkout-stepper";
+import HoldCountdown from "@/components/molecules/hold-countdown";
 import PurchaseSummary from "@/components/molecules/purchase-summary";
 import Loader from "@/components/ui/loader";
 import { parseComboSelection } from "@/lib/combo-selection";
@@ -41,6 +42,7 @@ function CheckoutComponent() {
 	const [combos, setCombos] = useState<Combo[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [holdExpired, setHoldExpired] = useState(false);
 	const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
 	const resolvedRef = useRef(false);
 
@@ -99,17 +101,14 @@ function CheckoutComponent() {
 			return;
 		}
 
-		resolvedRef.current = true;
-
 		if (simulateOutcome === "decline") {
-			toast.error("Pagamento recusado. Os assentos foram liberados.");
-			navigate({
-				to: "/events/$eventId",
-				params: { eventId: reservations?.[0]?.eventId ?? "" },
-			});
+			toast.error(
+				"Pagamento recusado. Seus assentos continuam reservados — tente novamente.",
+			);
 			return;
 		}
 
+		resolvedRef.current = true;
 		const paid = formatPriceCents(result.purchase?.amountCents ?? 0);
 		toast.success(
 			result.tickets.length > 1
@@ -134,6 +133,11 @@ function CheckoutComponent() {
 
 	if (!reservations || !event) return <Loader />;
 
+	const holdExpiresAt = reservations
+		.map((reservation) => reservation.holdExpiresAt)
+		.filter((value): value is string => value !== null)
+		.sort((a, b) => a.localeCompare(b))[0];
+
 	const comboLines = comboSelection.map((entry) => {
 		const combo = combos.find((c) => c.id === entry.comboId);
 		return {
@@ -157,6 +161,12 @@ function CheckoutComponent() {
 			</Button>
 			<h1 className="mb-2 font-bold text-2xl">Pagamento</h1>
 			<p className="text-muted-foreground text-sm">{event.movieTitle}</p>
+			{holdExpiresAt && (
+				<HoldCountdown
+					expiresAt={holdExpiresAt}
+					onExpire={() => setHoldExpired(true)}
+				/>
+			)}
 			<PurchaseSummary
 				ticketCount={reservations.length}
 				ticketPriceCents={event.priceCents}
@@ -178,7 +188,7 @@ function CheckoutComponent() {
 			<div className="flex gap-3">
 				<Button
 					className="flex-1"
-					disabled={isProcessing}
+					disabled={isProcessing || holdExpired}
 					onClick={() => handlePay("approve")}
 				>
 					{isProcessing ? "Processando..." : "Simular aprovação"}
@@ -186,7 +196,7 @@ function CheckoutComponent() {
 				<Button
 					className="flex-1"
 					variant="outline"
-					disabled={isProcessing}
+					disabled={isProcessing || holdExpired}
 					onClick={() => handlePay("decline")}
 				>
 					Simular recusa
