@@ -26,6 +26,7 @@ import type { EventStatus, VerzelEvent } from "@/api/types";
 import Loader from "@/components/ui/loader";
 import { formatPriceCents } from "@/lib/format-price";
 import { requireRole } from "@/lib/route-guards";
+import { canCancelSession } from "@/lib/session-actions";
 import { tryCatch } from "@/lib/try-catch";
 
 interface OrganizerSearch {
@@ -202,46 +203,36 @@ function OrganizerDashboardComponent() {
 									</Badge>
 								</TableCell>
 								<TableCell className="flex justify-end gap-2 text-right">
-									{event.status === "draft" && (
-										<>
-											<Link
-												to="/organizer/$eventId/edit"
-												params={{ eventId: event.id }}
-											>
-												<Button size="sm" variant="outline">
-													Editar
-												</Button>
-											</Link>
-											<Button
-												size="sm"
-												className="min-w-18"
-												disabled={pendingId === event.id}
-												onClick={() => handleAction(event.id, "publish")}
-											>
-												Publicar
+									{event.status !== "cancelled" && (
+										<Link
+											to="/organizer/$eventId/edit"
+											params={{ eventId: event.id }}
+										>
+											<Button size="sm" variant="outline">
+												Editar
 											</Button>
-										</>
+										</Link>
 									)}
-									{event.status === "published" && (
-										<>
-											<Link
-												to="/organizer/$eventId/edit"
-												params={{ eventId: event.id }}
-											>
-												<Button size="sm" variant="outline">
-													Editar
-												</Button>
-											</Link>
-											<Button
-												size="sm"
-												variant="outline"
-												className="min-w-18"
-												disabled={pendingId === event.id}
-												onClick={() => handleAction(event.id, "cancel")}
-											>
-												Cancelar
-											</Button>
-										</>
+									{event.status === "draft" && (
+										<Button
+											size="sm"
+											className="min-w-18"
+											disabled={pendingId === event.id}
+											onClick={() => handleAction(event.id, "publish")}
+										>
+											Publicar
+										</Button>
+									)}
+									{canCancelSession(event) && (
+										<Button
+											size="sm"
+											variant="outline"
+											className="min-w-18"
+											disabled={pendingId === event.id}
+											onClick={() => handleAction(event.id, "cancel")}
+										>
+											Cancelar
+										</Button>
 									)}
 								</TableCell>
 							</TableRow>

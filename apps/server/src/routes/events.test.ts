@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+	EventAlreadyStartedError,
 	ForbiddenError,
 	InvalidEventTransitionError,
 	RoomScheduleConflictError,
@@ -372,6 +373,22 @@ describe("PATCH /:id", () => {
 
 		expect(res.statusCode).toBe(409);
 		expect(res.json()).toMatchObject({ code: "INVALID_EVENT_TRANSITION" });
+	});
+
+	it("returns 409 when cancelling a session that has already started", async () => {
+		authAsOrganizer();
+		getOwnedEventMock.mockResolvedValue({ id: "event-1", status: "published" });
+		cancelEventMock.mockRejectedValue(new EventAlreadyStartedError());
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "PATCH",
+			url: "/api/events/event-1",
+			payload: { action: "cancel" },
+		});
+
+		expect(res.statusCode).toBe(409);
+		expect(res.json()).toMatchObject({ code: "EVENT_ALREADY_STARTED" });
 	});
 
 	it("returns 400 for an unknown action", async () => {

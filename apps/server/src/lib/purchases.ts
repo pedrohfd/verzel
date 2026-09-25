@@ -346,6 +346,7 @@ export async function cancelEvent(eventId: string, organizerId: string) {
 		if (event.status === "cancelled") {
 			throw new InvalidEventTransitionError(event.status, "cancelled");
 		}
+		if (event.sessionAt <= new Date()) throw new EventAlreadyStartedError();
 
 		const [cancelled] = await tx
 			.update(schema.events)

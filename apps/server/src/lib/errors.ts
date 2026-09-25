@@ -151,11 +151,7 @@ export class TicketAlreadyCheckedInError extends DomainError {
 
 export class EventAlreadyStartedError extends DomainError {
 	constructor() {
-		super(
-			"Tickets cannot be cancelled after the session has started",
-			409,
-			"EVENT_ALREADY_STARTED",
-		);
+		super("The session has already started", 409, "EVENT_ALREADY_STARTED");
 	}
 }
 

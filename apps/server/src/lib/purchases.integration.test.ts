@@ -679,6 +679,37 @@ describe("cancelEvent", () => {
 		expect(await refundsOf(purchase.id)).toHaveLength(1);
 	});
 
+	it("still cancels a session 1 minute before it starts", async () => {
+		const { organizer, event, purchase } = await purchaseWithCombos(1);
+		await db
+			.update(schema.events)
+			.set({ sessionAt: new Date(Date.now() + 60_000) })
+			.where(eq(schema.events.id, event.id));
+
+		const cancelled = await cancelEvent(event.id, organizer.id);
+
+		expect(cancelled.status).toBe("cancelled");
+		expect(await refundsOf(purchase.id)).toHaveLength(1);
+	});
+
+	it("refuses to cancel a session once it has started, without refunds", async () => {
+		const { organizer, event, purchase } = await purchaseWithCombos(1);
+		await db
+			.update(schema.events)
+			.set({ sessionAt: new Date() })
+			.where(eq(schema.events.id, event.id));
+
+		await expect(cancelEvent(event.id, organizer.id)).rejects.toMatchObject({
+			code: "EVENT_ALREADY_STARTED",
+		});
+
+		const stored = await db.query.events.findFirst({
+			where: eq(schema.events.id, event.id),
+		});
+		expect(stored?.status).toBe("published");
+		expect(await refundsOf(purchase.id)).toHaveLength(0);
+	});
+
 	it("cancels a draft session", async () => {
 		const organizer = await createOrganizer();
 		const event = await createEvent(organizer.id, { status: "draft" });
