@@ -87,6 +87,9 @@ export default function UserMenu() {
 						<DropdownMenuItem render={<Link to="/organizer/gatekeepers" />}>
 							Porteiros
 						</DropdownMenuItem>
+						<DropdownMenuItem render={<Link to="/portaria" />}>
+							Portaria
+						</DropdownMenuItem>
 					</DropdownMenuGroup>
 				</RoleGate>
 				<DropdownMenuGroup>

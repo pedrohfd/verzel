@@ -136,6 +136,23 @@ describe("UserMenu", () => {
 		expect(screen.queryByText("Cadastrar meu cinema")).not.toBeInTheDocument();
 	});
 
+	it("gives the organizador access to the Portaria", () => {
+		useSessionMock.mockReturnValue({
+			isPending: false,
+			data: {
+				user: {
+					name: "Alice",
+					email: "alice@example.com",
+					role: "organizador",
+				},
+			},
+		});
+
+		render(<UserMenu />);
+
+		expect(screen.getByText("Portaria")).toBeInTheDocument();
+	});
+
 	it("shows the account link for the organizador role", () => {
 		useSessionMock.mockReturnValue({
 			isPending: false,

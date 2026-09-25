@@ -104,6 +104,7 @@ async function issueTicket(
 		.set({ signature })
 		.where(eq(schema.tickets.id, ticketRow.id))
 		.returning();
+	if (!ticket) throw new NotFoundError("Ticket");
 
 	return { ...ticket, code };
 }

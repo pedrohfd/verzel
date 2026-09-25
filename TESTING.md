@@ -35,6 +35,8 @@ Este documento define as convenções que devem ser seguidas ao escrever testes 
 
 - Testes de integração que precisam de DB usam um banco Postgres de teste local (mesmo Docker do ambiente de dev, banco separado do de desenvolvimento).
 - Sempre que possível, preferir testes unitários com mocks para lógica pura, evitando dependência de banco de dados.
+- No `apps/server`, testes que usam o banco de teste real se chamam `<arquivo>.integration.test.ts` e rodam no projeto `integration` do Vitest, um arquivo por vez (sem paralelismo entre arquivos, para que o `resetTestData` de um não apague os dados de outro). O `pretest` aplica as migrações no banco de teste antes da suíte.
+- Monte os dados com as fixtures de `src/test-helpers/fixtures.ts`, que usam os módulos públicos (reservar Assentos, finalizar checkout) em vez de inserir linhas à mão sempre que possível.
 
 ## Estrutura do teste
 

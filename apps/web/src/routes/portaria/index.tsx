@@ -16,7 +16,7 @@ interface PortariaSearch {
 
 export const Route = createFileRoute("/portaria/")({
 	component: PortariaEventsComponent,
-	beforeLoad: () => requireRole("portaria"),
+	beforeLoad: () => requireRole("portaria", "organizador"),
 	validateSearch: (search: Record<string, unknown>): PortariaSearch => ({
 		date: typeof search.date === "string" ? search.date : "",
 	}),

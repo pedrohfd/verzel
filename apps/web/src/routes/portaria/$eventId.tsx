@@ -16,7 +16,7 @@ import { tryCatch } from "@/lib/try-catch";
 
 export const Route = createFileRoute("/portaria/$eventId")({
 	component: PortariaScanComponent,
-	beforeLoad: () => requireRole("portaria"),
+	beforeLoad: () => requireRole("portaria", "organizador"),
 });
 
 const SCANNER_ELEMENT_ID = "qr-scanner";

@@ -14,11 +14,12 @@ vi.mock("../lib/checkin", () => ({
 vi.mock("../lib/require-role", () => ({ requireRole: requireRoleMock }));
 
 const { buildTestApp } = await import("../test-helpers/build-test-app");
+const { ForbiddenError } = await import("../lib/errors");
 
-function authAsStaff(userId = "staff-1") {
+function authAsStaff(userId = "staff-1", role = "portaria") {
 	requireRoleMock.mockReturnValue(
 		async (request: { user?: { id: string; role: string } }) => {
-			request.user = { id: userId, role: "portaria" };
+			request.user = { id: userId, role };
 		},
 	);
 }
@@ -38,7 +39,24 @@ describe("GET /events", () => {
 		const res = await app.inject({ method: "GET", url: "/api/checkin/events" });
 
 		expect(res.json()).toEqual({ results: [{ id: "event-1" }] });
-		expect(listCheckinEventsMock).toHaveBeenCalledWith({ date: undefined });
+		expect(listCheckinEventsMock).toHaveBeenCalledWith(
+			{ id: "staff-1", role: "portaria" },
+			{ date: undefined },
+		);
+	});
+
+	it("opens the Portaria to gatekeepers and organizers", async () => {
+		authAsStaff("organizer-1", "organizador");
+		listCheckinEventsMock.mockResolvedValue([]);
+		const app = buildTestApp();
+
+		await app.inject({ method: "GET", url: "/api/checkin/events" });
+
+		expect(requireRoleMock).toHaveBeenCalledWith("portaria", "organizador");
+		expect(listCheckinEventsMock).toHaveBeenCalledWith(
+			{ id: "organizer-1", role: "organizador" },
+			{ date: undefined },
+		);
 	});
 
 	it("filters by an explicit date", async () => {
@@ -51,9 +69,10 @@ describe("GET /events", () => {
 			url: "/api/checkin/events?date=2026-01-01",
 		});
 
-		expect(listCheckinEventsMock).toHaveBeenCalledWith({
-			date: "2026-01-01",
-		});
+		expect(listCheckinEventsMock).toHaveBeenCalledWith(
+			{ id: "staff-1", role: "portaria" },
+			{ date: "2026-01-01" },
+		);
 	});
 });
 
@@ -83,11 +102,10 @@ describe("POST /:eventId/validate", () => {
 		});
 
 		expect(res.json()).toEqual({ result: "valid" });
-		expect(validateTicketMock).toHaveBeenCalledWith(
-			"event-1",
-			"some-code",
-			"staff-1",
-		);
+		expect(validateTicketMock).toHaveBeenCalledWith("event-1", "some-code", {
+			id: "staff-1",
+			role: "portaria",
+		});
 	});
 
 	it("returns a cancelled result for a cancelled ticket", async () => {
@@ -108,5 +126,19 @@ describe("POST /:eventId/validate", () => {
 			result: "cancelled",
 			cancelledAt: "2026-01-01T00:00:00.000Z",
 		});
+	});
+
+	it("returns 403 when the session belongs to another cinema", async () => {
+		authAsStaff("organizer-1", "organizador");
+		validateTicketMock.mockRejectedValue(new ForbiddenError());
+		const app = buildTestApp();
+
+		const res = await app.inject({
+			method: "POST",
+			url: "/api/checkin/event-1/validate",
+			payload: { code: "some-code" },
+		});
+
+		expect(res.statusCode).toBe(403);
 	});
 });

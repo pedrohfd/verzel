@@ -2,13 +2,45 @@ import { db } from "@verzel/db";
 import * as schema from "@verzel/db/schema";
 import { and, asc, eq, gte, isNull, lt } from "drizzle-orm";
 
+import { ForbiddenError, NotFoundError } from "./errors";
 import { verifyTicketCode } from "./ticket-code";
+
+export interface CheckinStaff {
+	id: string;
+	role: "cliente" | "organizador" | "portaria";
+}
 
 export interface ListCheckinEventsFilters {
 	date?: string;
 }
 
-export function listCheckinEvents(filters: ListCheckinEventsFilters = {}) {
+async function resolveCinemaOrganizerId(staff: CheckinStaff) {
+	if (staff.role === "organizador") return staff.id;
+	if (staff.role !== "portaria") throw new ForbiddenError();
+
+	const gatekeeper = await db.query.user.findFirst({
+		where: eq(schema.user.id, staff.id),
+		columns: { createdBy: true },
+	});
+	if (!gatekeeper?.createdBy) throw new ForbiddenError();
+	return gatekeeper.createdBy;
+}
+
+async function assertEventOfStaffCinema(eventId: string, staff: CheckinStaff) {
+	const organizerId = await resolveCinemaOrganizerId(staff);
+	const event = await db.query.events.findFirst({
+		where: eq(schema.events.id, eventId),
+		columns: { organizerId: true },
+	});
+	if (!event) throw new NotFoundError("Event");
+	if (event.organizerId !== organizerId) throw new ForbiddenError();
+}
+
+export async function listCheckinEvents(
+	staff: CheckinStaff,
+	filters: ListCheckinEventsFilters = {},
+) {
+	const organizerId = await resolveCinemaOrganizerId(staff);
 	const { date } = filters;
 	const from = date
 		? new Date(`${date}T00:00:00`)
@@ -19,6 +51,7 @@ export function listCheckinEvents(filters: ListCheckinEventsFilters = {}) {
 
 	return db.query.events.findMany({
 		where: and(
+			eq(schema.events.organizerId, organizerId),
 			eq(schema.events.status, "published"),
 			gte(schema.events.sessionAt, from),
 			to ? lt(schema.events.sessionAt, to) : undefined,
@@ -42,8 +75,10 @@ export type CheckinResult =
 export async function validateTicket(
 	eventId: string,
 	code: string,
-	checkedInByUserId: string,
+	staff: CheckinStaff,
 ): Promise<CheckinResult> {
+	await assertEventOfStaffCinema(eventId, staff);
+
 	const parsed = verifyTicketCode(code);
 	if (!parsed) return { result: "invalid" };
 
@@ -76,7 +111,7 @@ export async function validateTicket(
 
 		const [updated] = await tx
 			.update(schema.tickets)
-			.set({ checkedInAt: new Date(), checkedInByUserId })
+			.set({ checkedInAt: new Date(), checkedInByUserId: staff.id })
 			.where(
 				and(
 					eq(schema.tickets.id, ticket.id),

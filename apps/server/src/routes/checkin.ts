@@ -1,18 +1,28 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { listCheckinEvents, validateTicket } from "../lib/checkin";
+import {
+	type CheckinStaff,
+	listCheckinEvents,
+	validateTicket,
+} from "../lib/checkin";
 import { sendDomainError } from "../lib/errors";
 import { requireRole } from "../lib/require-role";
+
+function staffOf(request: FastifyRequest): CheckinStaff {
+	return { id: request.user?.id ?? "", role: request.user?.role ?? "cliente" };
+}
 
 const validateSchema = z.object({ code: z.string().min(1) });
 
 export async function checkinRoutes(fastify: FastifyInstance) {
 	fastify.get<{ Querystring: { date?: string } }>(
 		"/events",
-		{ preHandler: requireRole("portaria") },
+		{ preHandler: requireRole("portaria", "organizador") },
 		async (request, reply) => {
 			try {
-				const results = await listCheckinEvents({ date: request.query.date });
+				const results = await listCheckinEvents(staffOf(request), {
+					date: request.query.date,
+				});
 				return { results };
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to list events");
@@ -22,7 +32,7 @@ export async function checkinRoutes(fastify: FastifyInstance) {
 
 	fastify.post<{ Params: { eventId: string } }>(
 		"/:eventId/validate",
-		{ preHandler: requireRole("portaria") },
+		{ preHandler: requireRole("portaria", "organizador") },
 		async (request, reply) => {
 			const parsed = validateSchema.safeParse(request.body);
 			if (!parsed.success) {
@@ -35,7 +45,7 @@ export async function checkinRoutes(fastify: FastifyInstance) {
 				return await validateTicket(
 					request.params.eventId,
 					parsed.data.code,
-					request.user?.id ?? "",
+					staffOf(request),
 				);
 			} catch (error) {
 				sendDomainError(reply, error, "Failed to validate ticket");
