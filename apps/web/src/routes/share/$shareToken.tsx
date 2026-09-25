@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 import { getSharedTicket } from "@/api/requests/tickets/get-shared-ticket";
 import type { SharedTicket } from "@/api/types";
 import Loader from "@/components/ui/loader";
-import { ticketStatusBadge } from "@/lib/ticket-status";
+import {
+	cancellationReasonLabel,
+	ticketStatusBadge,
+} from "@/lib/ticket-status";
 import { tmdbImageUrl } from "@/lib/tmdb-image";
 import { tryCatch } from "@/lib/try-catch";
 
@@ -75,6 +78,11 @@ function SharedTicketComponent() {
 					<Badge variant={statusBadge.variant} className="w-fit">
 						{statusBadge.label}
 					</Badge>
+					{ticket.cancellationReason && (
+						<p className="text-muted-foreground text-sm">
+							{cancellationReasonLabel(ticket.cancellationReason)}
+						</p>
+					)}
 				</div>
 			</div>
 

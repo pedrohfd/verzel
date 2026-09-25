@@ -207,6 +207,7 @@ export interface SharedTicket {
 	seatLabel: string;
 	checkedInAt: string | null;
 	cancelledAt: string | null;
+	cancellationReason: CancellationReason | null;
 	status: TicketStatus;
 	code: string;
 }
@@ -221,5 +222,9 @@ export type CheckinResult =
 	| { result: "invalid" }
 	| { result: "already_used"; checkedInAt: string; checkedInBy: string | null }
 	| { result: "wrong_event"; ticketEventId: string }
-	| { result: "cancelled"; cancelledAt: string }
+	| {
+			result: "cancelled";
+			cancelledAt: string;
+			reason: CancellationReason | null;
+	  }
 	| { result: "expired"; sessionEndedAt: string };

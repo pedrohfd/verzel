@@ -32,7 +32,6 @@ const {
 	createEvent,
 	updateEvent,
 	getOwnedEvent,
-	cancelEvent,
 	listPublishedEvents,
 	listPublishedVenues,
 	listOrganizerEvents,
@@ -187,28 +186,6 @@ describe("getOwnedEvent", () => {
 		await expect(
 			getOwnedEvent("event-1", "someone-else"),
 		).rejects.toBeInstanceOf(ForbiddenError);
-	});
-});
-
-describe("cancelEvent", () => {
-	it("cancels an owned event", async () => {
-		queryMock.events.findFirst.mockResolvedValue(baseEvent);
-		const updateMock = vi
-			.fn()
-			.mockReturnValue(mockQueryChain([{ ...baseEvent, status: "cancelled" }]));
-		vi.mocked((await import("@verzel/db")).db).update = updateMock;
-
-		const result = await cancelEvent("event-1", "organizer-1");
-
-		expect(result).toEqual({ ...baseEvent, status: "cancelled" });
-	});
-
-	it("throws when the event is not owned", async () => {
-		queryMock.events.findFirst.mockResolvedValue(baseEvent);
-
-		await expect(cancelEvent("event-1", "someone-else")).rejects.toBeInstanceOf(
-			ForbiddenError,
-		);
 	});
 });
 

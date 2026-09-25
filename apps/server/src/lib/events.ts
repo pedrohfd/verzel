@@ -130,16 +130,6 @@ export async function updateEvent(eventId: string, patch: UpdateEventInput) {
 	return updated;
 }
 
-export async function cancelEvent(eventId: string, organizerId: string) {
-	await getOwnedEvent(eventId, organizerId);
-	const [updated] = await db
-		.update(schema.events)
-		.set({ status: "cancelled" })
-		.where(eq(schema.events.id, eventId))
-		.returning();
-	return updated;
-}
-
 function dayRange(date: string): { start: Date; end: Date } {
 	const start = new Date(`${date}T00:00:00`);
 	const end = new Date(start.getTime() + 24 * 60 * 60_000);

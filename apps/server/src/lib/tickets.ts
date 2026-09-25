@@ -54,6 +54,7 @@ export async function getTicketByShareToken(shareToken: string) {
 		seatLabel: ticket.seat.label,
 		checkedInAt: ticket.checkedInAt,
 		cancelledAt: ticket.cancelledAt,
+		cancellationReason: ticket.cancellationReason,
 		status: ticketStatus(ticket, ticket.event),
 		code,
 	};

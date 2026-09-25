@@ -34,6 +34,10 @@ const {
 	getMovieRuntimeMock: vi.fn(),
 }));
 
+vi.mock("../lib/purchases", () => ({
+	cancelEvent: cancelEventMock,
+	MAX_TICKETS_PER_PURCHASE: 10,
+}));
 vi.mock("../lib/events", () => ({
 	listPublishedEvents: listPublishedEventsMock,
 	listPublishedVenues: listPublishedVenuesMock,
@@ -43,7 +47,6 @@ vi.mock("../lib/events", () => ({
 	createEvent: createEventMock,
 	getOwnedEvent: getOwnedEventMock,
 	publishEvent: publishEventMock,
-	cancelEvent: cancelEventMock,
 	updateEvent: updateEventMock,
 }));
 

@@ -8,7 +8,6 @@ import {
 	sendDomainError,
 } from "../lib/errors";
 import {
-	cancelEvent,
 	createEvent,
 	getOwnedEvent,
 	getPublicEvent,
@@ -20,6 +19,7 @@ import {
 	updateEvent,
 } from "../lib/events";
 import { formatAddress } from "../lib/format-address";
+import { cancelEvent } from "../lib/purchases";
 import { requireRole } from "../lib/require-role";
 import { getOwnedRoom } from "../lib/rooms";
 import { getMovieRuntime } from "../lib/tmdb";

@@ -206,7 +206,9 @@ function PortariaScanComponent() {
 
 					{result.result === "cancelled" && (
 						<p className="text-muted-foreground text-sm">
-							Cancelado em{" "}
+							{result.reason === "event_cancelled"
+								? "Sessão cancelada pelo cinema em "
+								: "Cancelado pelo cliente em "}
 							{new Date(result.cancelledAt).toLocaleString("pt-BR")}
 						</p>
 					)}

@@ -328,6 +328,50 @@ export async function cancelTicket(ticketId: string, customerId: string) {
 	});
 }
 
+export async function cancelEvent(eventId: string, organizerId: string) {
+	return db.transaction(async (tx) => {
+		const [event] = await tx
+			.select()
+			.from(schema.events)
+			.where(eq(schema.events.id, eventId))
+			.for("update");
+		if (!event) throw new NotFoundError("Event");
+		if (event.organizerId !== organizerId) throw new ForbiddenError();
+
+		const [cancelled] = await tx
+			.update(schema.events)
+			.set({ status: "cancelled" })
+			.where(eq(schema.events.id, eventId))
+			.returning();
+		if (!cancelled) throw new NotFoundError("Event");
+
+		const purchases = await tx
+			.select()
+			.from(schema.purchases)
+			.where(eq(schema.purchases.eventId, eventId))
+			.for("update");
+
+		for (const purchase of purchases) {
+			const purchaseTickets = await lockPurchaseTickets(tx, purchase.id);
+			const toCancel = purchaseTickets.filter(
+				(ticket) => !ticket.cancelledAt && !ticket.checkedInAt,
+			);
+			if (toCancel.length === 0) continue;
+
+			await cancelAndRefund(
+				tx,
+				purchase.id,
+				purchaseTickets,
+				toCancel,
+				"event_cancelled",
+				null,
+			);
+		}
+
+		return cancelled;
+	});
+}
+
 export async function listMyPurchases(customerId: string) {
 	const purchases = await db.query.purchases.findMany({
 		where: eq(schema.purchases.customerId, customerId),

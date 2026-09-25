@@ -14,7 +14,13 @@ import {
 	holdSeats,
 } from "../test-helpers/fixtures";
 import { validateTicket } from "./checkin";
-import { cancelTicket, checkout, listMyPurchases } from "./purchases";
+import {
+	cancelEvent,
+	cancelTicket,
+	checkout,
+	listMyPurchases,
+} from "./purchases";
+import { getTicketByShareToken } from "./tickets";
 
 beforeEach(async () => {
 	await resetTestData();
@@ -514,5 +520,174 @@ describe("listMyPurchases", () => {
 		const listed = await listMyPurchases(customer.id);
 
 		expect(listed.map((p) => p.id)).toEqual([later?.id, purchase.id]);
+	});
+});
+
+async function ticketsOf(purchaseId: string) {
+	return db.query.tickets.findMany({
+		where: eq(schema.tickets.purchaseId, purchaseId),
+	});
+}
+
+describe("cancelEvent", () => {
+	it("cancels every ticket of an intact purchase and refunds all of it", async () => {
+		const { organizer, event, purchase } = await purchaseWithCombos(2);
+
+		const cancelled = await cancelEvent(event.id, organizer.id);
+
+		expect(cancelled.status).toBe("cancelled");
+		const tickets = await ticketsOf(purchase.id);
+		for (const ticket of tickets) {
+			expect(ticket.cancelledAt).not.toBeNull();
+			expect(ticket.cancellationReason).toBe("event_cancelled");
+		}
+		expect(await refundsOf(purchase.id)).toMatchObject([
+			{
+				amountCents: purchase.amountCents,
+				reason: "event_cancelled",
+				ticketId: null,
+			},
+		]);
+		const someoneElse = await createUser("cliente");
+		await expect(holdSeats(event.id, someoneElse.id, 2)).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
+		const reservations = await db.query.reservations.findMany({
+			where: eq(schema.reservations.eventId, event.id),
+		});
+		expect(new Set(reservations.map((r) => r.status))).toEqual(
+			new Set(["cancelled"]),
+		);
+	});
+
+	it("refunds only what is left of a purchase the customer partly cancelled", async () => {
+		const { organizer, event, customer, purchase, tickets } =
+			await purchaseWithCombos(3);
+		await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+
+		await cancelEvent(event.id, organizer.id);
+
+		const refunds = await refundsOf(purchase.id);
+		expect(refunds.map((r) => [r.reason, r.amountCents])).toEqual(
+			expect.arrayContaining([
+				["customer_cancelled", 2000],
+				["event_cancelled", 2 * 2000 + 2 * 1500],
+			]),
+		);
+		expect(refunds.reduce((sum, r) => sum + r.amountCents, 0)).toBe(
+			purchase.amountCents,
+		);
+		const first = (await ticketsOf(purchase.id)).find(
+			(t) => t.id === ticketAt(tickets, 0).id,
+		);
+		expect(first?.cancellationReason).toBe("customer_cancelled");
+	});
+
+	it("does not refund a purchase that was already fully cancelled", async () => {
+		const { organizer, event, customer, purchase, tickets } =
+			await purchaseWithCombos(1);
+		await cancelTicket(ticketAt(tickets, 0).id, customer.id);
+
+		await cancelEvent(event.id, organizer.id);
+
+		expect(await refundsOf(purchase.id)).toHaveLength(1);
+	});
+
+	it("leaves used tickets alone and keeps the combos of their purchase", async () => {
+		const { organizer, event, purchase, tickets } = await purchaseWithCombos(2);
+		const used = ticketAt(tickets, 0);
+		await validateTicket(event.id, used.code, {
+			id: organizer.id,
+			role: "organizador",
+		});
+
+		await cancelEvent(event.id, organizer.id);
+
+		const stored = await ticketsOf(purchase.id);
+		const storedUsed = stored.find((t) => t.id === used.id);
+		expect(storedUsed?.cancelledAt).toBeNull();
+		expect(storedUsed?.checkedInAt).not.toBeNull();
+		expect(await refundsOf(purchase.id)).toMatchObject([
+			{ amountCents: 2000, reason: "event_cancelled" },
+		]);
+	});
+
+	it("refunds each affected purchase separately and leaves other sessions alone", async () => {
+		const { organizer, event, purchase } = await purchaseWithCombos(1, false);
+		const otherCustomer = await createUser("cliente");
+		const { purchase: second } = await buyTickets(
+			event.id,
+			otherCustomer.id,
+			2,
+			[],
+			5,
+		);
+		const otherEvent = await createEvent(organizer.id);
+		const { purchase: untouched } = await buyTickets(
+			otherEvent.id,
+			otherCustomer.id,
+			1,
+		);
+
+		await cancelEvent(event.id, organizer.id);
+
+		expect(await refundsOf(purchase.id)).toMatchObject([{ amountCents: 2000 }]);
+		expect(await refundsOf(second?.id ?? "")).toMatchObject([
+			{ amountCents: 4000 },
+		]);
+		expect(await refundsOf(untouched?.id ?? "")).toHaveLength(0);
+	});
+
+	it("does not refund twice when the session is cancelled again", async () => {
+		const { organizer, event, purchase } = await purchaseWithCombos(2);
+		await cancelEvent(event.id, organizer.id);
+
+		await cancelEvent(event.id, organizer.id);
+
+		expect(await refundsOf(purchase.id)).toHaveLength(1);
+	});
+
+	it("changes nothing when another organizer tries to cancel the session", async () => {
+		const { event, purchase } = await purchaseWithCombos(1);
+		const intruder = await createOrganizer();
+
+		await expect(cancelEvent(event.id, intruder.id)).rejects.toMatchObject({
+			code: "FORBIDDEN",
+		});
+
+		const stored = await db.query.events.findFirst({
+			where: eq(schema.events.id, event.id),
+		});
+		expect(stored?.status).toBe("published");
+		expect(await refundsOf(purchase.id)).toHaveLength(0);
+		const [ticket] = await ticketsOf(purchase.id);
+		expect(ticket?.cancelledAt).toBeNull();
+	});
+
+	it("shows the reason at the Portaria, on the share link and in the purchase list", async () => {
+		const { organizer, event, customer, tickets } = await purchaseWithCombos(1);
+		const ticket = ticketAt(tickets, 0);
+		await cancelEvent(event.id, organizer.id);
+
+		const checkin = await validateTicket(event.id, ticket.code, {
+			id: organizer.id,
+			role: "organizador",
+		});
+		const shared = await getTicketByShareToken(ticket.shareToken);
+		const [listed] = await listMyPurchases(customer.id);
+
+		expect(checkin).toMatchObject({
+			result: "cancelled",
+			reason: "event_cancelled",
+		});
+		expect(shared).toMatchObject({
+			status: "cancelled",
+			cancellationReason: "event_cancelled",
+		});
+		expect(listed?.tickets[0]).toMatchObject({
+			status: "cancelled",
+			cancellationReason: "event_cancelled",
+		});
+		expect(listed?.refundedCents).toBe(listed?.amountCents);
 	});
 });

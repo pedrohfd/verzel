@@ -91,7 +91,9 @@ function OrganizerDashboardComponent() {
 		}
 
 		toast.success(
-			action === "publish" ? "Sessão publicada." : "Sessão cancelada.",
+			action === "publish"
+				? "Sessão publicada."
+				: "Sessão cancelada. Os ingressos vendidos foram cancelados e reembolsados.",
 		);
 		load();
 	}

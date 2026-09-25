@@ -71,7 +71,11 @@ export type CheckinResult =
 	| { result: "invalid" }
 	| { result: "already_used"; checkedInAt: string; checkedInBy: string | null }
 	| { result: "wrong_event"; ticketEventId: string }
-	| { result: "cancelled"; cancelledAt: string }
+	| {
+			result: "cancelled";
+			cancelledAt: string;
+			reason: "customer_cancelled" | "event_cancelled" | null;
+	  }
 	| { result: "expired"; sessionEndedAt: string };
 
 export async function validateTicket(
@@ -100,6 +104,7 @@ export async function validateTicket(
 			return {
 				result: "cancelled",
 				cancelledAt: ticket.cancelledAt.toISOString(),
+				reason: ticket.cancellationReason,
 			};
 		}
 
